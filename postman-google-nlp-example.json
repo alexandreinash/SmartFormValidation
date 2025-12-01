@@ -1,0 +1,140 @@
+{
+	"info": {
+		"_postman_id": "google-nlp-example-123",
+		"name": "Google Cloud Natural Language API - SmartFormValidation",
+		"description": "Postman collection for testing Google Cloud Natural Language API (Sentiment & Entity Analysis)",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+	},
+	"item": [
+		{
+			"name": "Analyze Sentiment",
+			"request": {
+				"method": "POST",
+				"header": [
+					{
+						"key": "Content-Type",
+						"value": "application/json"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n  \"document\": {\n    \"type\": \"PLAIN_TEXT\",\n    \"content\": \"I love this product! It's amazing and works perfectly.\"\n  },\n  \"encodingType\": \"UTF8\"\n}",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "https://language.googleapis.com/v1/documents:analyzeSentiment?key=YOUR_API_KEY",
+					"protocol": "https",
+					"host": [
+						"language",
+						"googleapis",
+						"com"
+					],
+					"path": [
+						"v1",
+						"documents:analyzeSentiment"
+					],
+					"query": [
+						{
+							"key": "key",
+							"value": "YOUR_API_KEY",
+							"description": "Replace with your Google Cloud API key"
+						}
+					]
+				},
+				"description": "Analyzes the sentiment of the given text. Returns score (-1.0 to 1.0) and magnitude."
+			},
+			"response": []
+		},
+		{
+			"name": "Analyze Entities",
+			"request": {
+				"method": "POST",
+				"header": [
+					{
+						"key": "Content-Type",
+						"value": "application/json"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n  \"document\": {\n    \"type\": \"PLAIN_TEXT\",\n    \"content\": \"Apple Inc. is a technology company founded by Steve Jobs in Cupertino, California.\"\n  },\n  \"encodingType\": \"UTF8\"\n}",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "https://language.googleapis.com/v1/documents:analyzeEntities?key=YOUR_API_KEY",
+					"protocol": "https",
+					"host": [
+						"language",
+						"googleapis",
+						"com"
+					],
+					"path": [
+						"v1",
+						"documents:analyzeEntities"
+					],
+					"query": [
+						{
+							"key": "key",
+							"value": "YOUR_API_KEY",
+							"description": "Replace with your Google Cloud API key"
+						}
+					]
+				},
+				"description": "Analyzes entities in the text. Useful for detecting names, companies, locations, etc."
+			},
+			"response": []
+		},
+		{
+			"name": "Test Negative Sentiment (Your Project Use Case)",
+			"request": {
+				"method": "POST",
+				"header": [
+					{
+						"key": "Content-Type",
+						"value": "application/json"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n  \"document\": {\n    \"type\": \"PLAIN_TEXT\",\n    \"content\": \"This is terrible! I hate it so much. Worst experience ever.\"\n  },\n  \"encodingType\": \"UTF8\"\n}",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "https://language.googleapis.com/v1/documents:analyzeSentiment?key=YOUR_API_KEY",
+					"protocol": "https",
+					"host": [
+						"language",
+						"googleapis",
+						"com"
+					],
+					"path": [
+						"v1",
+						"documents:analyzeSentiment"
+					],
+					"query": [
+						{
+							"key": "key",
+							"value": "YOUR_API_KEY"
+						}
+					]
+				},
+				"description": "Tests negative sentiment (score < -0.6) that your project flags for review"
+			},
+			"response": []
+		}
+	]
+}
+
+

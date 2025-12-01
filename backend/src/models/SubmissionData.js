@@ -12,6 +12,8 @@ const SubmissionData = sequelize.define(
     value: { type: DataTypes.TEXT, allowNull: false },
     ai_sentiment_flag: { type: DataTypes.BOOLEAN, defaultValue: false },
     ai_entity_flag: { type: DataTypes.BOOLEAN, defaultValue: false },
+    // True when AI validation could not be performed (e.g., Google NLP failure)
+    ai_not_evaluated: { type: DataTypes.BOOLEAN, defaultValue: false },
   },
   {
     tableName: 'submission_data',

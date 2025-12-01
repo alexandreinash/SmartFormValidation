@@ -27,6 +27,7 @@ export function AuthProvider({ children }) {
     localStorage.setItem('sfv_user', JSON.stringify(u));
     setToken(t);
     setUser(u);
+    return u;
   };
 
   const register = async (email, password, role) => {

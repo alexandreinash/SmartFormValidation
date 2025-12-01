@@ -36,7 +36,7 @@ app.use((err, req, res, next) => {
 const PORT = process.env.PORT || 4000;
 
 sequelize
-  .sync()
+  .sync({ alter: true })
   .then(() => {
     app.listen(PORT, () => {
       console.log(`Smart Form Validator API listening on port ${PORT}`);

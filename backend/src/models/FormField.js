@@ -13,6 +13,16 @@ const FormField = sequelize.define(
     },
     is_required: { type: DataTypes.BOOLEAN, defaultValue: false },
     ai_validation_enabled: { type: DataTypes.BOOLEAN, defaultValue: false },
+    expected_entity: {
+      type: DataTypes.STRING,
+      allowNull: false,
+      defaultValue: 'none',
+    },
+    expected_sentiment: {
+      type: DataTypes.STRING,
+      allowNull: false,
+      defaultValue: 'any',
+    },
   },
   {
     tableName: 'form_fields',

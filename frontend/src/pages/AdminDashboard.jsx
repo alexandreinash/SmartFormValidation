@@ -24,7 +24,7 @@ function AdminDashboard() {
   const handleSubmit = async (e) => {
     e.preventDefault();
     setMessage('');
-    if (!user) {
+    if (!user || user.role !== 'admin') {
       setMessage('You must be logged in as an administrator to create forms.');
       return;
     }

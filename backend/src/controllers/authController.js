@@ -2,6 +2,7 @@ const { body, validationResult } = require('express-validator');
 const jwt = require('jsonwebtoken');
 const bcrypt = require('bcryptjs');
 const User = require('../models/User');
+const { logAudit } = require('../services/auditLogger');
 
 // Validation chains used by the routes
 const validateRegister = [
@@ -32,6 +33,13 @@ async function register(req, res, next) {
 
     const hashed = await bcrypt.hash(password, 10);
     const user = await User.create({ email, password: hashed, role });
+
+    await logAudit({
+      userId: user.id,
+      action: 'user_registered',
+      entityType: 'user',
+      entityId: user.id,
+    });
     return res.status(201).json({
       success: true,
       data: { id: user.id, email: user.email, role: user.role },
@@ -73,6 +81,13 @@ async function login(req, res, next) {
       success: true,
       data: { token, user: { id: user.id, email: user.email, role: user.role } },
       message: 'Login successful',
+    });
+
+    await logAudit({
+      userId: user.id,
+      action: 'user_logged_in',
+      entityType: 'user',
+      entityId: user.id,
     });
   } catch (err) {
     next(err);

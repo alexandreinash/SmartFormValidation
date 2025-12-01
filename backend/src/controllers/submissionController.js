@@ -4,6 +4,7 @@ const FormField = require('../models/FormField');
 const Submission = require('../models/Submission');
 const SubmissionData = require('../models/SubmissionData');
 const { analyzeSentiment, analyzeEntities } = require('../services/googleNlp');
+const { logAudit } = require('../services/auditLogger');
 
 const validateSubmitForm = [body('values').isObject()];
 
@@ -26,7 +27,7 @@ async function submitForm(req, res, next) {
 
     const values = req.body.values;
     const validationErrors = [];
-    const aiSummaries = {}; // fieldId -> { status: 'correct' | 'needs_review', details }
+    const aiSummaries = {}; // fieldId -> { status: 'correct' | 'needs_review' | 'not_evaluated', details }
 
     // Basic validation
     for (const field of form.fields) {
@@ -105,6 +106,18 @@ async function submitForm(req, res, next) {
         };
       } catch (e) {
         console.error('AI validation failed, falling back to basic only', e);
+        aiSummaries[field.id] = {
+          status: 'not_evaluated',
+          details:
+            'AI validation is temporarily unavailable. Basic validation was applied only.',
+        };
+        await logAudit({
+          userId: null,
+          action: 'ai_validation_failed',
+          entityType: 'form_field',
+          entityId: field.id,
+          metadata: { formId: form.id, reason: e.message },
+        });
       }
     }
 
@@ -132,9 +145,18 @@ async function submitForm(req, res, next) {
         value: v,
         ai_sentiment_flag: summary?.status === 'needs_review' ? true : false,
         ai_entity_flag: summary?.status === 'needs_review' ? true : false,
+        ai_not_evaluated: summary?.status === 'not_evaluated' ? true : false,
       });
     }
     await SubmissionData.bulkCreate(dataRows);
+
+    await logAudit({
+      userId: null,
+      action: 'form_submitted',
+      entityType: 'form',
+      entityId: form.id,
+      metadata: { submissionId: submission.id },
+    });
 
     res.status(201).json({
       success: true,

@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { useParams } from 'react-router-dom';
+import { useParams, Link } from 'react-router-dom';
 import api from '../api';
 
 function FormFillPage() {
@@ -8,15 +8,19 @@ function FormFillPage() {
   const [values, setValues] = useState({});
   const [errors, setErrors] = useState([]);
   const [status, setStatus] = useState('');
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     const load = async () => {
       try {
         const res = await api.get(`/api/forms/${id}`);
         setForm(res.data.data);
+        setStatus('');
       } catch (err) {
         setStatus('Failed to load form.');
+        setForm(null);
       }
+      setLoading(false);
     };
     load();
   }, [id]);
@@ -42,12 +46,21 @@ function FormFillPage() {
     }
   };
 
-  if (!form) {
+  if (loading) {
     return <p>Loading form...</p>;
+  }
+
+  if (!form) {
+    return <p className="status">{status || 'Form not found.'}</p>;
   }
 
   return (
     <div>
+      <div style={{ display: 'flex', alignItems: 'center', marginBottom: '0.75rem' }}>
+        <Link to="/forms" className="button" style={{ padding: '0.35rem 0.9rem', borderRadius: '999px' }}>
+          ← Back
+        </Link>
+      </div>
       <h2>{form.title}</h2>
       <form onSubmit={handleSubmit} className="card">
         {form.fields.map((field) => (
@@ -78,7 +91,16 @@ function FormFillPage() {
           </div>
         ))}
         <button type="submit">Submit</button>
-        {status && <p className="status">{status}</p>}
+        {status && (
+          <div>
+            <p className="status">{status}</p>
+            {status.includes('successfully') && (
+              <Link to="/forms" className="button" style={{ marginTop: '1rem' }}>
+                View All Forms
+              </Link>
+            )}
+          </div>
+        )}
       </form>
     </div>
   );
