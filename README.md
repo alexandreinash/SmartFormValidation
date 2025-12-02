@@ -43,9 +43,9 @@ This repository contains a **Node.js/Express + Sequelize** backend and a **React
 ## Prerequisites
 
 - **Node.js**: v18+ (both backend and frontend)
-- **Database**: MySQL 8.x (or compatible)
+- **Database**: Google Cloud SQL for MySQL (or local MySQL 8.x for development)
 - **Google Cloud**:
-  - A GCP project with **Cloud Natural Language API** enabled
+  - A GCP project with **Cloud SQL API** and **Cloud Natural Language API** enabled
   - A service account JSON key file
 
 ---
@@ -59,10 +59,79 @@ cd backend
 npm install
 ```
 
-2. **Configure environment variables**
+2. **Set up Google Cloud SQL**
+
+   **Option A: Using Google Cloud Console**
+   
+   1. Go to [Google Cloud Console](https://console.cloud.google.com/)
+   2. Navigate to **SQL** → **Create Instance**
+   3. Choose **MySQL** as the database engine
+   4. Configure your instance:
+      - **Instance ID**: `smart-form-db` (or your preferred name)
+      - **Root password**: Set a strong password (save it for `.env`)
+      - **Region**: Choose closest to your deployment
+      - **Database version**: MySQL 8.0 or higher
+   5. Click **Create Instance**
+   6. Once created, note the **Public IP address** or set up **Private IP**
+   7. Create a database:
+      - Go to your instance → **Databases** tab
+      - Click **Create Database**
+      - Name: `smart_form_validator`
+      - Character set: `utf8mb4`, Collation: `utf8mb4_unicode_ci`
+   8. Create a user (if not using root):
+      - Go to **Users** tab → **Add User Account**
+      - Username and password (save for `.env`)
+
+   **Option B: Using Cloud SQL Proxy (Recommended for Production)**
+   
+   1. Install Cloud SQL Proxy:
+      ```bash
+      # Windows (using PowerShell)
+      curl -o cloud-sql-proxy.exe https://storage.googleapis.com/cloud-sql-connectors/cloud-sql-proxy/v2.8.0/cloud-sql-proxy.x64.exe
+      
+      # Or download from: https://cloud.google.com/sql/docs/mysql/sql-proxy
+      ```
+   2. Get your instance connection name:
+      - In Cloud Console → SQL → Your Instance → **Overview**
+      - Copy the **Connection name** (format: `project:region:instance`)
+   3. Run the proxy:
+      ```bash
+      ./cloud-sql-proxy.exe project:region:instance
+      ```
+   4. The proxy will listen on `localhost:3306` (or specified port)
+
+3. **Configure environment variables**
 
 Create `.env` in `backend/`:
 
+**For Google Cloud SQL (Direct IP Connection):**
+```env
+PORT=4000
+
+# Google Cloud SQL Configuration
+DB_HOST=YOUR_CLOUD_SQL_PUBLIC_IP
+DB_PORT=3306
+DB_NAME=smart_form_validator
+DB_USER=root
+DB_PASS=your_cloud_sql_password
+DB_SSL=true
+
+# Or if using Cloud SQL Proxy (connect via localhost)
+# DB_HOST=127.0.0.1
+# DB_PORT=3306
+# DB_SSL=false
+
+JWT_SECRET=your_jwt_secret_here
+
+# Google Cloud NLP
+GCLOUD_NLP_ENABLED=true
+GOOGLE_APPLICATION_CREDENTIALS=C:/path/to/your/service-account.json
+
+# Optional: Enable SQL query logging
+# DB_LOGGING=true
+```
+
+**For Local MySQL (Development):**
 ```env
 PORT=4000
 
@@ -71,6 +140,7 @@ DB_PORT=3306
 DB_NAME=smart_form_validator
 DB_USER=root
 DB_PASS=your_password_here
+DB_SSL=false
 
 JWT_SECRET=your_jwt_secret_here
 
@@ -82,11 +152,10 @@ GOOGLE_APPLICATION_CREDENTIALS=C:/path/to/your/service-account.json
 Adjust DB values and the path to your service account JSON file as needed.  
 If you set `GCLOUD_NLP_ENABLED=false`, the API wrapper becomes a no-op and only basic validation is used.
 
-3. **Create the database**
-
-```sql
-CREATE DATABASE smart_form_validator CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
-```
+**Important Security Notes:**
+- For Cloud SQL, ensure your IP is authorized in **Authorized networks** (SQL → Connections)
+- Or use Cloud SQL Proxy for secure connections without exposing public IPs
+- Always use `DB_SSL=true` when connecting directly to Cloud SQL
 
 4. **Run the backend**
 
@@ -137,7 +206,8 @@ npm install
 npm run dev
 ```
 
-The app runs on `http://localhost:5173`. Vite is already configured to **proxy `/api`** requests to `http://localhost:4000`.
+The app runs on `http://localhost:5173` (or another port Vite prints in the terminal, for example `http://localhost:5174`).  
+Vite is already configured to **proxy `/api`** requests to `http://localhost:5000`.
 
 ---
 

@@ -1,15 +1,19 @@
 import React, { useEffect, useState } from 'react';
-import { useParams } from 'react-router-dom';
+import { useParams, useNavigate } from 'react-router-dom';
 import api from '../api';
 import { useAuth } from '../AuthContext';
 
 function FormSubmissionsPage() {
   const { id } = useParams();
+  const navigate = useNavigate();
   const { user } = useAuth();
   const [formInfo, setFormInfo] = useState(null);
   const [submissions, setSubmissions] = useState([]);
   const [status, setStatus] = useState('');
   const [filter, setFilter] = useState('all'); // all | ai_flagged | ai_not_evaluated
+  const [editingId, setEditingId] = useState(null);
+  const [editValues, setEditValues] = useState({});
+  const [isBusy, setIsBusy] = useState(false);
 
   useEffect(() => {
     const load = async () => {
@@ -21,12 +25,67 @@ function FormSubmissionsPage() {
         const res = await api.get(`/api/submissions/form/${id}`);
         setFormInfo(res.data.data.form);
         setSubmissions(res.data.data.submissions || []);
+        setStatus('');
       } catch (err) {
         setStatus('Failed to load submissions.');
       }
     };
     load();
   }, [id]);
+
+  const startEdit = (submission) => {
+    const values = {};
+    (submission.answers || []).forEach((ans) => {
+      values[ans.field_id] = ans.value || '';
+    });
+    setEditingId(submission.id);
+    setEditValues(values);
+  };
+
+  const cancelEdit = () => {
+    setEditingId(null);
+    setEditValues({});
+  };
+
+  const handleEditChange = (fieldId, value) => {
+    setEditValues((prev) => ({ ...prev, [fieldId]: value }));
+  };
+
+  const saveEdit = async (submissionId) => {
+    try {
+      setIsBusy(true);
+      await api.put(`/api/submissions/${submissionId}`, {
+        values: editValues,
+      });
+
+      // Refresh list after successful update
+      const res = await api.get(`/api/submissions/form/${id}`);
+      setSubmissions(res.data.data.submissions || []);
+      setStatus('Submission updated.');
+      setEditingId(null);
+      setEditValues({});
+    } catch (err) {
+      setStatus('Failed to update submission.');
+    } finally {
+      setIsBusy(false);
+    }
+  };
+
+  const deleteSubmission = async (submissionId) => {
+    if (!window.confirm('Are you sure you want to delete this submission?')) {
+      return;
+    }
+    try {
+      setIsBusy(true);
+      await api.delete(`/api/submissions/${submissionId}`);
+      setSubmissions((prev) => prev.filter((s) => s.id !== submissionId));
+      setStatus('Submission deleted.');
+    } catch (err) {
+      setStatus('Failed to delete submission.');
+    } finally {
+      setIsBusy(false);
+    }
+  };
 
   const filteredSubmissions = submissions.map((sub) => ({
     ...sub,
@@ -58,6 +117,14 @@ function FormSubmissionsPage() {
     <div className="page-heading">
       <div className="page-header">
         <div>
+          <button
+            type="button"
+            className="button button-secondary"
+            style={{ marginBottom: '0.75rem' }}
+            onClick={() => navigate(-1)}
+          >
+            ← Back
+          </button>
           <div className="page-kicker">Form submissions</div>
           <h2 className="page-title">
             {formInfo?.title || 'Form'}{' '}
@@ -180,6 +247,47 @@ function FormSubmissionsPage() {
                     {new Date(sub.submitted_at).toLocaleString()}
                   </div>
                 </div>
+                <div className="submission-actions">
+                  {editingId === sub.id ? (
+                    <>
+                      <button
+                        type="button"
+                        className="button button-secondary"
+                        onClick={cancelEdit}
+                        disabled={isBusy}
+                      >
+                        Cancel
+                      </button>
+                      <button
+                        type="button"
+                        className="button"
+                        onClick={() => saveEdit(sub.id)}
+                        disabled={isBusy}
+                      >
+                        Save changes
+                      </button>
+                    </>
+                  ) : (
+                    <>
+                      <button
+                        type="button"
+                        className="button button-secondary"
+                        onClick={() => startEdit(sub)}
+                        disabled={isBusy}
+                      >
+                        Edit
+                      </button>
+                      <button
+                        type="button"
+                        className="button button-danger"
+                        onClick={() => deleteSubmission(sub.id)}
+                        disabled={isBusy}
+                      >
+                        Delete
+                      </button>
+                    </>
+                  )}
+                </div>
               </div>
               <ul className="answers-list">
                 {(sub.answers || []).map((ans) => (
@@ -188,7 +296,20 @@ function FormSubmissionsPage() {
                       {ans.field?.label || 'Field'}
                     </div>
                     <div className="answer-value">
-                      {ans.value || <span className="answer-empty">No answer</span>}
+                      {editingId === sub.id ? (
+                        <textarea
+                          className="input"
+                          value={editValues[ans.field_id] ?? ''}
+                          onChange={(e) =>
+                            handleEditChange(ans.field_id, e.target.value)
+                          }
+                          rows={2}
+                        />
+                      ) : (
+                        ans.value || (
+                          <span className="answer-empty">No answer</span>
+                        )
+                      )}
                       {(ans.ai_sentiment_flag || ans.ai_entity_flag) && (
                         <span className="flag">AI flagged for review</span>
                       )}
