@@ -33,10 +33,12 @@ app.use((err, req, res, next) => {
   });
 });
 
-const PORT = process.env.PORT || 4000;
+// Use a non-common default port to avoid conflicts with other local services.
+const PORT = process.env.PORT || 5000;
 
+// Note: using plain `.sync()` to avoid ALTER TABLE deadlocks on existing schemas.
 sequelize
-  .sync({ alter: true })
+  .sync()
   .then(() => {
     app.listen(PORT, () => {
       console.log(`Smart Form Validator API listening on port ${PORT}`);

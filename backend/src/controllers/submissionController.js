@@ -8,6 +8,48 @@ const { logAudit } = require('../services/auditLogger');
 
 const validateSubmitForm = [body('values').isObject()];
 
+// Re‑usable helper to perform basic (non‑AI) validation of values against form fields
+async function validateBasicFormValues(formId, values) {
+  const form = await Form.findByPk(formId, {
+    include: [{ model: FormField, as: 'fields' }],
+  });
+  if (!form) {
+    return { form: null, validationErrors: [{ message: 'Form not found' }] };
+  }
+
+  const validationErrors = [];
+
+  for (const field of form.fields) {
+    const v = values[field.id];
+    if (field.is_required && (v === undefined || v === '')) {
+      validationErrors.push({
+        fieldId: field.id,
+        type: 'basic',
+        message: 'This field is required.',
+      });
+    }
+    if (field.type === 'email' && v) {
+      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+      if (!emailRegex.test(v)) {
+        validationErrors.push({
+          fieldId: field.id,
+          type: 'basic',
+          message: 'Please enter a valid email address.',
+        });
+      }
+    }
+    if (field.type === 'number' && v && isNaN(Number(v))) {
+      validationErrors.push({
+        fieldId: field.id,
+        type: 'basic',
+        message: 'Please enter a numeric value.',
+      });
+    }
+  }
+
+  return { form, validationErrors };
+}
+
 // Handles public form submission with basic + AI validation
 async function submitForm(req, res, next) {
   try {
@@ -16,47 +58,20 @@ async function submitForm(req, res, next) {
       return res.status(400).json({ success: false, errors: errors.array() });
     }
 
-    const form = await Form.findByPk(req.params.formId, {
-      include: [{ model: FormField, as: 'fields' }],
-    });
+    const values = req.body.values;
+
+    const { form, validationErrors } = await validateBasicFormValues(
+      req.params.formId,
+      values
+    );
+
     if (!form) {
       return res
         .status(404)
         .json({ success: false, message: 'Form not found' });
     }
 
-    const values = req.body.values;
-    const validationErrors = [];
     const aiSummaries = {}; // fieldId -> { status: 'correct' | 'needs_review' | 'not_evaluated', details }
-
-    // Basic validation
-    for (const field of form.fields) {
-      const v = values[field.id];
-      if (field.is_required && (v === undefined || v === '')) {
-        validationErrors.push({
-          fieldId: field.id,
-          type: 'basic',
-          message: 'This field is required.',
-        });
-      }
-      if (field.type === 'email' && v) {
-        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-        if (!emailRegex.test(v)) {
-          validationErrors.push({
-            fieldId: field.id,
-            type: 'basic',
-            message: 'Please enter a valid email address.',
-          });
-        }
-      }
-      if (field.type === 'number' && v && isNaN(Number(v))) {
-        validationErrors.push({
-          fieldId: field.id,
-          type: 'basic',
-          message: 'Please enter a numeric value.',
-        });
-      }
-    }
 
     // AI validation (sentiment & entity)
     for (const field of form.fields) {
@@ -202,10 +217,111 @@ async function getFormSubmissions(req, res, next) {
   }
 }
 
+// Admin-only: delete a submission and its answers
+async function deleteSubmission(req, res, next) {
+  try {
+    const submission = await Submission.findByPk(req.params.submissionId);
+    if (!submission) {
+      return res
+        .status(404)
+        .json({ success: false, message: 'Submission not found' });
+    }
+
+    await SubmissionData.destroy({
+      where: { submission_id: submission.id },
+    });
+    await submission.destroy();
+
+    await logAudit({
+      userId: req.user?.id || null,
+      action: 'submission_deleted',
+      entityType: 'submission',
+      entityId: submission.id,
+      metadata: { formId: submission.form_id },
+    });
+
+    res.json({ success: true, message: 'Submission deleted successfully.' });
+  } catch (err) {
+    next(err);
+  }
+}
+
+// Admin-only: update submission answers (basic validation only)
+async function updateSubmission(req, res, next) {
+  try {
+    const submission = await Submission.findByPk(req.params.submissionId);
+    if (!submission) {
+      return res
+        .status(404)
+        .json({ success: false, message: 'Submission not found' });
+    }
+
+    const values = req.body.values || {};
+    const { form, validationErrors } = await validateBasicFormValues(
+      submission.form_id,
+      values
+    );
+
+    if (!form) {
+      return res
+        .status(404)
+        .json({ success: false, message: 'Form not found' });
+    }
+
+    if (validationErrors.length > 0) {
+      return res.status(400).json({
+        success: false,
+        message: 'Some answers did not pass basic validation.',
+        errors: validationErrors,
+      });
+    }
+
+    const existingAnswers = await SubmissionData.findAll({
+      where: { submission_id: submission.id },
+    });
+
+    // Update values for each existing answer row
+    for (const answer of existingAnswers) {
+      if (Object.prototype.hasOwnProperty.call(values, answer.field_id)) {
+        answer.value = values[answer.field_id] || '';
+        await answer.save();
+      }
+    }
+
+    const updated = await Submission.findByPk(submission.id, {
+      include: [
+        {
+          model: SubmissionData,
+          as: 'answers',
+          include: [{ model: FormField, as: 'field' }],
+        },
+      ],
+    });
+
+    await logAudit({
+      userId: req.user?.id || null,
+      action: 'submission_updated',
+      entityType: 'submission',
+      entityId: submission.id,
+      metadata: { formId: submission.form_id },
+    });
+
+    res.json({
+      success: true,
+      message: 'Submission updated successfully.',
+      data: updated,
+    });
+  } catch (err) {
+    next(err);
+  }
+}
+
 module.exports = {
   validateSubmitForm,
   submitForm,
   getFormSubmissions,
+  deleteSubmission,
+  updateSubmission,
 };
 
 
