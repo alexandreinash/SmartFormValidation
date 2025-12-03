@@ -188,15 +188,12 @@ function FormFillPage() {
     setIsSubmitting(true);
     
     try {
+      // Backend expects: POST /api/submissions/:formId with body { values: { [fieldId]: value } }
       const payload = {
-        formId: id,
-        answers: Object.entries(values).map(([fieldId, value]) => ({
-          fieldId,
-          value
-        }))
+        values: values
       };
       
-      const res = await api.post('/api/submissions', payload);
+      const res = await api.post(`/api/submissions/${id}`, payload);
       
       if (res.data.success) {
         setStatus('Form submitted successfully!');
@@ -319,7 +316,7 @@ function FormFillPage() {
                       {field.label}
                       {field.is_required && <span className="required-asterisk">*</span>}
                     </label>
-                    {field.ai_validation && (
+                    {field.ai_validation_enabled && (
                       <span className="ai-badge" title="AI-powered validation enabled">
                         🤖 AI Check
                       </span>
