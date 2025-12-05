@@ -3,8 +3,13 @@ const Form = require('../models/Form');
 const FormField = require('../models/FormField');
 const Submission = require('../models/Submission');
 const SubmissionData = require('../models/SubmissionData');
+const User = require('../models/User');
 const { analyzeSentiment, analyzeEntities } = require('../services/googleNlp');
 const { logAudit } = require('../services/auditLogger');
+const {
+  sendSubmissionNotificationEmail,
+  sendSubmissionConfirmationEmail,
+} = require('../services/emailService');
 
 const validateSubmitForm = [body('values').isObject()];
 
@@ -172,6 +177,62 @@ async function submitForm(req, res, next) {
       entityId: form.id,
       metadata: { submissionId: submission.id },
     });
+
+    // Check if submission has AI flags
+    const hasAiFlags = dataRows.some(
+      (row) => row.ai_sentiment_flag || row.ai_entity_flag
+    );
+
+    // Send email notifications (non-blocking)
+    // Notify admin if form creator exists
+    if (form.created_by) {
+      const formCreator = await User.findByPk(form.created_by);
+      if (formCreator && formCreator.email) {
+        sendSubmissionNotificationEmail(
+          formCreator.email,
+          form.title,
+          submission.id,
+          hasAiFlags
+        ).catch((err) => {
+          console.error('Failed to send admin notification email:', err);
+        });
+      }
+    }
+
+    // Try to send confirmation to submitter if email is provided in form values
+    // (This assumes one of the fields might be an email field)
+    const emailField = form.fields.find((f) => f.type === 'email');
+    if (emailField && values[emailField.id]) {
+      sendSubmissionConfirmationEmail(
+        values[emailField.id],
+        form.title,
+        submission.id
+      ).catch((err) => {
+        console.error('Failed to send confirmation email:', err);
+      });
+    }
+
+    // Emit real-time update via WebSocket
+    const io = req.app.get('io');
+    if (io) {
+      // Notify admin room
+      io.to('admin-room').emit('new-submission', {
+        formId: form.id,
+        formTitle: form.title,
+        submissionId: submission.id,
+        hasAiFlags,
+        timestamp: new Date(),
+      });
+
+      // Notify form-specific room
+      io.to(`form-${form.id}`).emit('new-submission', {
+        formId: form.id,
+        formTitle: form.title,
+        submissionId: submission.id,
+        hasAiFlags,
+        timestamp: new Date(),
+      });
+    }
 
     res.status(201).json({
       success: true,

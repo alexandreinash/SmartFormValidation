@@ -1,0 +1,11 @@
+:root {
+  --bg-gradient: radial-gradient(circle at top left, #e0fbff 0, #f4f7fb 45%, #edf2ff 100%);
+  --surface: #ffffff;
+  --surface-soft: #f9fafb;
+  --text-main: #0f172a;
+  --text-muted: #64748b;
+  --border-subtle: rgba(148, 163, 184, 0.3);
+  --accent: #2563eb;
+  --accent-soft: rgba(37, 99, 235, 0.12);
+}
+

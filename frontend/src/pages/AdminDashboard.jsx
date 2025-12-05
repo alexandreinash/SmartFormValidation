@@ -112,6 +112,20 @@ function AdminDashboard() {
           </button>
         </div>
       </div>
+
+      <div className="card">
+        <h3>Analytics Dashboard</h3>
+        <p>
+          View comprehensive analytics and statistics for all forms and submissions.
+        </p>
+        <button
+          type="button"
+          onClick={() => navigate('/admin/analytics')}
+          className="button"
+        >
+          View Analytics
+        </button>
+      </div>
     </div>
   );
 }

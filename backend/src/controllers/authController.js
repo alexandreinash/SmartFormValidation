@@ -3,6 +3,7 @@ const jwt = require('jsonwebtoken');
 const bcrypt = require('bcryptjs');
 const User = require('../models/User');
 const { logAudit } = require('../services/auditLogger');
+const { sendRegistrationEmail } = require('../services/emailService');
 
 // Validation chains used by the routes
 const validateRegister = [
@@ -40,6 +41,12 @@ async function register(req, res, next) {
       entityType: 'user',
       entityId: user.id,
     });
+
+    // Send registration email (non-blocking)
+    sendRegistrationEmail(user.email, user.role).catch((err) => {
+      console.error('Failed to send registration email:', err);
+    });
+
     return res.status(201).json({
       success: true,
       data: { id: user.id, email: user.email, role: user.role },

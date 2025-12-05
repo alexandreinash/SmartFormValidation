@@ -21,13 +21,25 @@ export function AuthProvider({ children }) {
   }, []);
 
   const login = async (email, password) => {
-    const res = await api.post('/api/auth/login', { email, password });
-    const { token: t, user: u } = res.data.data;
-    localStorage.setItem('sfv_token', t);
-    localStorage.setItem('sfv_user', JSON.stringify(u));
-    setToken(t);
-    setUser(u);
-    return u;
+    try {
+      const res = await api.post('/api/auth/login', { email, password });
+      if (res.data.success && res.data.data) {
+        const { token: t, user: u } = res.data.data;
+        localStorage.setItem('sfv_token', t);
+        localStorage.setItem('sfv_user', JSON.stringify(u));
+        setToken(t);
+        setUser(u);
+        return u;
+      } else {
+        throw new Error(res.data.message || 'Login failed');
+      }
+    } catch (error) {
+      // Re-throw with proper error structure
+      if (error.response) {
+        throw error;
+      }
+      throw new Error('Network error: Could not reach the server');
+    }
   };
 
   const register = async (email, password, role) => {

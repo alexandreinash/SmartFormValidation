@@ -1,0 +1,82 @@
+.app {
+  font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  min-height: 100vh;
+  background: var(--bg-gradient);
+  color: var(--text-main);
+}
+
+.app .content-auth {
+  padding: 0;
+  margin: 0;
+  max-width: none;
+}
+
+/* Override app background for auth pages */
+.app:has(.auth-page) {
+  background: #0f172a;
+}
+
+.topbar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0.75rem 1.5rem;
+  background: linear-gradient(90deg, rgba(15, 23, 42, 0.9), rgba(15, 23, 42, 0.75));
+  color: #fff;
+  box-shadow: 0 4px 12px rgba(15, 23, 42, 0.25);
+}
+
+.topbar a {
+  margin-left: 1rem;
+  color: #f1faee;
+  text-decoration: none;
+  font-size: 0.95rem;
+}
+
+.topbar a:hover {
+  text-decoration: underline;
+}
+
+.logo {
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+  font-weight: 600;
+  letter-spacing: 0.03em;
+}
+
+.logo-mark {
+  width: 28px;
+  height: 28px;
+  border-radius: 999px;
+  background: rgba(241, 250, 238, 0.22);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.8rem;
+  font-weight: 700;
+}
+
+.logo-text {
+  font-size: 0.98rem;
+}
+
+.topbar-nav {
+  display: flex;
+  align-items: center;
+}
+
+.content {
+  max-width: 960px;
+  margin: 3.25rem auto;
+  padding: 0 1rem 3.25rem;
+}
+
+.content-auth {
+  max-width: none;
+  margin: 0;
+  padding: 0;
+  width: 100%;
+  height: 100vh;
+}
+

@@ -273,14 +273,31 @@ Vite is already configured to **proxy `/api`** requests to `http://localhost:500
 
 ---
 
-## Future Enhancements (from SRS)
+## Implemented Features (from SRS)
 
-The codebase currently focuses on the core flow. Additional SRS items you can implement next:
+The following features have been implemented:
 
-- Email notifications (SendGrid/SES) for registration, alerts, and submission events
-- WebSocket real-time updates for validation status and analytics
-- Detailed analytics endpoints (`/api/analytics`) for admin dashboards
-- Rate limiting and advanced audit logging for compliance and cost control
+✅ **Rate Limiting**: Applied to all API routes with specific limits for auth, submissions, and general API calls
+✅ **Email Notifications**: 
+  - Registration confirmation emails
+  - Form submission notifications to admins
+  - Submission confirmation emails to users
+  - Supports SMTP (development), SendGrid, and AWS SES
+✅ **WebSocket Real-time Updates**: 
+  - Real-time notifications for new form submissions
+  - Admin dashboard and form-specific rooms
+  - Live updates in submission pages
+✅ **Analytics Dashboard**: 
+  - System-wide analytics (`/api/analytics`)
+  - Form-specific analytics (`/api/analytics/forms/:formId`)
+  - AI validation statistics
+  - Top forms by submissions
+  - Submissions over time
+  - Field-level statistics
+✅ **Enhanced Audit Logging**: 
+  - Query endpoints for audit logs (`/api/audit`)
+  - Audit log statistics (`/api/audit/stats`)
+  - Filtering by action, entity type, user, and date range
 
 This `README.md` is designed to match your SRS and make it easy for anyone (instructors, teammates, or evaluators) to run and understand your Smart Form Validator project.
 
