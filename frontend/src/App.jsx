@@ -15,41 +15,16 @@ import HomePage from './pages/HomePage';
 import { useAuth } from './AuthContext';
 
 function AppShell() {
-  const { user, logout } = useAuth();
-  const navigate = useNavigate();
   const location = useLocation();
 
   const isAuthRoute =
     location.pathname === '/login' || location.pathname === '/register';
   const isHomePage = location.pathname === '/';
-
-  const handleLogout = () => {
-    logout();
-    navigate('/');
-  };
+  const isAdminDashboard = location.pathname === '/admin';
 
   return (
     <div className="app">
-      {!isAuthRoute && !isHomePage && (
-        <header className="topbar">
-          <div className="logo">Smart Form Validator</div>
-          <nav>
-            {user && user.role !== 'admin' && <Link to="/forms">Forms</Link>}
-            {user && user.role === 'admin' && <Link to="/admin">Admin</Link>}
-            {!user ? (
-              <>
-                <Link to="/login">Login</Link>
-                <Link to="/register">Register</Link>
-              </>
-            ) : (
-              <button type="button" className="link-button" onClick={handleLogout}>
-                Logout ({user.email})
-              </button>
-            )}
-          </nav>
-        </header>
-      )}
-      <main className={isAuthRoute || isHomePage ? 'content content-auth' : 'content'}>
+      <main className={isAuthRoute || isHomePage || isAdminDashboard ? 'content content-auth' : 'content'}>
         <Routes>
           <Route path="/" element={<HomePage />} />
           <Route path="/login" element={<LoginPage />} />

@@ -1,11 +1,48 @@
 :root {
-  --bg-gradient: radial-gradient(circle at top left, #e0fbff 0, #f4f7fb 45%, #edf2ff 100%);
+  /* Light Theme - Clean and Minimalist */
+  --bg-gradient: linear-gradient(to bottom, #f0f9ff 0%, #f8fafc 50%, #f1f5f9 100%);
+  --bg-main: #ffffff;
+  --bg-card: #ffffff;
+  --bg-sidebar: #ffffff;
+  --bg-hover: #f8fafc;
+  
+  /* Surface Colors */
   --surface: #ffffff;
-  --surface-soft: #f9fafb;
-  --text-main: #0f172a;
+  --surface-soft: #f8fafc;
+  --surface-elevated: #ffffff;
+  
+  /* Text Colors */
+  --text-main: #1e293b;
   --text-muted: #64748b;
-  --border-subtle: rgba(148, 163, 184, 0.3);
-  --accent: #2563eb;
-  --accent-soft: rgba(37, 99, 235, 0.12);
+  --text-dim: #94a3b8;
+  --text-light: #ffffff;
+  
+  /* Accent Colors - Yellow/Orange */
+  --accent: #f59e0b;
+  --accent-hover: #d97706;
+  --accent-active: #fbbf24;
+  --accent-soft: rgba(245, 158, 11, 0.1);
+  
+  /* Secondary Colors - Light Blue */
+  --secondary: #3b82f6;
+  --secondary-hover: #2563eb;
+  --secondary-soft: rgba(59, 130, 246, 0.1);
+  
+  /* Border */
+  --border-subtle: #e2e8f0;
+  --border-light: #cbd5e1;
+  --border-medium: #94a3b8;
+  
+  /* Status Colors */
+  --success: #10b981;
+  --error: #ef4444;
+  --warning: #f59e0b;
+  --info: #3b82f6;
+  
+  /* Shadows */
+  --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.05);
+  --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.08);
+  --shadow-lg: 0 8px 24px rgba(0, 0, 0, 0.12);
+  --shadow-sidebar: 2px 0 8px rgba(0, 0, 0, 0.05);
 }
 
