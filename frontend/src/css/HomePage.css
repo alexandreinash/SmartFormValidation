@@ -1,0 +1,351 @@
+/* HomePage Styles - Dark Blue Theme with Glowing Graphics */
+
+.homepage-container {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  background: #0a1628;
+  padding: 0;
+  margin: 0;
+  overflow: hidden;
+}
+
+/* Smart Form Validator Logo - Top Left with Yellow Box */
+.homepage-logo {
+  position: absolute;
+  top: 2rem;
+  left: 2rem;
+  color: #000000;
+  font-size: 0.875rem;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  z-index: 10;
+  background: #fbbf24;
+  padding: 0.5rem 1rem;
+  border-radius: 6px;
+  box-shadow: 0 2px 8px rgba(251, 191, 36, 0.3);
+}
+
+/* Logout Button - Top Right with Yellow Box */
+.homepage-logout-button {
+  position: absolute;
+  top: 0.5rem;
+  right: 2rem;
+  padding: 0.5rem 1rem;
+  background: #fbbf24;
+  color: #000000;
+  font-size: 0.75rem;
+  font-weight: 600;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  z-index: 10;
+  box-shadow: 0 2px 8px rgba(251, 191, 36, 0.3);
+  min-width: 80px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.homepage-logout-button:hover {
+  background: #f59e0b;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(251, 191, 36, 0.4);
+}
+
+/* Box on Right Side */
+.homepage-right-box {
+  position: absolute;
+  top: 10%;
+  right: 5%;
+  width: 45%;
+  height: 80%;
+  background: rgba(30, 41, 59, 0.3);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 16px;
+  padding: 2rem;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+  backdrop-filter: blur(10px);
+  z-index: 1;
+  overflow: hidden;
+}
+
+/* Abstract Graphics on Right Side */
+.homepage-graphics {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+}
+
+/* Glowing Blue Card with Form Validation */
+.homepage-validation-card {
+  position: absolute;
+  top: 10%;
+  right: 10%;
+  width: 280px;
+  height: 200px;
+  background: rgba(59, 130, 246, 0.15);
+  border: 2px solid rgba(59, 130, 246, 0.5);
+  border-radius: 12px;
+  padding: 1.5rem;
+  box-shadow: 0 0 30px rgba(59, 130, 246, 0.4), inset 0 0 20px rgba(59, 130, 246, 0.1);
+  backdrop-filter: blur(10px);
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.homepage-validation-item {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.homepage-checkmark-circle {
+  width: 24px;
+  height: 24px;
+  background: rgba(59, 130, 246, 0.8);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  box-shadow: 0 0 10px rgba(59, 130, 246, 0.6);
+}
+
+.homepage-validation-line {
+  flex: 1;
+  height: 3px;
+  background: rgba(59, 130, 246, 0.4);
+  border-radius: 2px;
+}
+
+/* Dark Card Below */
+.homepage-dark-card {
+  position: absolute;
+  top: 50%;
+  right: 15%;
+  width: 200px;
+  height: 150px;
+  background: rgba(0, 0, 0, 0.4);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 12px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+}
+
+/* Document Icon with Magnifying Glass */
+.homepage-document-icon {
+  position: absolute;
+  top: 20%;
+  right: 45%;
+  opacity: 0.6;
+}
+
+/* Connecting Lines */
+.homepage-connecting-line {
+  position: absolute;
+  background: rgba(255, 255, 255, 0.3);
+  height: 2px;
+}
+
+.homepage-line-1 {
+  top: 25%;
+  right: 35%;
+  width: 120px;
+  transform: rotate(25deg);
+}
+
+.homepage-line-2 {
+  top: 50%;
+  right: 30%;
+  width: 100px;
+  transform: rotate(-15deg);
+}
+
+.homepage-line-3 {
+  top: 35%;
+  right: 50%;
+  width: 80px;
+  transform: rotate(45deg);
+}
+
+/* Connecting Dots */
+.homepage-connecting-dot {
+  position: absolute;
+  width: 6px;
+  height: 6px;
+  background: rgba(255, 255, 255, 0.8);
+  border-radius: 50%;
+  box-shadow: 0 0 8px rgba(255, 255, 255, 0.6);
+}
+
+.homepage-dot-1 {
+  top: 24%;
+  right: 34%;
+}
+
+.homepage-dot-2 {
+  top: 49%;
+  right: 29%;
+}
+
+.homepage-dot-3 {
+  top: 34%;
+  right: 49%;
+}
+
+.homepage-dot-4 {
+  top: 30%;
+  right: 25%;
+}
+
+/* Vertical White Bar */
+.homepage-vertical-bar {
+  position: absolute;
+  bottom: 20%;
+  right: 10%;
+  width: 8px;
+  height: 80px;
+  background: rgba(255, 255, 255, 0.6);
+  border-radius: 4px;
+  box-shadow: 0 0 10px rgba(255, 255, 255, 0.4);
+}
+
+/* Main Content - Left Side */
+.homepage-content {
+  position: absolute;
+  top: 50%;
+  left: 8%;
+  transform: translateY(-50%);
+  max-width: 600px;
+  z-index: 2;
+}
+
+.homepage-title {
+  font-size: 4.5rem;
+  font-weight: 700;
+  margin: 0 0 1.5rem 0;
+  line-height: 1.2;
+  letter-spacing: -0.02em;
+}
+
+.homepage-title-yellow {
+  color: #fbbf24;
+}
+
+.homepage-title-white {
+  color: #ffffff;
+}
+
+.homepage-description {
+  font-size: 1.15rem;
+  color: #ffffff;
+  line-height: 1.7;
+  margin: 0 0 2.5rem 0;
+  max-width: 550px;
+  opacity: 0.95;
+}
+
+.homepage-buttons {
+  display: flex;
+  justify-content: flex-start;
+  gap: 1rem;
+  flex-wrap: wrap;
+  margin-left: 8rem;
+}
+
+.homepage-start-button {
+  padding: 1.25rem 2.5rem;
+  font-size: 1rem;
+  font-weight: 600;
+  border: none;
+  border-radius: 12px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  letter-spacing: 0.02em;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  box-shadow: 0 4px 16px rgba(251, 191, 36, 0.3);
+  min-width: 140px;
+}
+
+.homepage-button-primary {
+  background: #fbbf24;
+  color: #000000;
+}
+
+.homepage-button-primary:hover {
+  background: #f59e0b;
+  transform: translateY(-3px);
+  box-shadow: 0 6px 20px rgba(251, 191, 36, 0.5);
+}
+
+.homepage-button-secondary {
+  background: transparent;
+  color: #ffffff;
+  border: 2px solid #ffffff;
+}
+
+.homepage-button-secondary:hover {
+  background: rgba(255, 255, 255, 0.1);
+  border-color: #fbbf24;
+  color: #fbbf24;
+  transform: translateY(-2px);
+}
+
+.homepage-start-button:active {
+  transform: translateY(0);
+}
+
+/* Responsive Design */
+@media (max-width: 1024px) {
+  .homepage-graphics {
+    width: 40%;
+  }
+
+  .homepage-title {
+    font-size: 3.5rem;
+  }
+
+  .homepage-validation-card {
+    width: 220px;
+    height: 160px;
+    right: 10%;
+  }
+}
+
+@media (max-width: 768px) {
+  .homepage-graphics {
+    display: none;
+  }
+
+  .homepage-content {
+    left: 5%;
+    right: 5%;
+    max-width: 100%;
+  }
+
+  .homepage-title {
+    font-size: 2.5rem;
+  }
+
+  .homepage-description {
+    font-size: 1rem;
+  }
+
+  .homepage-buttons {
+    flex-direction: column;
+  }
+
+  .homepage-start-button {
+    width: 100%;
+    max-width: 300px;
+  }
+}

@@ -1,0 +1,166 @@
+/* Admin Dashboard Styles */
+.admin-dashboard-container {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  background: #0f172a;
+  padding: 0;
+  margin: 0;
+  overflow-y: auto;
+}
+
+/* Smart Form Validator Banner */
+.admin-banner {
+  position: absolute;
+  top: 0;
+  left: 0;
+  padding: 0.6rem 1.2rem;
+  background: #fbbf24;
+  color: #000000;
+  font-size: 0.75rem;
+  font-weight: 700;
+  border-radius: 0 0 4px 0;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  z-index: 10;
+}
+
+/* Main Content */
+.admin-dashboard-content {
+  padding: 6rem 2rem 2rem;
+  max-width: 1200px;
+  margin: 0 auto;
+}
+
+/* Welcome Title */
+.admin-welcome-title {
+  font-size: 3rem;
+  font-weight: 700;
+  color: #fbbf24;
+  margin: 0 0 1rem 0;
+  line-height: 1.2;
+  text-align: center;
+}
+
+/* Instruction Text */
+.admin-instruction-text {
+  font-size: 1.1rem;
+  color: #ffffff;
+  margin: 0 0 3rem 0;
+  text-align: center;
+}
+
+/* Cards Grid */
+.admin-cards-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  gap: 2rem;
+  margin-top: 2rem;
+}
+
+/* Card Styles */
+.admin-card {
+  background: linear-gradient(135deg, #c0c0c0 0%, #e8e8e8 50%, #c0c0c0 100%);
+  border-radius: 8px;
+  padding: 2rem;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1), 0 2px 4px rgba(0, 0, 0, 0.06), inset 0 1px 0 rgba(255, 255, 255, 0.6);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  transition: all 0.3s ease;
+  cursor: pointer;
+  border: 1px solid rgba(255, 255, 255, 0.3);
+}
+
+.admin-card:hover {
+  transform: translateY(-8px);
+  box-shadow: 0 12px 24px rgba(0, 0, 0, 0.15), 0 6px 12px rgba(0, 0, 0, 0.1), inset 0 1px 0 rgba(255, 255, 255, 0.8);
+  background: linear-gradient(135deg, #b8b8b8 0%, #e0e0e0 50%, #b8b8b8 100%);
+}
+
+/* Card Icon */
+.admin-card-icon {
+  font-size: 3rem;
+  margin-bottom: 1.5rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 80px;
+  height: 80px;
+  background: #fef3c7;
+  border-radius: 12px;
+  transition: all 0.3s ease;
+}
+
+.admin-card:hover .admin-card-icon {
+  background: #fde68a;
+  transform: scale(1.1);
+}
+
+/* Card Title */
+.admin-card-title {
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: #1f2937;
+  margin: 0 0 0.75rem 0;
+  text-align: center;
+}
+
+/* Card Description */
+.admin-card-description {
+  font-size: 1rem;
+  color: #6b7280;
+  margin: 0 0 1.5rem 0;
+  line-height: 1.6;
+  flex: 1;
+  text-align: center;
+}
+
+/* Card Button */
+.admin-card-button {
+  padding: 0.75rem 1.5rem;
+  background: #fbbf24;
+  color: #000000;
+  font-size: 0.9rem;
+  font-weight: 700;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  margin-top: auto;
+}
+
+.admin-card-button:hover {
+  background: #f59e0b;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(251, 191, 36, 0.4);
+}
+
+.admin-card-button:active {
+  transform: translateY(0);
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+  .admin-dashboard-content {
+    padding: 5rem 1.5rem 2rem;
+  }
+
+  .admin-welcome-title {
+    font-size: 2rem;
+  }
+
+  .admin-cards-grid {
+    grid-template-columns: 1fr;
+    gap: 1.5rem;
+  }
+
+  .admin-card {
+    padding: 1.5rem;
+  }
+}

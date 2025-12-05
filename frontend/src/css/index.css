@@ -1,0 +1,15 @@
+/* Main CSS index file - imports all CSS modules */
+@import './variables.css';
+@import './base.css';
+@import './layout.css';
+@import './components.css';
+@import './LoginPage.css';
+@import './RegisterPage.css';
+@import './HomePage.css';
+@import './AdminDashboard.css';
+@import './CreateFormPage.css';
+@import './FormListPage.css';
+@import './FormFillPage.css';
+@import './FormSubmissionsPage.css';
+@import './AnalyticsPage.css';
+

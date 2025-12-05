@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import api from '../api';
 import { useAuth } from '../AuthContext';
+import { useWebSocket } from '../hooks/useWebSocket';
 
 function FormSubmissionsPage() {
   const { id } = useParams();
@@ -15,23 +16,42 @@ function FormSubmissionsPage() {
   const [editValues, setEditValues] = useState({});
   const [isBusy, setIsBusy] = useState(false);
 
+  // WebSocket for real-time updates
+  const { isConnected, lastMessage } = useWebSocket(
+    user?.role === 'admin' ? ['admin', id ? `form-${id}` : null].filter(Boolean) : []
+  );
+
+  const loadSubmissions = async () => {
+    if (!user || user.role !== 'admin') {
+      setStatus('You must be logged in as an administrator to view submissions.');
+      return;
+    }
+    try {
+      const res = await api.get(`/api/submissions/form/${id}`);
+      setFormInfo(res.data.data.form);
+      setSubmissions(res.data.data.submissions || []);
+      setStatus('');
+    } catch (err) {
+      setStatus('Failed to load submissions.');
+    }
+  };
+
   useEffect(() => {
-    const load = async () => {
-      if (!user || user.role !== 'admin') {
-        setStatus('You must be logged in as an administrator to view submissions.');
-        return;
+    loadSubmissions();
+  }, [id, user]);
+
+  // Handle real-time updates from WebSocket
+  useEffect(() => {
+    if (lastMessage && lastMessage.type === 'new-submission') {
+      const { formId, submissionId } = lastMessage.data;
+      if (formId === parseInt(id)) {
+        // Reload submissions when a new one arrives
+        loadSubmissions();
+        setStatus(`New submission #${submissionId} received!`);
+        setTimeout(() => setStatus(''), 3000);
       }
-      try {
-        const res = await api.get(`/api/submissions/form/${id}`);
-        setFormInfo(res.data.data.form);
-        setSubmissions(res.data.data.submissions || []);
-        setStatus('');
-      } catch (err) {
-        setStatus('Failed to load submissions.');
-      }
-    };
-    load();
-  }, [id]);
+    }
+  }, [lastMessage, id]);
 
   const startEdit = (submission) => {
     const values = {};
@@ -139,6 +159,11 @@ function FormSubmissionsPage() {
       </div>
 
       {status && <p className="status">{status}</p>}
+      {isConnected && (
+        <div style={{ marginBottom: '1rem', padding: '0.5rem', background: '#e0f2fe', borderRadius: '4px', fontSize: '0.875rem' }}>
+          🟢 Real-time updates enabled
+        </div>
+      )}
 
       {submissions.length > 0 && (
         <div className="card submissions-summary">

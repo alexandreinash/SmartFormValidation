@@ -1,0 +1,276 @@
+/* Submissions page layout */
+.page-heading {
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+}
+
+.page-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 1.5rem;
+}
+
+.page-kicker {
+  font-size: 0.8rem;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: #64748b;
+  margin-bottom: 0.15rem;
+}
+
+.page-title {
+  font-size: 1.6rem;
+  font-weight: 600;
+  color: #0f172a;
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  margin: 0.1rem 0 0.3rem;
+}
+
+.page-subtitle {
+  margin: 0;
+  font-size: 0.9rem;
+  color: #64748b;
+}
+
+.submission-block {
+  padding: 0.85rem 0;
+  border-top: 1px dashed #e2e8f0;
+}
+
+.submission-block:first-of-type {
+  border-top: none;
+}
+
+.flag {
+  display: inline-block;
+  margin-left: 0.4rem;
+  padding: 0.1rem 0.45rem;
+  border-radius: 999px;
+  font-size: 0.75rem;
+  background: rgba(248, 113, 113, 0.08);
+  color: #b91c1c;
+}
+
+.flag.secondary {
+  background: rgba(148, 163, 184, 0.18);
+  color: #111827;
+}
+
+.submissions-summary {
+  margin-top: 0.25rem;
+}
+
+.summary-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 1.5rem;
+  margin-bottom: 1rem;
+}
+
+.summary-subtitle {
+  margin: 0.2rem 0 0;
+  font-size: 0.85rem;
+  color: #6b7280;
+}
+
+.summary-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0.85rem;
+}
+
+.summary-card {
+  border-radius: 12px;
+  padding: 0.75rem 0.9rem;
+  background: linear-gradient(135deg, rgba(248, 250, 252, 0.9), #ffffff);
+  border: 1px solid rgba(148, 163, 184, 0.35);
+}
+
+.summary-label {
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: #6b7280;
+  margin-bottom: 0.2rem;
+}
+
+.summary-value {
+  font-size: 1.35rem;
+  font-weight: 600;
+  color: #111827;
+}
+
+.highlight-danger {
+  color: #b91c1c;
+}
+
+.highlight-muted {
+  color: #4b5563;
+}
+
+.filter-group {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 0.35rem;
+}
+
+.filter-label {
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: #6b7280;
+}
+
+.filter-chips {
+  display: inline-flex;
+  flex-wrap: wrap;
+  gap: 0.25rem;
+}
+
+.chip {
+  border-radius: 999px;
+  border: 1px solid rgba(148, 163, 184, 0.6);
+  background: #f9fafb;
+  padding: 0.2rem 0.65rem;
+  font-size: 0.78rem;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  cursor: pointer;
+  box-shadow: none;
+  margin-top: 0;
+}
+
+.chip:hover {
+  border-color: #2563eb;
+}
+
+.chip-active {
+  border-color: #2563eb;
+  background: rgba(37, 99, 235, 0.08);
+  color: #1d4ed8;
+}
+
+.chip-warning {
+  border-color: rgba(248, 113, 113, 0.7);
+}
+
+.chip-warning.chip-active {
+  background: rgba(248, 113, 113, 0.1);
+  color: #b91c1c;
+}
+
+.chip-muted {
+  border-color: rgba(148, 163, 184, 0.7);
+}
+
+.chip-muted.chip-active {
+  background: rgba(148, 163, 184, 0.16);
+  color: #111827;
+}
+
+.chip-count {
+  min-width: 1.1rem;
+  padding: 0 0.25rem;
+  border-radius: 999px;
+  background: rgba(15, 23, 42, 0.06);
+  text-align: center;
+  font-size: 0.7rem;
+}
+
+.empty-state {
+  text-align: left;
+}
+
+.submissions-list {
+  margin-top: 1rem;
+}
+
+.submissions-header {
+  margin-bottom: 0.75rem;
+}
+
+.submission-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 0.35rem;
+}
+
+.submission-title {
+  margin: 0;
+  font-size: 1rem;
+  font-weight: 600;
+  color: #111827;
+}
+
+.submission-meta {
+  font-size: 0.8rem;
+  color: #6b7280;
+}
+
+.submission-actions {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.answers-list {
+  list-style: none;
+  padding-left: 0;
+  margin: 0;
+}
+
+.answer-row {
+  display: grid;
+  grid-template-columns: 0.9fr 2.1fr;
+  gap: 0.75rem;
+  padding: 0.45rem 0;
+  border-top: 1px dashed #e5e7eb;
+}
+
+.answer-row:first-of-type {
+  border-top: none;
+}
+
+.answer-label {
+  font-size: 0.85rem;
+  font-weight: 500;
+  color: #374151;
+}
+
+.answer-value {
+  font-size: 0.9rem;
+  color: #111827;
+}
+
+.answer-empty {
+  color: #9ca3af;
+  font-style: italic;
+}
+
+@media (max-width: 720px) {
+  .summary-grid {
+    grid-template-columns: repeat(1, minmax(0, 1fr));
+  }
+
+  .answer-row {
+    grid-template-columns: 1fr;
+  }
+
+  .page-header,
+  .summary-header {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .filter-group {
+    align-items: flex-start;
+  }
+}
+

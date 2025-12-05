@@ -1,0 +1,93 @@
+.app {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen', 'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue', sans-serif;
+  min-height: 100vh;
+  background: var(--bg-gradient);
+  color: var(--text-main);
+  position: relative;
+}
+
+.app .content-auth {
+  padding: 0;
+  margin: 0;
+  max-width: none;
+}
+
+/* Override app background for auth pages */
+.app:has(.auth-page) {
+  background: var(--bg-gradient);
+}
+
+.topbar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 1rem 2rem;
+  background: var(--bg-main);
+  border-bottom: 1px solid var(--border-subtle);
+  color: var(--text-main);
+  box-shadow: var(--shadow-sm);
+  position: sticky;
+  top: 0;
+  z-index: 100;
+}
+
+.topbar a {
+  margin-left: 1.5rem;
+  color: var(--text-muted);
+  text-decoration: none;
+  font-size: 0.95rem;
+  font-weight: 500;
+  transition: color 0.2s ease;
+}
+
+.topbar a:hover {
+  color: var(--text-main);
+}
+
+.logo {
+  display: flex;
+  align-items: center;
+  gap: 0.625rem;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+  font-size: 1.1rem;
+  color: var(--text-main);
+}
+
+.logo-mark {
+  width: 32px;
+  height: 32px;
+  border-radius: 0.5rem;
+  background: var(--accent-active);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.9rem;
+  font-weight: 800;
+  color: var(--text-light);
+  box-shadow: var(--shadow-sm);
+}
+
+.logo-text {
+  font-size: 1.1rem;
+}
+
+.topbar-nav {
+  display: flex;
+  align-items: center;
+}
+
+.content {
+  max-width: 960px;
+  margin: 3.25rem auto;
+  padding: 0 1.5rem 3.25rem;
+}
+
+.content-auth {
+  max-width: none;
+  margin: 0;
+  padding: 0;
+  width: 100%;
+  height: 100vh;
+}
+

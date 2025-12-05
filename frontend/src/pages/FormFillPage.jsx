@@ -112,7 +112,7 @@
 import React, { useEffect, useState } from 'react';
 import { useParams } from 'react-router-dom';
 import api from '../api';
-import './FormFillPage.css';
+import '../css/FormFillPage.css';
 
 function FormFillPage() {
   const { id } = useParams();

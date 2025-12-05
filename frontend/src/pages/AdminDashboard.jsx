@@ -1,115 +1,71 @@
-import React, { useState } from 'react';
+import React from 'react';
 import { useNavigate } from 'react-router-dom';
-import api from '../api';
 import { useAuth } from '../AuthContext';
-
-const fieldTemplate = { label: '', type: 'text', is_required: false, ai_validation_enabled: false };
+import '../css/AdminDashboard.css';
 
 function AdminDashboard() {
   const { user } = useAuth();
-  const [title, setTitle] = useState('');
-  const [fields, setFields] = useState([{ ...fieldTemplate }]);
-  const [message, setMessage] = useState('');
-  const [viewFormId, setViewFormId] = useState('');
   const navigate = useNavigate();
 
-  const updateField = (index, key, value) => {
-    const next = [...fields];
-    next[index] = { ...next[index], [key]: value };
-    setFields(next);
-  };
-
-  const addField = () => setFields([...fields, { ...fieldTemplate }]);
-
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    setMessage('');
-    if (!user || user.role !== 'admin') {
-      setMessage('You must be logged in as an administrator to create forms.');
-      return;
-    }
-    try {
-      const res = await api.post('/api/forms', { title, fields });
-      setMessage(`Form created with ID ${res.data.data.form.id}`);
-    } catch (err) {
-      setMessage(
-        err.response?.data?.message || 'Failed to create form. Check backend configuration.'
-      );
-    }
-  };
-
   return (
-    <div>
-      <h2>Administrator – Create Form</h2>
-      <form onSubmit={handleSubmit} className="card">
-        <label>
-          Form Title
-          <input value={title} onChange={(e) => setTitle(e.target.value)} required />
-        </label>
-        <h3>Fields</h3>
-        {fields.map((field, index) => (
-          <div key={index} className="field-row">
-            <input
-              placeholder="Label"
-              value={field.label}
-              onChange={(e) => updateField(index, 'label', e.target.value)}
-              required
-            />
-            <select
-              value={field.type}
-              onChange={(e) => updateField(index, 'type', e.target.value)}
-            >
-              <option value="text">Text</option>
-              <option value="textarea">Textarea</option>
-              <option value="email">Email</option>
-              <option value="number">Number</option>
-            </select>
-            <label className="checkbox">
-              <input
-                type="checkbox"
-                checked={field.is_required}
-                onChange={(e) => updateField(index, 'is_required', e.target.checked)}
-              />
-              Required
-            </label>
-            <label className="checkbox">
-              <input
-                type="checkbox"
-                checked={field.ai_validation_enabled}
-                onChange={(e) =>
-                  updateField(index, 'ai_validation_enabled', e.target.checked)
-                }
-              />
-              AI Validation
-            </label>
-          </div>
-        ))}
-        <button type="button" onClick={addField}>
-          + Add Field
-        </button>
-        <button type="submit">Save Form</button>
-        {message && <p className="status">{message}</p>}
-      </form>
+    <div className="admin-dashboard-container">
+      {/* Smart Form Validator Banner */}
+      <div className="admin-banner">Smart Form Validator</div>
 
-      <div className="card">
-        <h3>View Submissions</h3>
-        <p>
-          Enter a form ID to view all submissions and AI validation flags for that
-          form.
-        </p>
-        <div className="field-row">
-          <input
-            type="number"
-            placeholder="Form ID"
-            value={viewFormId}
-            onChange={(e) => setViewFormId(e.target.value)}
-          />
-          <button
-            type="button"
-            onClick={() => viewFormId && navigate(`/admin/forms/${viewFormId}/submissions`)}
-          >
-            Open Submissions
-          </button>
+      {/* Main Content */}
+      <div className="admin-dashboard-content">
+        <h1 className="admin-welcome-title">Welcome, {user?.email || 'User'}!</h1>
+        <p className="admin-instruction-text">Choose an option below to get started.</p>
+
+        {/* Action Cards Grid */}
+        <div className="admin-cards-grid">
+          {/* Create Form Card */}
+          <div className="admin-card">
+            <div className="admin-card-icon">📝</div>
+            <h3 className="admin-card-title">Create Form</h3>
+            <p className="admin-card-description">
+              Create a new form with custom fields and AI validation settings.
+            </p>
+            <button
+              type="button"
+              className="admin-card-button"
+              onClick={() => navigate('/admin/create-form')}
+            >
+              Create New Form
+            </button>
+          </div>
+
+          {/* View Submissions Card */}
+          <div className="admin-card">
+            <div className="admin-card-icon">📊</div>
+            <h3 className="admin-card-title">View Submissions</h3>
+            <p className="admin-card-description">
+              View and manage all form submissions across all forms.
+            </p>
+            <button
+              type="button"
+              className="admin-card-button"
+              onClick={() => navigate('/admin/submissions/all')}
+            >
+              Open Submissions
+            </button>
+          </div>
+
+          {/* Manage Forms Card */}
+          <div className="admin-card">
+            <div className="admin-card-icon">⚙️</div>
+            <h3 className="admin-card-title">Manage Forms</h3>
+            <p className="admin-card-description">
+              View, edit, and delete existing forms and their submissions.
+            </p>
+            <button
+              type="button"
+              className="admin-card-button"
+              onClick={() => navigate('/forms')}
+            >
+              Manage Forms
+            </button>
+          </div>
         </div>
       </div>
     </div>
@@ -117,5 +73,3 @@ function AdminDashboard() {
 }
 
 export default AdminDashboard;
-
-

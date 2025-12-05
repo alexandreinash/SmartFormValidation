@@ -14,15 +14,11 @@ function LoginPage() {
     setStatus('');
     try {
       const user = await login(email, password);
-      if (user.role === 'admin') {
-        navigate('/admin');
-      } else {
-        navigate('/forms');
-      }
+      navigate('/');
     } catch (err) {
       if (!err.response) {
         setStatus(
-          'Cannot reach the API server. Make sure the backend is running on port 4000.'
+          'Cannot reach the API server. Make sure the backend is running on port 5000.'
         );
       } else {
         setStatus(
@@ -37,15 +33,12 @@ function LoginPage() {
     <div className="auth-page">
       <div className="auth-layout">
         <div className="auth-hero">
+          <div className="auth-hero-banner-top">Smart Form Validator</div>
           <div className="auth-hero-inner">
-            <div className="auth-hero-logo">SF</div>
             <div className="auth-hero-text-block">
-              <h1 className="auth-hero-title">
-                Smart validations,<br />
-                better submissions.
-              </h1>
+              <h1 className="auth-hero-title">Welcome Back</h1>
               <p className="auth-hero-subtitle">
-                Capture higher quality responses with AI-assisted checks for every important field.
+                Log in to access your dashboard and manage your forms. Create intelligent forms, review submissions, and gain comprehensive insights into your data.
               </p>
             </div>
           </div>
@@ -54,7 +47,7 @@ function LoginPage() {
           <div className="auth-card">
             <h2 className="auth-title">Login</h2>
             <p className="auth-subtitle">
-              Already have an account? Enter your details to access the admin dashboard.
+              Enter your credentials to access your account
             </p>
             <form onSubmit={handleSubmit}>
               <div className="field-column">
@@ -64,7 +57,7 @@ function LoginPage() {
                     type="email"
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
-                    placeholder="drei2i@gmail.com"
+                    placeholder="drei2@gmail.com"
                     required
                   />
                 </label>
@@ -86,7 +79,7 @@ function LoginPage() {
                   <input type="checkbox" />
                   <span>Remember me</span>
                 </label>
-                <Link to="#" className="auth-link-muted">Forgot your password?</Link>
+                <Link to="#" className="auth-link-muted">Forgot Password?</Link>
               </div>
               <button type="submit" className="auth-button">
                 Login

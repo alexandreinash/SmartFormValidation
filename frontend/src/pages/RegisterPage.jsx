@@ -35,15 +35,12 @@ function RegisterPage() {
     <div className="auth-page">
       <div className="auth-layout">
         <div className="auth-hero">
+          <div className="auth-hero-banner-top">Smart Form Validator</div>
           <div className="auth-hero-inner">
-            <div className="auth-hero-logo">SF</div>
             <div className="auth-hero-text-block">
-              <h1 className="auth-hero-title">
-                Create smart forms,<br />
-                from day one.
-              </h1>
+              <h1 className="auth-hero-title">Get Started</h1>
               <p className="auth-hero-subtitle">
-                Set up an account to build forms, enable AI checks, and start collecting better data.
+                Create an account to access your dashboard and manage your forms. Create intelligent forms, review submissions, and gain comprehensive insights into your data.
               </p>
             </div>
           </div>
@@ -52,7 +49,7 @@ function RegisterPage() {
           <div className="auth-card">
             <h2 className="auth-title">Create an account</h2>
             <p className="auth-subtitle">
-              Already have an account? <Link to="/login" style={{ color: '#3b82f6' }}>Log in</Link>
+              Enter your details to create your account
             </p>
             <form onSubmit={handleSubmit}>
               <div className="field-column">
@@ -62,7 +59,7 @@ function RegisterPage() {
                     type="email"
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
-                    placeholder="drei2i@gmail.com"
+                    placeholder="drei2@gmail.com"
                     required
                   />
                 </label>
@@ -91,11 +88,11 @@ function RegisterPage() {
               <button type="submit" className="auth-button">
                 Create account
               </button>
-              {status && <p className="status" style={{ marginTop: '1rem', color: status.includes('successful') ? '#10b981' : '#ef4444' }}>{status}</p>}
+              {status && <p className="status" style={{ marginTop: '1rem', color: '#ef4444' }}>{status}</p>}
             </form>
-            <p className="auth-footer" style={{ marginTop: '1.5rem', fontSize: '0.75rem', color: '#6b7280' }}>
-              By continuing, you agree to the smart validation terms for this demo project.
-            </p>
+            <div className="auth-footer">
+              Already have an account? <Link to="/login">Log in</Link>
+            </div>
           </div>
         </div>
       </div>
