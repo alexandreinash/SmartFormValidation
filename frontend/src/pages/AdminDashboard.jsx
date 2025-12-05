@@ -75,7 +75,7 @@ function AdminDashboard() {
             <button
               type="button"
               className="admin-card-button"
-              onClick={() => navigate('/forms')}
+              onClick={() => navigate('/admin/forms/all')}
             >
               Manage Forms
             </button>

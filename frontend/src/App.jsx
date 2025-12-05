@@ -8,6 +8,7 @@ import NumberFormPage from './pages/NumberFormPage';
 import FormFillPage from './pages/FormFillPage';
 import FormListPage from './pages/FormListPage';
 import FormSubmissionsPage from './pages/FormSubmissionsPage';
+import AdminFormsPage from './pages/AdminFormsPage';
 import AnalyticsPage from './pages/AnalyticsPage';
 import LoginPage from './pages/LoginPage';
 import RegisterPage from './pages/RegisterPage';
@@ -21,10 +22,15 @@ function AppShell() {
     location.pathname === '/login' || location.pathname === '/register';
   const isHomePage = location.pathname === '/';
   const isAdminDashboard = location.pathname === '/admin';
+  const isFormCreationPage = 
+    location.pathname === '/admin/create-form' ||
+    location.pathname === '/text-form' ||
+    location.pathname === '/email-form' ||
+    location.pathname === '/number-form';
 
   return (
     <div className="app">
-      <main className={isAuthRoute || isHomePage || isAdminDashboard ? 'content content-auth' : 'content'}>
+      <main className={isAuthRoute || isHomePage || isAdminDashboard || isFormCreationPage ? 'content content-auth' : 'content'}>
         <Routes>
           <Route path="/" element={<HomePage />} />
           <Route path="/login" element={<LoginPage />} />
@@ -43,6 +49,10 @@ function AppShell() {
           <Route
             path="/admin/submissions/all"
             element={<FormSubmissionsPage />}
+          />
+          <Route
+            path="/admin/forms/all"
+            element={<AdminFormsPage />}
           />
           <Route path="/admin/analytics" element={<AnalyticsPage />} />
           <Route path="*" element={<Navigate to="/login" replace />} />

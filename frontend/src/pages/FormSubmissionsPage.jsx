@@ -460,7 +460,7 @@ function FormSubmissionsPage() {
                       </button>
                       <button
                         type="button"
-                        className="button"
+                        className="button button-danger"
                         onClick={() => saveEdit(sub.id)}
                         disabled={isBusy}
                       >
@@ -491,13 +491,36 @@ function FormSubmissionsPage() {
               </div>
               {isAllSubmissions && (
                 <div style={{ marginTop: '0.75rem', paddingLeft: '1.75rem' }}>
-                  <textarea
-                    className="input"
-                    value={(sub.answers || []).map((ans) => ans.value).filter(Boolean).join('\n')}
-                    readOnly
-                    rows={2}
-                    style={{ width: '100%', resize: 'vertical' }}
-                  />
+                  {editingId === sub.id ? (
+                    <ul className="answers-list">
+                      {(sub.answers || []).map((ans) => (
+                        <li key={ans.id} className="answer-row">
+                          <div className="answer-label">
+                            {ans.field?.label || 'Field'}
+                          </div>
+                          <div className="answer-value">
+                            <textarea
+                              className="input"
+                              value={editValues[ans.field_id] ?? ''}
+                              onChange={(e) =>
+                                handleEditChange(ans.field_id, e.target.value)
+                              }
+                              rows={2}
+                              style={{ width: '100%', resize: 'vertical' }}
+                            />
+                          </div>
+                        </li>
+                      ))}
+                    </ul>
+                  ) : (
+                    <textarea
+                      className="input"
+                      value={(sub.answers || []).map((ans) => ans.value).filter(Boolean).join('\n')}
+                      readOnly
+                      rows={2}
+                      style={{ width: '100%', resize: 'vertical' }}
+                    />
+                  )}
                 </div>
               )}
               {!isAllSubmissions && (

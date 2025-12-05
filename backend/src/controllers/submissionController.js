@@ -43,12 +43,56 @@ async function validateBasicFormValues(formId, values) {
         });
       }
     }
-    if (field.type === 'number' && v && isNaN(Number(v))) {
-      validationErrors.push({
-        fieldId: field.id,
-        type: 'basic',
-        message: 'Please enter a numeric value.',
-      });
+    if (field.type === 'number' && v) {
+      const trimmedValue = v.trim();
+      
+      // Check if the value is an email address
+      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+      if (emailRegex.test(trimmedValue)) {
+        validationErrors.push({
+          fieldId: field.id,
+          type: 'basic',
+          message: 'Email addresses are not allowed. Please enter numbers only.',
+        });
+      }
+      // Check if the value contains any letters (text)
+      else if (/[a-zA-Z]/.test(trimmedValue)) {
+        validationErrors.push({
+          fieldId: field.id,
+          type: 'basic',
+          message: 'Text is not allowed. Please enter numbers only.',
+        });
+      }
+      // Check if the value is not a valid number (allows integers, decimals, and negative numbers)
+      else if (!/^-?\d*\.?\d+$/.test(trimmedValue) || isNaN(Number(trimmedValue))) {
+        validationErrors.push({
+          fieldId: field.id,
+          type: 'basic',
+          message: 'Please enter a valid number. Only numeric values are accepted.',
+        });
+      }
+    }
+    if (field.type === 'text' && v) {
+      const trimmedValue = v.trim();
+      
+      // Check if text field is all numbers
+      if (/^\d+$/.test(trimmedValue)) {
+        validationErrors.push({
+          fieldId: field.id,
+          type: 'basic',
+          message: 'Text fields cannot be all numbers. Please enter text only.',
+        });
+      }
+      
+      // Check if text field is an email address (any kind of email format)
+      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+      if (emailRegex.test(trimmedValue)) {
+        validationErrors.push({
+          fieldId: field.id,
+          type: 'basic',
+          message: 'Email addresses are not allowed in text fields. Please enter text only.',
+        });
+      }
     }
   }
 

@@ -2,23 +2,29 @@
 
 .create-form-container {
   display: flex;
-  min-height: 100vh;
+  width: 100vw;
+  height: 100vh;
   background: var(--bg-gradient);
-  position: relative;
+  position: fixed;
+  top: 0;
+  left: 0;
+  overflow: hidden;
 }
 
 /* Left Sidebar - White with Rounded Corners */
 .create-form-sidebar {
   width: 280px;
-  background: var(--bg-sidebar);
-  border-right: 1px solid var(--border-subtle);
+  min-width: 280px;
+  background: #f3f4f6;
+  border-right: none;
   padding: 2rem 0;
   display: flex;
   flex-direction: column;
   height: 100vh;
-  box-shadow: var(--shadow-sidebar);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
   position: relative;
   z-index: 10;
+  overflow-y: auto;
 }
 
 .sidebar-title {
@@ -36,6 +42,7 @@
   gap: 1.5rem;
   flex: 1;
   padding: 0 1.5rem;
+  justify-content: space-between;
 }
 
 .sidebar-nav {
@@ -45,11 +52,20 @@
 }
 
 .sidebar-nav-box {
-  background: var(--surface);
-  border: 1px solid var(--border-subtle);
-  border-radius: 0.75rem;
-  padding: 1rem;
-  box-shadow: var(--shadow-sm);
+  background: #ffffff;
+  border: 1px solid rgba(229, 231, 235, 0.5);
+  border-radius: 12px;
+  padding: 0.75rem;
+  box-shadow: 0 2px 8px rgba(59, 130, 246, 0.15);
+}
+
+.sidebar-nav-box:first-of-type {
+  flex-shrink: 0;
+}
+
+.sidebar-nav-box:last-of-type {
+  flex-shrink: 0;
+  margin-top: auto;
 }
 
 .sidebar-nav-item {
@@ -57,34 +73,36 @@
   align-items: center;
   gap: 0.875rem;
   padding: 0.875rem 1rem;
-  color: var(--text-main);
+  color: #111827;
   text-decoration: none;
-  border-radius: 0.5rem;
+  border-radius: 8px;
   transition: all 0.2s ease;
   font-size: 0.95rem;
   font-weight: 500;
   position: relative;
-  background: transparent;
+  background: #ffffff;
   border: none;
   width: 100%;
   text-align: left;
-  margin-bottom: 0.25rem;
+  margin-bottom: 0.5rem;
+  box-shadow: 0 2px 4px rgba(59, 130, 246, 0.1);
 }
 
 .sidebar-nav-item:hover {
-  background: var(--bg-hover);
-  color: var(--text-main);
+  background: #f3f4f6;
+  color: #111827;
+  box-shadow: 0 2px 6px rgba(59, 130, 246, 0.15);
 }
 
 .sidebar-nav-item-active {
-  background: var(--accent-active);
-  color: var(--text-light);
+  background: linear-gradient(135deg, #fbbf24, #f59e0b);
+  color: #ffffff;
   font-weight: 600;
 }
 
 .sidebar-nav-item-active:hover {
-  background: var(--accent);
-  color: var(--text-light);
+  background: linear-gradient(135deg, #f59e0b, #d97706);
+  color: #ffffff;
 }
 
 .sidebar-icon {
@@ -119,37 +137,37 @@
   color: var(--text-main);
 }
 
-/* Main Content Area - White Background */
+/* Main Content Area - Light Gray Background */
 .create-form-main {
   flex: 1;
-  padding: 2.5rem 3rem;
-  max-width: 1000px;
-  margin: 0 auto;
+  padding: 3rem 4rem;
   width: 100%;
-  background: var(--bg-main);
+  background: #f3f4f6;
   position: relative;
   z-index: 1;
   overflow-y: auto;
+  overflow-x: hidden;
 }
 
 .create-form-header {
   display: flex;
   justify-content: space-between;
   align-items: flex-start;
-  margin-bottom: 2rem;
+  margin-bottom: 2.5rem;
+  width: 100%;
 }
 
 .create-form-title {
-  font-size: 2rem;
+  font-size: 2.5rem;
   font-weight: 700;
-  color: var(--text-main);
+  color: #111827;
   margin: 0 0 0.5rem 0;
   letter-spacing: -0.01em;
 }
 
 .create-form-subtitle {
   font-size: 0.95rem;
-  color: var(--text-muted);
+  color: #6b7280;
   margin: 0;
   font-weight: 400;
   line-height: 1.5;
@@ -157,48 +175,51 @@
 
 .back-button {
   padding: 0.625rem 1.25rem;
-  background: var(--secondary-soft);
-  color: var(--secondary);
-  border: 1px solid var(--border-subtle);
-  border-radius: 0.5rem;
+  background: #f3f4f6;
+  color: #111827;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
   cursor: pointer;
   font-size: 0.875rem;
   font-weight: 600;
   transition: all 0.2s ease;
+  margin-left: auto;
 }
 
 .back-button:hover {
-  background: var(--secondary);
-  color: var(--text-light);
-  border-color: var(--secondary);
+  background: #e5e7eb;
+  border-color: #d1d5db;
 }
 
 /* Form Styles */
 .create-form-form {
   background: transparent;
+  max-width: none;
+  width: 100%;
 }
 
 .form-section {
-  margin-bottom: 2rem;
+  margin-bottom: 2.5rem;
+  max-width: none;
 }
 
 .form-label {
   display: block;
   font-size: 0.95rem;
   font-weight: 600;
-  color: var(--text-main);
+  color: #111827;
   margin-bottom: 0.625rem;
 }
 
 .form-input {
   width: 100%;
-  padding: 0.75rem 1rem;
-  border: 1px solid var(--border-subtle);
-  border-radius: 0.5rem;
+  padding: 0.875rem 1rem;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
   font-size: 0.95rem;
   transition: all 0.2s ease;
-  background: var(--surface);
-  color: var(--text-main);
+  background: #ffffff;
+  color: #111827;
 }
 
 .form-input::placeholder {
@@ -211,11 +232,22 @@
   box-shadow: 0 0 0 3px var(--accent-soft);
 }
 
+.form-input-yellow {
+  border: 2px solid #fbbf24 !important;
+  padding: 0.875rem 1rem !important;
+}
+
+.form-input-yellow:focus {
+  border-color: #f59e0b !important;
+  box-shadow: 0 0 0 3px rgba(251, 191, 36, 0.2) !important;
+  outline: none;
+}
+
 .form-section-title {
   font-size: 1.25rem;
   font-weight: 700;
-  color: var(--text-main);
-  margin: 0 0 1rem 0;
+  color: #111827;
+  margin: 0 0 1.5rem 0;
 }
 
 .form-section-subtitle {
@@ -227,17 +259,36 @@
 
 /* Field Card - White with Shadow */
 .field-card {
-  background: var(--surface);
-  border: 1px solid var(--border-subtle);
-  border-radius: 0.75rem;
+  background: #ffffff;
+  border: 1px solid rgba(229, 231, 235, 0.5);
+  border-radius: 12px;
   padding: 1.5rem;
   margin-bottom: 1.25rem;
-  box-shadow: var(--shadow-sm);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
   transition: all 0.2s ease;
 }
 
 .field-card:hover {
-  box-shadow: var(--shadow-md);
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+}
+
+.field-label-row {
+  margin-bottom: 1rem;
+}
+
+.field-label-text {
+  display: block;
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: #111827;
+  margin-bottom: 0.5rem;
+}
+
+.field-input-row {
+  display: flex;
+  gap: 0.75rem;
+  align-items: center;
+  flex-wrap: wrap;
 }
 
 .field-row {
@@ -252,12 +303,51 @@
   flex: 1;
   min-width: 250px;
   padding: 0.75rem 1rem;
-  border: 1px solid var(--border-subtle);
-  border-radius: 0.5rem;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
   font-size: 0.95rem;
-  background: var(--surface);
-  color: var(--text-main);
+  background: #ffffff;
+  color: #111827;
   transition: all 0.2s ease;
+}
+
+.field-type-button {
+  padding: 0.625rem 1.25rem;
+  background: #e0f2fe;
+  color: #0369a1;
+  border: 1px solid #bae6fd;
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 0.875rem;
+  font-weight: 600;
+  transition: all 0.2s ease;
+  white-space: nowrap;
+  font-family: inherit;
+}
+
+.field-type-button:hover {
+  background: #bae6fd;
+  border-color: #7dd3fc;
+}
+
+.field-type-button-yellow {
+  background: linear-gradient(135deg, #fbbf24, #f59e0b) !important;
+  color: #ffffff !important;
+  border: none !important;
+}
+
+.field-type-button-yellow:hover {
+  background: linear-gradient(135deg, #f59e0b, #d97706) !important;
+}
+
+.field-input-yellow {
+  border: 2px solid #fbbf24 !important;
+}
+
+.field-input-yellow:focus {
+  border-color: #f59e0b !important;
+  box-shadow: 0 0 0 3px rgba(251, 191, 36, 0.2) !important;
+  outline: none;
 }
 
 .field-input::placeholder {
@@ -277,12 +367,20 @@
   flex-wrap: wrap;
 }
 
+.field-options-row {
+  display: flex;
+  gap: 1.5rem;
+  align-items: center;
+  flex-wrap: wrap;
+  margin-top: 1rem;
+}
+
 .add-field-button {
   padding: 0.625rem 1.25rem;
-  background: var(--secondary-soft);
-  color: var(--secondary);
-  border: 1px solid var(--border-subtle);
-  border-radius: 0.5rem;
+  background: #e0f2fe;
+  color: #0369a1;
+  border: 1px solid #bae6fd;
+  border-radius: 8px;
   cursor: pointer;
   font-size: 0.875rem;
   font-weight: 600;
@@ -291,12 +389,38 @@
   display: flex;
   align-items: center;
   gap: 0.5rem;
+  font-family: inherit;
 }
 
 .add-field-button:hover {
-  background: var(--secondary);
-  color: var(--text-light);
-  border-color: var(--secondary);
+  background: #bae6fd;
+  border-color: #7dd3fc;
+}
+
+.remove-field-button {
+  padding: 0.625rem 1rem;
+  background: #fee2e2;
+  color: #dc2626;
+  border: 1px solid #fecaca;
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 1.5rem;
+  font-weight: 600;
+  line-height: 1;
+  transition: all 0.2s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  font-family: inherit;
+}
+
+.remove-field-button:hover {
+  background: #fecaca;
+  border-color: #fca5a5;
+  color: #b91c1c;
+  transform: scale(1.05);
 }
 
 .field-checkbox {
@@ -305,7 +429,7 @@
   gap: 0.625rem;
   cursor: pointer;
   font-size: 0.9rem;
-  color: var(--text-main);
+  color: #111827;
 }
 
 .field-checkbox:hover {
@@ -313,10 +437,45 @@
 }
 
 .field-checkbox input[type="checkbox"] {
-  width: 18px;
-  height: 18px;
+  width: 20px;
+  height: 20px;
   cursor: pointer;
-  accent-color: var(--accent);
+  accent-color: #f59e0b;
+  border-radius: 5px;
+  border: 2px solid #e5e7eb;
+  appearance: none;
+  -webkit-appearance: none;
+  -moz-appearance: none;
+  position: relative;
+  transition: all 0.2s ease;
+  flex-shrink: 0;
+  background: #ffffff;
+}
+
+.field-checkbox input[type="checkbox"]:checked {
+  background-color: #f59e0b;
+  border-color: #f59e0b;
+}
+
+.field-checkbox input[type="checkbox"]:checked::after {
+  content: '✓';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  color: #1f2937;
+  font-size: 13px;
+  font-weight: bold;
+  line-height: 1;
+}
+
+.field-checkbox input[type="checkbox"]:hover {
+  border-color: #f59e0b;
+}
+
+.field-checkbox input[type="checkbox"]:focus {
+  outline: none;
+  box-shadow: 0 0 0 3px rgba(251, 191, 36, 0.2);
 }
 
 /* Save Button - Yellow/Orange */
@@ -338,6 +497,27 @@
   background: var(--accent);
   box-shadow: var(--shadow-md);
   transform: translateY(-1px);
+}
+
+.save-form-button-yellow {
+  background: linear-gradient(135deg, #fbbf24, #f59e0b) !important;
+  color: #ffffff !important;
+  box-shadow: 0 4px 12px rgba(251, 191, 36, 0.4) !important;
+  border: none !important;
+  padding: 0.875rem 2rem !important;
+  border-radius: 8px !important;
+  font-size: 1rem !important;
+  font-weight: 600 !important;
+  cursor: pointer !important;
+  transition: all 0.2s ease !important;
+  margin-top: 1.5rem !important;
+  width: auto !important;
+}
+
+.save-form-button-yellow:hover {
+  background: linear-gradient(135deg, #f59e0b, #d97706) !important;
+  box-shadow: 0 6px 16px rgba(251, 191, 36, 0.5) !important;
+  transform: translateY(-1px) !important;
 }
 
 .save-form-button:active {
@@ -547,6 +727,8 @@
 @media (max-width: 768px) {
   .create-form-container {
     flex-direction: column;
+    height: 100vh;
+    overflow-y: auto;
   }
 
   .create-form-sidebar {
@@ -554,7 +736,9 @@
     border-right: none;
     border-bottom: 1px solid var(--border-subtle);
     height: auto;
+    min-height: auto;
     padding: 1.5rem 0;
+    position: relative;
   }
 
   .sidebar-nav {
@@ -564,6 +748,8 @@
 
   .create-form-main {
     padding: 2rem 1.5rem;
+    height: auto;
+    min-height: calc(100vh - 200px);
   }
 
   .create-form-header {
