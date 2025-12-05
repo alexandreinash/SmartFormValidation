@@ -80,6 +80,22 @@ function AdminDashboard() {
               Manage Forms
             </button>
           </div>
+
+          {/* Analytics Card */}
+          <div className="admin-card">
+            <div className="admin-card-icon">📈</div>
+            <h3 className="admin-card-title">Analytics</h3>
+            <p className="admin-card-description">
+              View system-wide analytics, form statistics, and AI validation insights.
+            </p>
+            <button
+              type="button"
+              className="admin-card-button"
+              onClick={() => navigate('/admin/analytics')}
+            >
+              View Analytics
+            </button>
+          </div>
         </div>
       </div>
     </div>
