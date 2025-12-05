@@ -209,6 +209,16 @@
   color: var(--text-dim);
 }
 
+.field-input-error {
+  border-color: #dc2626 !important;
+  border-width: 2px !important;
+}
+
+.field-input-error:focus {
+  border-color: #dc2626 !important;
+  box-shadow: 0 0 0 3px rgba(220, 38, 38, 0.2) !important;
+}
+
 
 .field-error-basic .form-input,
 .field-error-basic .form-textarea {
