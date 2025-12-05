@@ -110,12 +110,13 @@
 
 
 import React, { useEffect, useState } from 'react';
-import { useParams } from 'react-router-dom';
+import { useParams, useNavigate } from 'react-router-dom';
 import api from '../api';
 import '../css/FormFillPage.css';
 
 function FormFillPage() {
   const { id } = useParams();
+  const navigate = useNavigate();
   const [form, setForm] = useState(null);
   const [values, setValues] = useState({});
   const [errors, setErrors] = useState([]);
@@ -253,6 +254,14 @@ function FormFillPage() {
 
   return (
     <div className="form-fill-container">
+      <button
+        type="button"
+        className="button button-secondary"
+        style={{ marginBottom: '1.5rem' }}
+        onClick={() => navigate('/forms')}
+      >
+        ← Back
+      </button>
       <header className="form-header">
         <h1>{form.title}</h1>
         {form.description && <p className="form-description">{form.description}</p>}
@@ -269,11 +278,15 @@ function FormFillPage() {
                 <div className="error-section basic-errors">
                   <h4>Basic Validation Errors</h4>
                   <ul>
-                    {basicErrors.map((error, idx) => (
-                      <li key={`basic-${idx}`}>
-                        <strong>{error.fieldLabel || `Field ${error.fieldId}`}:</strong> {error.message}
-                      </li>
-                    ))}
+                    {basicErrors.map((error, idx) => {
+                      const field = form.fields.find(f => f.id === error.fieldId);
+                      const fieldLabel = field ? field.label : `Field ${error.fieldId}`;
+                      return (
+                        <li key={`basic-${idx}`}>
+                          <strong>{fieldLabel}:</strong> {error.message}
+                        </li>
+                      );
+                    })}
                   </ul>
                 </div>
               )}
@@ -391,8 +404,13 @@ function FormFillPage() {
           </div>
 
           {/* Status Messages */}
-          {status && (
-            <div className={`status-message ${status.includes('success') ? 'success' : 'error'}`}>
+          {status && !status.includes('success') && errors.length > 0 && (
+            <div className="validation-warning-banner">
+              Some answers need review based on validation and AI checking.
+            </div>
+          )}
+          {status && status.includes('success') && (
+            <div className={`status-message success`}>
               {status}
             </div>
           )}
@@ -403,7 +421,8 @@ function FormFillPage() {
       <footer className="form-footer">
         <div className="footer-info">
           <p>
-            <strong>Smart Form Validator</strong> with AI Integration
+            <strong>Smart Form Validator</strong>
+            <span style={{ fontWeight: 'normal', color: '#6b7280' }}> with AI Integration</span>
           </p>
           <p className="footer-note">
             This form uses Google Cloud Natural Language API to provide context-aware validation.

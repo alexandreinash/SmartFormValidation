@@ -4,13 +4,27 @@ import { useAuth } from '../AuthContext';
 import '../css/AdminDashboard.css';
 
 function AdminDashboard() {
-  const { user } = useAuth();
+  const { user, logout } = useAuth();
   const navigate = useNavigate();
+
+  const handleLogout = () => {
+    logout();
+    navigate('/login');
+  };
 
   return (
     <div className="admin-dashboard-container">
       {/* Smart Form Validator Banner */}
       <div className="admin-banner">Smart Form Validator</div>
+
+      {/* Logout Button */}
+      <button
+        type="button"
+        className="admin-logout-button"
+        onClick={handleLogout}
+      >
+        Log out
+      </button>
 
       {/* Main Content */}
       <div className="admin-dashboard-content">
