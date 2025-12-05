@@ -8,7 +8,7 @@ function CreateFormPage() {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
   const [title, setTitle] = useState('');
-  const [fields, setFields] = useState([{ label: '', type: 'text', is_required: false, ai_validation_enabled: false }]);
+  const [fields, setFields] = useState([{ label: '', type: 'number', is_required: false, ai_validation_enabled: false }]);
   const [message, setMessage] = useState('');
 
   const updateField = (index, key, value) => {
@@ -18,7 +18,7 @@ function CreateFormPage() {
   };
 
   const addField = () => {
-    setFields([...fields, { label: '', type: 'text', is_required: false, ai_validation_enabled: false }]);
+    setFields([...fields, { label: '', type: 'number', is_required: false, ai_validation_enabled: false }]);
   };
 
   const removeField = (index) => {
@@ -38,7 +38,7 @@ function CreateFormPage() {
       const res = await api.post('/api/forms', { title, fields });
       setMessage(`Form created successfully with ID ${res.data.data.form.id}`);
       setTitle('');
-      setFields([{ label: '', type: 'text', is_required: false, ai_validation_enabled: false }]);
+      setFields([{ label: '', type: 'number', is_required: false, ai_validation_enabled: false }]);
     } catch (err) {
       setMessage(err.response?.data?.message || 'Failed to create form.');
     }
@@ -52,11 +52,11 @@ function CreateFormPage() {
         <div className="sidebar-nav-container">
           <nav className="sidebar-nav sidebar-nav-box">
             <Link to="/" className="sidebar-nav-item">
-              <span className="sidebar-icon">⌂</span>
+              <span className="sidebar-icon">🏠</span>
               <span>Home</span>
             </Link>
             <Link to="/text-form" className="sidebar-nav-item">
-              <span className="sidebar-icon">📄</span>
+              <span className="sidebar-icon">💬</span>
               <span>Text Form</span>
             </Link>
             <Link to="/email-form" className="sidebar-nav-item">
@@ -64,15 +64,15 @@ function CreateFormPage() {
               <span>Email</span>
             </Link>
             <Link to="/number-form" className="sidebar-nav-item sidebar-nav-item-active">
-              <span className="sidebar-icon">🔢</span>
+              <span className="sidebar-icon">#</span>
               <span>Number</span>
             </Link>
-          </nav>
-          <nav className="sidebar-nav sidebar-nav-box">
             <Link to="/admin" className="sidebar-nav-item">
               <span className="sidebar-icon">⚙️</span>
               <span>Settings</span>
             </Link>
+          </nav>
+          <nav className="sidebar-nav sidebar-nav-box">
             <button
               type="button"
               onClick={() => {
@@ -81,7 +81,7 @@ function CreateFormPage() {
               }}
               className="sidebar-nav-item sidebar-logout-button"
             >
-              <span className="sidebar-icon">⊟</span>
+              <span className="sidebar-icon">↗️</span>
               <span>Log Out</span>
             </button>
           </nav>
@@ -92,9 +92,9 @@ function CreateFormPage() {
       <div className="create-form-main">
         <div className="create-form-header">
           <div>
-            <h1 className="create-form-title">Create Form</h1>
+            <h1 className="create-form-title">Create Number Form</h1>
             <p className="create-form-subtitle">
-              Create a new form with custom fields and validation settings
+              Create a form with number fields only. Add custom labels and validation settings.
             </p>
           </div>
         </div>
@@ -113,48 +113,40 @@ function CreateFormPage() {
           </div>
 
           <div className="form-section">
-            <h3 className="form-section-title">Fields</h3>
-            <h4 className="form-section-subtitle">Number Fields</h4>
+            <h3 className="form-section-title">Number Fields</h3>
             
             {fields.map((field, index) => (
               <div key={index} className="field-card">
-                <div className="field-row">
-                  <input
-                    type="text"
-                    placeholder="Enter Field Label"
-                    value={field.label}
-                    onChange={(e) => updateField(index, 'label', e.target.value)}
-                    required
-                    className="field-input"
-                  />
-                  {fields.length > 1 && (
+                <div className="field-label-row">
+                  <label className="field-label-text">Field Label</label>
+                  <div className="field-input-row">
+                    <input
+                      type="text"
+                      placeholder="Enter field label"
+                      value={field.label}
+                      onChange={(e) => updateField(index, 'label', e.target.value)}
+                      required
+                      className="field-input field-input-yellow"
+                    />
                     <button
                       type="button"
-                      onClick={() => removeField(index)}
-                      style={{
-                        padding: '0.75rem 1.25rem',
-                        background: 'rgba(239, 68, 68, 0.2)',
-                        color: '#fca5a5',
-                        border: '1px solid rgba(239, 68, 68, 0.3)',
-                        borderRadius: '0.75rem',
-                        cursor: 'pointer',
-                        fontWeight: '600',
-                        transition: 'all 0.3s ease'
-                      }}
-                      onMouseEnter={(e) => {
-                        e.target.style.background = 'rgba(239, 68, 68, 0.3)';
-                        e.target.style.transform = 'translateY(-2px)';
-                      }}
-                      onMouseLeave={(e) => {
-                        e.target.style.background = 'rgba(239, 68, 68, 0.2)';
-                        e.target.style.transform = 'translateY(0)';
-                      }}
+                      className="field-type-button field-type-button-yellow"
                     >
-                      Remove
+                      Number Field
                     </button>
-                  )}
+                    {fields.length > 1 && (
+                      <button
+                        type="button"
+                        onClick={() => removeField(index)}
+                        className="remove-field-button"
+                        title="Remove this field"
+                      >
+                        ×
+                      </button>
+                    )}
+                  </div>
                 </div>
-                <div className="field-options">
+                <div className="field-options-row">
                   <label className="field-checkbox">
                     <input
                       type="checkbox"
@@ -169,7 +161,7 @@ function CreateFormPage() {
                       checked={field.ai_validation_enabled}
                       onChange={(e) => updateField(index, 'ai_validation_enabled', e.target.checked)}
                     />
-                    <span>Add Validation</span>
+                    <span>AI Validation</span>
                   </label>
                   <button
                     type="button"
@@ -185,7 +177,7 @@ function CreateFormPage() {
 
           <button
             type="submit"
-            className="save-form-button"
+            className="save-form-button save-form-button-yellow"
           >
             Save Form
           </button>
@@ -202,3 +194,4 @@ function CreateFormPage() {
 }
 
 export default CreateFormPage;
+
