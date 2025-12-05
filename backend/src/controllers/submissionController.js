@@ -278,6 +278,36 @@ async function getFormSubmissions(req, res, next) {
   }
 }
 
+// Admin-only: list all submissions from all forms
+async function getAllSubmissions(req, res, next) {
+  try {
+    const submissions = await Submission.findAll({
+      order: [['submitted_at', 'DESC']],
+      include: [
+        {
+          model: Form,
+          as: 'form',
+          attributes: ['id', 'title'],
+        },
+        {
+          model: SubmissionData,
+          as: 'answers',
+          include: [{ model: FormField, as: 'field' }],
+        },
+      ],
+    });
+
+    res.json({
+      success: true,
+      data: {
+        submissions,
+      },
+    });
+  } catch (err) {
+    next(err);
+  }
+}
+
 // Admin-only: delete a submission and its answers
 async function deleteSubmission(req, res, next) {
   try {
@@ -377,11 +407,38 @@ async function updateSubmission(req, res, next) {
   }
 }
 
+// Admin-only: delete all submissions
+async function deleteAllSubmissions(req, res, next) {
+  try {
+    const count = await Submission.count();
+    
+    await SubmissionData.destroy({ where: {} });
+    await Submission.destroy({ where: {} });
+
+    await logAudit({
+      userId: req.user?.id || null,
+      action: 'all_submissions_deleted',
+      entityType: 'submission',
+      entityId: null,
+      metadata: { count },
+    });
+
+    res.json({ 
+      success: true, 
+      message: `All ${count} submission(s) deleted successfully.` 
+    });
+  } catch (err) {
+    next(err);
+  }
+}
+
 module.exports = {
   validateSubmitForm,
   submitForm,
   getFormSubmissions,
+  getAllSubmissions,
   deleteSubmission,
+  deleteAllSubmissions,
   updateSubmission,
 };
 

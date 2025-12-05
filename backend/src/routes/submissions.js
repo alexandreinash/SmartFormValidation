@@ -4,7 +4,9 @@ const {
   validateSubmitForm,
   submitForm,
   getFormSubmissions,
+  getAllSubmissions,
   deleteSubmission,
+  deleteAllSubmissions,
   updateSubmission,
 } = require('../controllers/submissionController');
 
@@ -16,8 +18,14 @@ router.post('/:formId', validateSubmitForm, submitForm);
 // View submissions for a form (Admin only)
 router.get('/form/:formId', auth('admin'), getFormSubmissions);
 
+// View all submissions from all forms (Admin only)
+router.get('/all', auth('admin'), getAllSubmissions);
+
 // Update a submission (Admin only)
 router.put('/:submissionId', auth('admin'), updateSubmission);
+
+// Delete all submissions (Admin only) - must come before /:submissionId
+router.delete('/all', auth('admin'), deleteAllSubmissions);
 
 // Delete a submission (Admin only)
 router.delete('/:submissionId', auth('admin'), deleteSubmission);

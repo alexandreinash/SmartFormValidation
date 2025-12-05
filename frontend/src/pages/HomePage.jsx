@@ -21,7 +21,7 @@ function HomePage() {
 
   const handleLogout = () => {
     logout();
-    navigate('/');
+    navigate('/login');
   };
 
   return (
@@ -30,15 +30,14 @@ function HomePage() {
       <div className="homepage-logo">Smart Form Validator</div>
 
       {/* Logout Button */}
-      {user && (
-        <button
-          type="button"
-          className="homepage-logout-button"
-          onClick={handleLogout}
-        >
-          Log out
-        </button>
-      )}
+      <button
+        type="button"
+        className="homepage-logout-button"
+        onClick={handleLogout}
+        disabled={!user}
+      >
+        Log out
+      </button>
 
       {/* Box on Right Side */}
       <div className="homepage-right-box">
