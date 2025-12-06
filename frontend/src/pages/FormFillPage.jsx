@@ -116,6 +116,7 @@ import './FormFillPage.css';
 
 function FormFillPage() {
   const { id } = useParams();
+  const navigate = useNavigate();
   const [form, setForm] = useState(null);
   const [values, setValues] = useState({});
   const [errors, setErrors] = useState([]);
@@ -128,6 +129,7 @@ function FormFillPage() {
     const loadForm = async () => {
       try {
         const res = await api.get(`/api/forms/${id}`);
+        console.log('Form data loaded:', res.data);
         setForm(res.data.data);
         
         // Initialize empty values for each field
@@ -153,13 +155,14 @@ function FormFillPage() {
       const ai = [];
       
       errors.forEach(error => {
-        // Check if error is AI-related (based on message content or structure)
+        // Check if error is AI-related
         if (error.message && (
-          error.message.includes('tone') || 
-          error.message.includes('sentiment') || 
-          error.message.includes('entity') ||
-          error.message.includes('AI') ||
-          error.message.includes('context')
+          error.message.toLowerCase().includes('tone') || 
+          error.message.toLowerCase().includes('sentiment') || 
+          error.message.toLowerCase().includes('entity') ||
+          error.message.toLowerCase().includes('ai') ||
+          error.message.toLowerCase().includes('context') ||
+          error.message.toLowerCase().includes('meaning')
         )) {
           ai.push(error);
         } else {
@@ -175,8 +178,32 @@ function FormFillPage() {
     }
   }, [errors]);
 
-  const handleChange = (fieldId, value) => {
-    setValues(prev => ({ ...prev, [fieldId]: value }));
+  const handleChange = (fieldId, value, fieldType) => {
+    setValues(prev => {
+      // Handle different field types
+      if (fieldType === 'checkbox' || fieldType === 'checkboxes') {
+        const currentValues = prev[fieldId] || [];
+        if (Array.isArray(currentValues)) {
+          if (currentValues.includes(value)) {
+            // Remove if already selected
+            return {
+              ...prev,
+              [fieldId]: currentValues.filter(v => v !== value)
+            };
+          } else {
+            // Add if not selected
+            return {
+              ...prev,
+              [fieldId]: [...currentValues, value]
+            };
+          }
+        }
+      }
+      
+      // For all other field types
+      return { ...prev, [fieldId]: value };
+    });
+    
     // Clear errors for this field when user starts typing
     setErrors(prev => prev.filter(error => error.fieldId !== fieldId));
   };
@@ -188,31 +215,96 @@ function FormFillPage() {
     setIsSubmitting(true);
     
     try {
+      // Prepare answers for submission
+      const answers = [];
+      form.fields.forEach(field => {
+        const value = values[field.id];
+        
+        // Validate required fields
+        if (field.is_required && (value === undefined || value === null || value === '' || 
+            (Array.isArray(value) && value.length === 0))) {
+          throw {
+            fieldId: field.id,
+            message: `${field.label} is required`
+          };
+        }
+        
+        // Validate email format
+        if (field.type === 'email' && value && value.trim() !== '') {
+          const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+          if (!emailRegex.test(value)) {
+            throw {
+              fieldId: field.id,
+              message: 'Please enter a valid email address'
+            };
+          }
+        }
+        
+        // Validate URL format
+        if (field.type === 'url' && value && value.trim() !== '') {
+          const urlRegex = /^(https?:\/\/)?([\da-z.-]+)\.([a-z.]{2,6})([/\w .-]*)*\/?$/;
+          if (!urlRegex.test(value)) {
+            throw {
+              fieldId: field.id,
+              message: 'Please enter a valid URL'
+            };
+          }
+        }
+        
+        // Validate number format
+        if (field.type === 'number' && value && value.trim() !== '') {
+          if (isNaN(Number(value))) {
+            throw {
+              fieldId: field.id,
+              message: 'Please enter a valid number'
+            };
+          }
+        }
+        
+        if (value !== undefined && value !== null) {
+          answers.push({
+            fieldId: field.id,
+            value: Array.isArray(value) ? value.join(', ') : String(value)
+          });
+        }
+      });
+      
       const payload = {
         formId: id,
-        answers: Object.entries(values).map(([fieldId, value]) => ({
-          fieldId,
-          value
-        }))
+        answers: answers
       };
+      
+      console.log('Submitting payload:', payload);
       
       const res = await api.post('/api/submissions', payload);
       
       if (res.data.success) {
-        setStatus('Form submitted successfully!');
-        // Clear form
-        const clearedValues = {};
-        Object.keys(values).forEach(key => {
-          clearedValues[key] = '';
-        });
-        setValues(clearedValues);
+        setSubmitted(true);
+        setStatus(res.data.message || '✅ Form submitted successfully!');
+        
+        // Show AI validation results if any
+        if (res.data.data && res.data.data.ai_flags && res.data.data.ai_flags.length > 0) {
+          setTimeout(() => {
+            setStatus(prev => prev + ' Note: Some responses were flagged by AI for review.');
+          }, 1000);
+        }
       } else {
-        setStatus(res.data.message || 'Submission completed with notes.');
+        // Handle validation errors from backend
+        if (res.data.errors) {
+          setErrors(res.data.errors);
+          setStatus(res.data.message || 'Please correct the errors below.');
+        } else {
+          setStatus(res.data.message || 'Submission completed with notes.');
+        }
       }
     } catch (err) {
       console.error('Submission error:', err);
       
-      if (err.response?.data?.errors) {
+      // Handle field validation errors
+      if (err.fieldId) {
+        setErrors([err]);
+        setStatus('Please correct the errors below.');
+      } else if (err.response?.data?.errors) {
         setErrors(err.response.data.errors);
         setStatus(err.response.data.message || 'Please correct the errors below.');
       } else if (err.response?.data?.message) {
