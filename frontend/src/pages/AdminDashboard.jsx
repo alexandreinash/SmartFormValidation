@@ -49,6 +49,22 @@ function AdminDashboard() {
             </button>
           </div>
 
+          {/* Create Quiz Form Card */}
+          <div className="admin-card">
+            <div className="admin-card-icon">🎯</div>
+            <h3 className="admin-card-title">Create Quiz Form</h3>
+            <p className="admin-card-description">
+              Create interactive quizzes with multiple choice, fill in the blank, or true/false questions with automatic scoring.
+            </p>
+            <button
+              type="button"
+              className="admin-card-button"
+              onClick={() => navigate('/quiz-form')}
+            >
+              Create Quiz Form
+            </button>
+          </div>
+
           {/* View Submissions Card */}
           <div className="admin-card">
             <div className="admin-card-icon">📊</div>

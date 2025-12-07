@@ -23,6 +23,10 @@ const FormField = sequelize.define(
       allowNull: false,
       defaultValue: 'any',
     },
+    options: {
+      type: DataTypes.TEXT,
+      allowNull: true,
+    },
   },
   {
     tableName: 'form_fields',

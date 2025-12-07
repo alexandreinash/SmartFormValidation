@@ -124,16 +124,35 @@ function FormFillPage() {
   const [aiErrors, setAiErrors] = useState([]);
   const [status, setStatus] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [quizResults, setQuizResults] = useState(null);
+  const [isQuiz, setIsQuiz] = useState(false);
 
   useEffect(() => {
     const loadForm = async () => {
       try {
         const res = await api.get(`/api/forms/${id}`);
-        setForm(res.data.data);
+        const formData = res.data.data;
+        setForm(formData);
+        
+        // Check if this is a quiz form
+        const hasQuizFields = formData.fields.some(field => {
+          try {
+            // Check options field first (new method), then expected_entity (old method)
+            const quizData = field.options 
+              ? JSON.parse(field.options)
+              : (field.expected_entity && field.expected_entity !== 'none' && field.expected_entity !== 'quiz'
+                  ? JSON.parse(field.expected_entity)
+                  : null);
+            return quizData && quizData.questionType;
+          } catch {
+            return false;
+          }
+        });
+        setIsQuiz(hasQuizFields);
         
         // Initialize empty values for each field
         const initialValues = {};
-        res.data.data.fields.forEach(field => {
+        formData.fields.forEach(field => {
           initialValues[field.id] = '';
         });
         setValues(initialValues);
@@ -180,6 +199,62 @@ function FormFillPage() {
     setValues(prev => ({ ...prev, [fieldId]: value }));
     // Clear errors for this field when user starts typing
     setErrors(prev => prev.filter(error => error.fieldId !== fieldId));
+    // Clear status message when user starts typing
+    if (status && status.includes('Please fill')) {
+      setStatus('');
+    }
+  };
+
+  const calculateQuizScore = () => {
+    if (!isQuiz || !form) return null;
+    
+    let totalPoints = 0;
+    let earnedPoints = 0;
+    const results = [];
+    
+    form.fields.forEach(field => {
+      try {
+        // Parse quiz data from options field (new method) or expected_entity (old method)
+        const quizData = field.options 
+          ? JSON.parse(field.options)
+          : (field.expected_entity && field.expected_entity !== 'none' && field.expected_entity !== 'quiz'
+              ? JSON.parse(field.expected_entity)
+              : {});
+        if (quizData.questionType) {
+          const points = quizData.points || 1;
+          totalPoints += points;
+          
+          const userAnswer = values[field.id] || '';
+          const correctAnswer = quizData.correctAnswer || '';
+          let isCorrect = false;
+          
+          if (quizData.questionType === 'multiple_choice') {
+            isCorrect = userAnswer.trim() === correctAnswer.trim();
+          } else if (quizData.questionType === 'fill_blank') {
+            isCorrect = userAnswer.trim().toLowerCase() === correctAnswer.trim().toLowerCase();
+          } else if (quizData.questionType === 'true_false') {
+            isCorrect = userAnswer.trim() === correctAnswer.trim();
+          }
+          
+          if (isCorrect) {
+            earnedPoints += points;
+          }
+          
+          results.push({
+            question: field.label,
+            userAnswer,
+            correctAnswer,
+            isCorrect,
+            points: isCorrect ? points : 0,
+            maxPoints: points
+          });
+        }
+      } catch (e) {
+        // Not a quiz field, skip
+      }
+    });
+    
+    return { totalPoints, earnedPoints, results, percentage: totalPoints > 0 ? Math.round((earnedPoints / totalPoints) * 100) : 0 };
   };
 
   const handleSubmit = async (e) => {
@@ -187,6 +262,65 @@ function FormFillPage() {
     setStatus('');
     setErrors([]);
     setIsSubmitting(true);
+    setQuizResults(null);
+    
+    // Client-side validation: Check for required fields and blank/whitespace-only answers
+    const validationErrors = [];
+    if (form && form.fields) {
+      form.fields.forEach(field => {
+        const value = values[field.id];
+        // Check if field is required and empty or only whitespace
+        if (field.is_required) {
+          if (!value || (typeof value === 'string' && value.trim() === '')) {
+            validationErrors.push({
+              fieldId: field.id,
+              type: 'basic',
+              message: 'This field is required. Please provide an answer.',
+            });
+          }
+        }
+        // Also check for any field that has a value but it's only whitespace
+        if (value && typeof value === 'string' && value.trim() === '' && value.length > 0) {
+          validationErrors.push({
+            fieldId: field.id,
+            type: 'basic',
+            message: 'Please enter a valid answer. Blank spaces are not accepted.',
+          });
+        }
+      });
+      
+      // Check if ALL fields are empty or whitespace (only show if no individual errors exist)
+      // This prevents completely blank submissions
+      if (validationErrors.length === 0) {
+        const allFieldsEmpty = form.fields.every(field => {
+          const value = values[field.id];
+          return !value || (typeof value === 'string' && value.trim() === '');
+        });
+        
+        if (allFieldsEmpty && form.fields.length > 0) {
+          // Add error to first field
+          validationErrors.push({
+            fieldId: form.fields[0].id,
+            type: 'basic',
+            message: 'Please provide at least one answer before submitting. Blank submissions are not accepted.',
+          });
+        }
+      }
+    }
+    
+    // If there are validation errors, stop submission
+    if (validationErrors.length > 0) {
+      setErrors(validationErrors);
+      setStatus('Please fill in all required fields with valid answers before submitting.');
+      setIsSubmitting(false);
+      return;
+    }
+    
+    // Calculate quiz score if it's a quiz
+    if (isQuiz) {
+      const score = calculateQuizScore();
+      setQuizResults(score);
+    }
     
     try {
       // Backend expects: POST /api/submissions/:formId with body { values: { [fieldId]: value } }
@@ -197,13 +331,15 @@ function FormFillPage() {
       const res = await api.post(`/api/submissions/${id}`, payload);
       
       if (res.data.success) {
-        setStatus('Form submitted successfully!');
-        // Clear form
-        const clearedValues = {};
-        Object.keys(values).forEach(key => {
-          clearedValues[key] = '';
-        });
-        setValues(clearedValues);
+        setStatus(isQuiz ? 'Quiz submitted successfully! Check your results below.' : 'Form submitted successfully!');
+        // Don't clear form for quiz so user can see results
+        if (!isQuiz) {
+          const clearedValues = {};
+          Object.keys(values).forEach(key => {
+            clearedValues[key] = '';
+          });
+          setValues(clearedValues);
+        }
       } else {
         setStatus(res.data.message || 'Submission completed with notes.');
       }
@@ -252,13 +388,33 @@ function FormFillPage() {
     );
   }
 
+  // Check if form has no fields
+  if (!form.fields || form.fields.length === 0) {
+    return (
+      <div className="form-fill-container">
+        <button
+          type="button"
+          className="button button-secondary"
+          style={{ marginBottom: '1.5rem' }}
+          onClick={() => navigate('/user/forms')}
+        >
+          ← Back
+        </button>
+        <div className="empty-state-card" style={{ textAlign: 'center', padding: '3rem' }}>
+          <h2>No Questions Available</h2>
+          <p>This form doesn't have any questions yet. Please contact the administrator.</p>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="form-fill-container">
       <button
         type="button"
         className="button button-secondary"
         style={{ marginBottom: '1.5rem' }}
-        onClick={() => navigate('/forms')}
+        onClick={() => navigate('/user/forms')}
       >
         ← Back
       </button>
@@ -316,8 +472,22 @@ function FormFillPage() {
 
           {/* Form Fields */}
           <div className="fields-container">
-            {form.fields.map((field) => {
+            {form.fields.map((field, index) => {
               const fieldError = getFieldError(field.id);
+              let quizData = null;
+              
+              try {
+                // Try to parse quiz data from options field first (new method), then fallback to expected_entity
+                if (field.options) {
+                  quizData = JSON.parse(field.options);
+                } else if (field.expected_entity && field.expected_entity !== 'none' && field.expected_entity !== 'quiz') {
+                  quizData = JSON.parse(field.expected_entity);
+                }
+              } catch (e) {
+                // Not a quiz field
+              }
+              
+              const isQuizField = quizData && quizData.questionType;
               
               return (
                 <div 
@@ -326,8 +496,13 @@ function FormFillPage() {
                 >
                   <div className="field-header">
                     <label className="field-label">
-                      {field.label}
+                      {isQuiz ? `Question ${index + 1}: ` : ''}{field.label}
                       {field.is_required && <span className="required-asterisk">*</span>}
+                      {isQuizField && quizData.points && (
+                        <span style={{ marginLeft: '0.5rem', color: '#6b7280', fontSize: '0.875rem' }}>
+                          ({quizData.points} point{quizData.points !== 1 ? 's' : ''})
+                        </span>
+                      )}
                     </label>
                     {field.ai_validation_enabled && (
                       <span className="ai-badge" title="AI-powered validation enabled">
@@ -337,13 +512,87 @@ function FormFillPage() {
                   </div>
                   
                   <div className="field-input-container">
-                    {field.type === 'textarea' ? (
+                    {isQuizField ? (
+                      // Quiz Question Rendering
+                      (() => {
+                        if (quizData.questionType === 'multiple_choice') {
+                          const validOptions = quizData.options && quizData.options.filter(opt => opt.trim());
+                          return (
+                            <div className="quiz-options-list">
+                              {validOptions && validOptions.length > 0 ? (
+                                validOptions.map((option, optIndex) => (
+                                  <label key={optIndex} className="quiz-option-label">
+                                    <input
+                                      type="radio"
+                                      name={`question-${field.id}`}
+                                      value={option}
+                                      checked={values[field.id] === option}
+                                      onChange={(e) => handleChange(field.id, e.target.value)}
+                                      disabled={quizResults !== null}
+                                      required={field.is_required}
+                                    />
+                                    <span>{option}</span>
+                                  </label>
+                                ))
+                              ) : (
+                                <p style={{ color: '#dc2626', fontStyle: 'italic', padding: '0.5rem' }}>
+                                  No options available for this question.
+                                </p>
+                              )}
+                            </div>
+                          );
+                        } else if (quizData.questionType === 'fill_blank') {
+                          return (
+                            <input
+                              className="form-input"
+                              type="text"
+                              value={values[field.id] || ''}
+                              onChange={(e) => handleChange(field.id, e.target.value)}
+                              placeholder="Enter your answer..."
+                              disabled={quizResults !== null}
+                              required={field.is_required}
+                            />
+                          );
+                        } else if (quizData.questionType === 'true_false') {
+                          return (
+                            <div className="quiz-options-list">
+                              <label className="quiz-option-label">
+                                <input
+                                  type="radio"
+                                  name={`question-${field.id}`}
+                                  value="True"
+                                  checked={values[field.id] === 'True'}
+                                  onChange={(e) => handleChange(field.id, e.target.value)}
+                                  disabled={quizResults !== null}
+                                  required={field.is_required}
+                                />
+                                <span>True</span>
+                              </label>
+                              <label className="quiz-option-label">
+                                <input
+                                  type="radio"
+                                  name={`question-${field.id}`}
+                                  value="False"
+                                  checked={values[field.id] === 'False'}
+                                  onChange={(e) => handleChange(field.id, e.target.value)}
+                                  disabled={quizResults !== null}
+                                  required={field.is_required}
+                                />
+                                <span>False</span>
+                              </label>
+                            </div>
+                          );
+                        }
+                        return null;
+                      })()
+                    ) : field.type === 'textarea' ? (
                       <textarea
                         className="form-textarea"
                         value={values[field.id] || ''}
                         onChange={(e) => handleChange(field.id, e.target.value)}
                         placeholder={`Enter ${field.label.toLowerCase()}...`}
                         rows={4}
+                        required={field.is_required}
                       />
                     ) : (
                       <input
@@ -353,9 +602,21 @@ function FormFillPage() {
                         value={values[field.id] || ''}
                         onChange={(e) => handleChange(field.id, e.target.value)}
                         placeholder={`Enter ${field.label.toLowerCase()}...`}
+                        required={field.is_required}
                       />
                     )}
                   </div>
+                  
+                  {/* Show quiz result for this question */}
+                  {quizResults && quizResults.results[index] && (
+                    <div className={`quiz-result ${quizResults.results[index].isCorrect ? 'quiz-correct' : 'quiz-incorrect'}`}>
+                      {quizResults.results[index].isCorrect ? (
+                        <span>✓ Correct! (+{quizResults.results[index].points} point{quizResults.results[index].points !== 1 ? 's' : ''})</span>
+                      ) : (
+                        <span>✗ Incorrect. Correct answer: {quizResults.results[index].correctAnswer}</span>
+                      )}
+                    </div>
+                  )}
                   
                   {fieldError && (
                     <div className="field-error-message">
@@ -374,20 +635,45 @@ function FormFillPage() {
             })}
           </div>
 
+          {/* Quiz Results Summary */}
+          {quizResults && (
+            <div className="quiz-results-summary">
+              <h3>Quiz Results</h3>
+              <div className="quiz-score-display">
+                <div className="quiz-score-main">
+                  <span className="quiz-score-number">{quizResults.earnedPoints}</span>
+                  <span className="quiz-score-separator">/</span>
+                  <span className="quiz-score-total">{quizResults.totalPoints}</span>
+                </div>
+                <div className="quiz-score-percentage">
+                  {quizResults.percentage}%
+                </div>
+              </div>
+              <p className="quiz-score-message">
+                {quizResults.percentage >= 80 ? '🎉 Excellent work!' :
+                 quizResults.percentage >= 60 ? '👍 Good job!' :
+                 quizResults.percentage >= 40 ? '📚 Keep studying!' :
+                 '💪 Keep practicing!'}
+              </p>
+            </div>
+          )}
+
           {/* Form Actions */}
           <div className="form-actions">
             <button 
               type="submit" 
               className="submit-button"
-              disabled={isSubmitting}
+              disabled={isSubmitting || quizResults !== null}
             >
               {isSubmitting ? (
                 <>
                   <span className="spinner"></span>
                   Processing...
                 </>
+              ) : quizResults !== null ? (
+                'Quiz Submitted'
               ) : (
-                'Submit Form'
+                isQuiz ? 'Submit Quiz' : 'Submit Form'
               )}
             </button>
             

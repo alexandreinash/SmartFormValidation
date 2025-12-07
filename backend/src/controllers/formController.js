@@ -34,6 +34,7 @@ async function createForm(req, res, next) {
           ai_validation_enabled: !!f.ai_validation_enabled,
           expected_entity: f.expected_entity || 'none',
           expected_sentiment: f.expected_sentiment || 'any',
+          options: f.options || null,
         })
       )
     );
