@@ -48,13 +48,13 @@ export function AuthProvider({ children }) {
 
   const logout = () => {
     try {
+      // Clear state first
+      setToken(null);
+      setUser(null);
+      
       // Clear localStorage - remove all authentication data
       localStorage.removeItem('sfv_token');
       localStorage.removeItem('sfv_user');
-      
-      // Clear state immediately
-      setToken(null);
-      setUser(null);
       
       // Clear any other potential stored data
       sessionStorage.clear();
@@ -65,6 +65,14 @@ export function AuthProvider({ children }) {
       // Even if there's an error, try to clear state
       setToken(null);
       setUser(null);
+      // Still try to clear storage
+      try {
+        localStorage.removeItem('sfv_token');
+        localStorage.removeItem('sfv_user');
+        sessionStorage.clear();
+      } catch (storageError) {
+        console.error('Error clearing storage:', storageError);
+      }
       return false;
     }
   };

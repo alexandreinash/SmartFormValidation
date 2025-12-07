@@ -1,21 +1,56 @@
-import React, { useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import React, { useState, useEffect } from 'react';
+import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../AuthContext';
 
 function LoginPage() {
   const { login } = useAuth();
   const navigate = useNavigate();
+  const location = useLocation();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [status, setStatus] = useState('');
+  const [isSuccess, setIsSuccess] = useState(false);
+  const [isLogout, setIsLogout] = useState(false);
+
+  useEffect(() => {
+    // Show success message if user just registered
+    if (location.state?.justRegistered) {
+      setIsSuccess(true);
+      setStatus('Registration successful! You can now log in.');
+      // Clear the message after 5 seconds
+      const timer = setTimeout(() => {
+        setStatus('');
+        setIsSuccess(false);
+      }, 5000);
+      return () => clearTimeout(timer);
+    }
+    // Show success message if user just logged out
+    if (location.state?.justLoggedOut) {
+      setIsLogout(true);
+      setStatus('You have successfully logged out!');
+      // Clear the message after 1 second
+      const timer = setTimeout(() => {
+        setStatus('');
+        setIsLogout(false);
+      }, 1000);
+      return () => clearTimeout(timer);
+    }
+  }, [location.state]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     setStatus('');
+    setIsSuccess(false);
     try {
       const user = await login(email, password);
-      navigate('/');
+      setIsSuccess(true);
+      setStatus('Login successful! Redirecting...');
+      // Wait 0.5 seconds before navigating
+      setTimeout(() => {
+        navigate('/', { state: { justLoggedIn: true } });
+      }, 500);
     } catch (err) {
+      setIsSuccess(false);
       if (!err.response) {
         setStatus(
           'Cannot reach the API server. Make sure the backend is running on port 5000.'
@@ -84,7 +119,18 @@ function LoginPage() {
               <button type="submit" className="auth-button">
                 Login
               </button>
-              {status && <p className="status" style={{ marginTop: '1rem', color: '#ef4444' }}>{status}</p>}
+              {status && (
+                <p 
+                  className="status" 
+                  style={{ 
+                    marginTop: '1rem', 
+                    color: isLogout ? '#ef4444' : (isSuccess ? '#10b981' : '#ef4444'),
+                    fontWeight: (isSuccess || isLogout) ? '600' : '400'
+                  }}
+                >
+                  {status}
+                </p>
+              )}
             </form>
             <div className="auth-footer">
               Don&apos;t have an account? <Link to="/register">Create one</Link>

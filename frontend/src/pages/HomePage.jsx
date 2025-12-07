@@ -1,11 +1,26 @@
-import React from 'react';
-import { useNavigate } from 'react-router-dom';
+import React, { useState, useEffect } from 'react';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../AuthContext';
 import '../css/HomePage.css';
 
 function HomePage() {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
+  const location = useLocation();
+  const [showWelcomeMessage, setShowWelcomeMessage] = useState(false);
+  const [showLogoutMessage, setShowLogoutMessage] = useState(false);
+
+  useEffect(() => {
+    // Show welcome message if user just logged in
+    if (location.state?.justLoggedIn && user) {
+      setShowWelcomeMessage(true);
+      // Hide message after 1 second
+      const timer = setTimeout(() => {
+        setShowWelcomeMessage(false);
+      }, 1000);
+      return () => clearTimeout(timer);
+    }
+  }, [location.state, user]);
 
   const handleStartNow = () => {
     if (user) {
@@ -20,8 +35,12 @@ function HomePage() {
   };
 
   const handleLogout = () => {
+    setShowLogoutMessage(true);
     logout();
-    navigate('/login');
+    // Wait 0.5 seconds before navigating
+    setTimeout(() => {
+      navigate('/login', { state: { justLoggedOut: true }, replace: true });
+    }, 500);
   };
 
   return (
@@ -104,6 +123,44 @@ function HomePage() {
           <div className="homepage-vertical-bar"></div>
         </div>
       </div>
+
+      {/* Welcome Message */}
+      {showWelcomeMessage && (
+        <div style={{
+          position: 'fixed',
+          top: '20px',
+          right: '20px',
+          backgroundColor: '#10b981',
+          color: 'white',
+          padding: '16px 24px',
+          borderRadius: '8px',
+          boxShadow: '0 4px 6px rgba(0, 0, 0, 0.1)',
+          zIndex: 1000,
+          fontWeight: '600',
+          animation: 'slideIn 0.3s ease-out'
+        }}>
+          ✓ You have successfully logged in!
+        </div>
+      )}
+
+      {/* Logout Message */}
+      {showLogoutMessage && (
+        <div style={{
+          position: 'fixed',
+          top: '20px',
+          right: '20px',
+          backgroundColor: '#ef4444',
+          color: 'white',
+          padding: '16px 24px',
+          borderRadius: '8px',
+          boxShadow: '0 4px 6px rgba(0, 0, 0, 0.1)',
+          zIndex: 1000,
+          fontWeight: '600',
+          animation: 'slideIn 0.3s ease-out'
+        }}>
+          ✓ You have successfully logged out! Redirecting...
+        </div>
+      )}
 
       {/* Main Content */}
       <div className="homepage-content">
