@@ -478,3 +478,122 @@
     padding: 0.9rem 1.5rem;
   }
 }
+
+/* Quiz Styles */
+.quiz-options-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  width: 100%;
+}
+
+.quiz-option-label {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.875rem 1rem;
+  background: #f9fafb;
+  border: 2px solid #e5e7eb;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.quiz-option-label:hover {
+  background: #f3f4f6;
+  border-color: #d1d5db;
+}
+
+.quiz-option-label input[type="radio"] {
+  width: 20px;
+  height: 20px;
+  cursor: pointer;
+  accent-color: #f59e0b;
+}
+
+.quiz-option-label input[type="radio"]:disabled {
+  cursor: not-allowed;
+}
+
+.quiz-option-label:has(input[type="radio"]:checked) {
+  background: #fef3c7;
+  border-color: #f59e0b;
+  font-weight: 500;
+}
+
+.quiz-result {
+  margin-top: 0.75rem;
+  padding: 0.75rem 1rem;
+  border-radius: 8px;
+  font-weight: 500;
+}
+
+.quiz-correct {
+  background: #d1fae5;
+  color: #065f46;
+  border: 1px solid #a7f3d0;
+}
+
+.quiz-incorrect {
+  background: #fee2e2;
+  color: #991b1b;
+  border: 1px solid #fecaca;
+}
+
+.quiz-results-summary {
+  background: #ffffff;
+  border: 2px solid #f59e0b;
+  border-radius: 12px;
+  padding: 2rem;
+  margin-top: 2rem;
+  text-align: center;
+}
+
+.quiz-results-summary h3 {
+  margin: 0 0 1.5rem 0;
+  font-size: 1.5rem;
+  color: #111827;
+}
+
+.quiz-score-display {
+  margin-bottom: 1rem;
+}
+
+.quiz-score-main {
+  display: flex;
+  align-items: baseline;
+  justify-content: center;
+  gap: 0.5rem;
+  margin-bottom: 0.5rem;
+}
+
+.quiz-score-number {
+  font-size: 3rem;
+  font-weight: 700;
+  color: #f59e0b;
+}
+
+.quiz-score-separator {
+  font-size: 2rem;
+  font-weight: 600;
+  color: #6b7280;
+}
+
+.quiz-score-total {
+  font-size: 2rem;
+  font-weight: 600;
+  color: #6b7280;
+}
+
+.quiz-score-percentage {
+  font-size: 1.5rem;
+  font-weight: 600;
+  color: #111827;
+  margin-bottom: 1rem;
+}
+
+.quiz-score-message {
+  font-size: 1.125rem;
+  color: #6b7280;
+  margin: 0;
+}

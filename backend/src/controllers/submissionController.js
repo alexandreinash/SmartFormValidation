@@ -26,11 +26,22 @@ async function validateBasicFormValues(formId, values) {
 
   for (const field of form.fields) {
     const v = values[field.id];
-    if (field.is_required && (v === undefined || v === '')) {
+    // Check if field is required and empty or only whitespace
+    if (field.is_required) {
+      if (v === undefined || v === '' || (typeof v === 'string' && v.trim() === '')) {
+        validationErrors.push({
+          fieldId: field.id,
+          type: 'basic',
+          message: 'This field is required. Please provide an answer.',
+        });
+      }
+    }
+    // Also reject any value that is only whitespace (even for non-required fields)
+    if (v && typeof v === 'string' && v.trim() === '' && v.length > 0) {
       validationErrors.push({
         fieldId: field.id,
         type: 'basic',
-        message: 'This field is required.',
+        message: 'Please enter a valid answer. Blank spaces are not accepted.',
       });
     }
     if (field.type === 'email' && v) {
@@ -122,18 +133,72 @@ async function submitForm(req, res, next) {
 
     const aiSummaries = {}; // fieldId -> { status: 'correct' | 'needs_review' | 'not_evaluated', details }
 
-    // AI validation (sentiment & entity)
+    // AI validation (sentiment & entity, plus quiz answer validation)
     for (const field of form.fields) {
       const v = values[field.id];
       if (!field.ai_validation_enabled || !v) continue;
 
       try {
+        // Check if this is a quiz field
+        let quizData = null;
+        try {
+          if (field.options) {
+            quizData = JSON.parse(field.options);
+          } else if (field.expected_entity && field.expected_entity !== 'none' && field.expected_entity !== 'quiz') {
+            quizData = JSON.parse(field.expected_entity);
+          }
+        } catch (e) {
+          // Not a quiz field, continue with normal AI validation
+        }
+
         const sent = await analyzeSentiment(v);
         const entities = await analyzeEntities(v);
 
         let needsReview = false;
         const reasons = [];
 
+        // Quiz-specific AI validation: check semantic similarity to correct answer
+        if (quizData && quizData.questionType && quizData.correctAnswer) {
+          const userAnswer = v.trim().toLowerCase();
+          const correctAnswer = quizData.correctAnswer.trim().toLowerCase();
+          
+          // For fill_blank questions, use AI to check semantic similarity
+          if (quizData.questionType === 'fill_blank') {
+            // Check if answers are exactly the same (case-insensitive)
+            if (userAnswer === correctAnswer) {
+              reasons.push('✓ Your answer matches the correct answer perfectly!');
+            } else {
+              // Use entity analysis to check if the answer is semantically similar
+              const userEntities = await analyzeEntities(v);
+              const correctEntities = await analyzeEntities(quizData.correctAnswer);
+              
+              // Check for common entities or keywords
+              const userEntityNames = (userEntities.entities || []).map(e => e.name?.toLowerCase() || '').filter(Boolean);
+              const correctEntityNames = (correctEntities.entities || []).map(e => e.name?.toLowerCase() || '').filter(Boolean);
+              
+              const hasCommonEntities = userEntityNames.some(name => 
+                correctEntityNames.some(correctName => 
+                  name.includes(correctName) || correctName.includes(name)
+                )
+              );
+              
+              if (hasCommonEntities || userAnswer.includes(correctAnswer) || correctAnswer.includes(userAnswer)) {
+                reasons.push('⚠️ Your answer is close but may not be exactly correct. Please review.');
+                needsReview = true;
+              } else {
+                reasons.push('✗ Your answer does not appear to match the expected answer. Please try again.');
+                needsReview = true;
+                validationErrors.push({
+                  fieldId: field.id,
+                  type: 'ai_quiz',
+                  message: 'Your answer does not match the expected answer. Please review and try again.',
+                });
+              }
+            }
+          }
+        }
+
+        // General sentiment validation
         if (sent.score < -0.6) {
           needsReview = true;
           reasons.push(
@@ -147,10 +212,12 @@ async function submitForm(req, res, next) {
           });
         }
 
+        // Entity validation for name/company fields
         if (
           entities.entities &&
           entities.entities.length === 0 &&
-          /name|company/i.test(field.label)
+          /name|company/i.test(field.label) &&
+          !quizData // Skip this for quiz fields
         ) {
           needsReview = true;
           reasons.push("This doesn't look like a typical name or company.");

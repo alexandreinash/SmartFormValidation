@@ -12,7 +12,7 @@ function HomePage() {
       if (user.role === 'admin') {
         navigate('/admin');
       } else {
-        navigate('/forms');
+        navigate('/user/forms');
       }
     } else {
       navigate('/register');
