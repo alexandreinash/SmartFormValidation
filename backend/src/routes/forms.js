@@ -7,6 +7,8 @@ const {
   listForms,
   deleteForm,
   updateForm,
+  deleteMultipleForms,
+  deleteAllForms,
 } = require('../controllers/formController');
 
 const router = express.Router();
@@ -22,6 +24,12 @@ router.get('/:id', getForm);
 
 // Update a form (Admin only)
 router.put('/:id', auth('admin'), validateCreateForm, updateForm);
+
+// Delete all forms (Admin only) - must come before /:id
+router.delete('/all', auth('admin'), deleteAllForms);
+
+// Delete multiple forms (Admin only) - must come before /:id
+router.delete('/multiple', auth('admin'), deleteMultipleForms);
 
 // Delete a form (Admin only)
 router.delete('/:id', auth('admin'), deleteForm);

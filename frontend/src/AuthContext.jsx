@@ -47,10 +47,26 @@ export function AuthProvider({ children }) {
   };
 
   const logout = () => {
-    localStorage.removeItem('sfv_token');
-    localStorage.removeItem('sfv_user');
-    setToken(null);
-    setUser(null);
+    try {
+      // Clear localStorage - remove all authentication data
+      localStorage.removeItem('sfv_token');
+      localStorage.removeItem('sfv_user');
+      
+      // Clear state immediately
+      setToken(null);
+      setUser(null);
+      
+      // Clear any other potential stored data
+      sessionStorage.clear();
+      
+      return true;
+    } catch (error) {
+      console.error('Error during logout:', error);
+      // Even if there's an error, try to clear state
+      setToken(null);
+      setUser(null);
+      return false;
+    }
   };
 
   return (

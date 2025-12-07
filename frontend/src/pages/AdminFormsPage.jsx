@@ -52,9 +52,9 @@ function AdminFormsPage() {
     try {
       setIsBusy(true);
       await api.delete(`/api/forms/${formId}`);
-      setForms((prev) => prev.filter((f) => f.id !== formId));
+      await loadForms(); // Reload to get renumbered forms
       setSelectedForms((prev) => prev.filter((id) => id !== formId));
-      setStatus('Form deleted.');
+      setStatus('Form deleted. Forms have been renumbered sequentially.');
     } catch (err) {
       setStatus('Failed to delete form.');
     } finally {
@@ -63,15 +63,16 @@ function AdminFormsPage() {
   };
 
   const deleteAllForms = async () => {
-    if (!window.confirm(`Are you sure you want to delete all ${forms.length} form(s)? This action cannot be undone.`)) {
+    const count = forms.length;
+    if (!window.confirm(`Are you sure you want to delete all ${count} form(s)? This action cannot be undone.`)) {
       return;
     }
     try {
       setIsBusy(true);
-      await Promise.all(forms.map((form) => api.delete(`/api/forms/${form.id}`)));
-      setForms([]);
+      await api.delete('/api/forms/all');
+      await loadForms(); // Reload to get updated state
       setSelectedForms([]);
-      setStatus(`All ${forms.length} form(s) deleted.`);
+      setStatus(`All ${count} form(s) deleted. Form ID counter has been reset.`);
     } catch (err) {
       setStatus('Failed to delete all forms.');
     } finally {
@@ -102,12 +103,10 @@ function AdminFormsPage() {
     }
     try {
       setIsBusy(true);
-      await Promise.all(
-        selectedForms.map((id) => api.delete(`/api/forms/${id}`))
-      );
-      setForms((prev) => prev.filter((f) => !selectedForms.includes(f.id)));
+      await api.delete('/api/forms/multiple', { data: { formIds: selectedForms } });
+      await loadForms(); // Reload to get renumbered forms
       setSelectedForms([]);
-      setStatus(`${selectedForms.length} form(s) deleted.`);
+      setStatus(`${selectedForms.length} form(s) deleted. Forms have been renumbered sequentially.`);
     } catch (err) {
       setStatus('Failed to delete selected forms.');
     } finally {
@@ -145,7 +144,7 @@ function AdminFormsPage() {
             type="button"
             className="button button-secondary"
             style={{ marginBottom: '0.75rem' }}
-            onClick={() => navigate('/')}
+            onClick={() => navigate('/admin')}
           >
             ← Back
           </button>

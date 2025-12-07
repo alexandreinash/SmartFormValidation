@@ -10,11 +10,49 @@ function TextFormPage() {
   const [title, setTitle] = useState('');
   const [fields, setFields] = useState([{ label: '', type: 'text', is_required: false, ai_validation_enabled: false }]);
   const [message, setMessage] = useState('');
+  const [fieldErrors, setFieldErrors] = useState({});
+
+  const validateFieldLabel = (label) => {
+    if (!label.trim()) {
+      return ''; // Empty is handled by required attribute
+    }
+    
+    // Check if contains only numbers
+    if (/^\d+$/.test(label.trim())) {
+      return 'Field label cannot contain only numbers';
+    }
+    
+    // Check if contains @ symbol (email address)
+    if (label.includes('@')) {
+      return 'Field label cannot contain email addresses (@ symbol)';
+    }
+    
+    // Check if contains any numbers
+    if (/\d/.test(label)) {
+      return 'Field label can only contain letters (no numbers allowed)';
+    }
+    
+    // Check if contains only letters and spaces/hyphens
+    if (!/^[a-zA-Z\s\-]+$/.test(label.trim())) {
+      return 'Field label can only contain letters, spaces, and hyphens';
+    }
+    
+    return ''; // Valid
+  };
 
   const updateField = (index, key, value) => {
     const next = [...fields];
     next[index] = { ...next[index], [key]: value };
     setFields(next);
+    
+    // Validate field label when it changes
+    if (key === 'label') {
+      const error = validateFieldLabel(value);
+      setFieldErrors(prev => ({
+        ...prev,
+        [index]: error
+      }));
+    }
   };
 
   const addField = () => {
@@ -23,6 +61,22 @@ function TextFormPage() {
 
   const removeField = (index) => {
     setFields(fields.filter((_, i) => i !== index));
+    // Remove error for deleted field
+    setFieldErrors(prev => {
+      const next = { ...prev };
+      delete next[index];
+      // Reindex errors for fields after the removed one
+      const reindexed = {};
+      Object.keys(next).forEach(key => {
+        const keyNum = parseInt(key);
+        if (keyNum > index) {
+          reindexed[keyNum - 1] = next[key];
+        } else if (keyNum < index) {
+          reindexed[keyNum] = next[key];
+        }
+      });
+      return reindexed;
+    });
   };
 
   const handleSubmit = async (e) => {
@@ -34,11 +88,30 @@ function TextFormPage() {
       return;
     }
 
+    // Validate all field labels before submission
+    const errors = {};
+    let hasErrors = false;
+    
+    fields.forEach((field, index) => {
+      const error = validateFieldLabel(field.label);
+      if (error) {
+        errors[index] = error;
+        hasErrors = true;
+      }
+    });
+    
+    if (hasErrors) {
+      setFieldErrors(errors);
+      setMessage('Please fix the field label errors before submitting.');
+      return;
+    }
+
     try {
       const res = await api.post('/api/forms', { title, fields });
       setMessage(`Form created successfully with ID ${res.data.data.form.id}`);
       setTitle('');
       setFields([{ label: '', type: 'text', is_required: false, ai_validation_enabled: false }]);
+      setFieldErrors({});
     } catch (err) {
       setMessage(err.response?.data?.message || 'Failed to create form.');
     }
@@ -77,7 +150,7 @@ function TextFormPage() {
               type="button"
               onClick={() => {
                 logout();
-                navigate('/');
+                navigate('/login');
               }}
               className="sidebar-nav-item sidebar-logout-button"
             >
@@ -120,14 +193,19 @@ function TextFormPage() {
                 <div className="field-label-row">
                   <label className="field-label-text">Field Label</label>
                   <div className="field-input-row">
-                    <input
-                      type="text"
-                      placeholder="Enter field label"
-                      value={field.label}
-                      onChange={(e) => updateField(index, 'label', e.target.value)}
-                      required
-                      className="field-input field-input-yellow"
-                    />
+                    <div style={{ flex: 1, minWidth: '250px' }}>
+                      <input
+                        type="text"
+                        placeholder="Enter field label"
+                        value={field.label}
+                        onChange={(e) => updateField(index, 'label', e.target.value)}
+                        required
+                        className={`field-input field-input-yellow ${fieldErrors[index] ? 'field-input-error' : ''}`}
+                      />
+                      {fieldErrors[index] && (
+                        <div className="field-error-message">{fieldErrors[index]}</div>
+                      )}
+                    </div>
                     <button
                       type="button"
                       className="field-type-button field-type-button-yellow"

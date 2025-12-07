@@ -77,7 +77,7 @@ function CreateFormPage() {
               type="button"
               onClick={() => {
                 logout();
-                navigate('/');
+                navigate('/login');
               }}
               className="sidebar-nav-item sidebar-logout-button"
             >

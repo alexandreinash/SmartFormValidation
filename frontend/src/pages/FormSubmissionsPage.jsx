@@ -208,7 +208,7 @@ function FormSubmissionsPage() {
                 type="button"
                 className="button button-secondary"
                 style={{ marginBottom: '0.75rem' }}
-                onClick={() => navigate('/')}
+                onClick={() => navigate('/admin')}
               >
                 ← Back
               </button>
