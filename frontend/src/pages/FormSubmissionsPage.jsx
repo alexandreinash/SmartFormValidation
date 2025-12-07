@@ -107,7 +107,8 @@ function FormSubmissionsPage() {
     try {
       setIsBusy(true);
       await api.delete(`/api/submissions/${submissionId}`);
-      setSubmissions((prev) => prev.filter((s) => s.id !== submissionId));
+      // Reload submissions to get updated list
+      await loadSubmissions();
       setSelectedSubmissions((prev) => prev.filter((id) => id !== submissionId));
       setStatus('Submission deleted.');
     } catch (err) {
@@ -118,15 +119,17 @@ function FormSubmissionsPage() {
   };
 
   const deleteAllSubmissions = async () => {
-    if (!window.confirm(`Are you sure you want to delete all ${submissions.length} submission(s)? This action cannot be undone.`)) {
+    const count = submissions.length;
+    if (!window.confirm(`Are you sure you want to delete all ${count} submission(s)? This action cannot be undone.`)) {
       return;
     }
     try {
       setIsBusy(true);
       await api.delete('/api/submissions/all');
-      setSubmissions([]);
+      // Reload submissions to get updated list (will be empty)
+      await loadSubmissions();
       setSelectedSubmissions([]);
-      setStatus(`All ${submissions.length} submission(s) deleted.`);
+      setStatus(`All ${count} submission(s) deleted.`);
     } catch (err) {
       setStatus('Failed to delete all submissions.');
     } finally {
@@ -152,7 +155,8 @@ function FormSubmissionsPage() {
 
   const deleteSelectedSubmissions = async () => {
     if (selectedSubmissions.length === 0) return;
-    if (!window.confirm(`Are you sure you want to delete ${selectedSubmissions.length} selected submission(s)? This action cannot be undone.`)) {
+    const count = selectedSubmissions.length;
+    if (!window.confirm(`Are you sure you want to delete ${count} selected submission(s)? This action cannot be undone.`)) {
       return;
     }
     try {
@@ -160,9 +164,10 @@ function FormSubmissionsPage() {
       await Promise.all(
         selectedSubmissions.map((id) => api.delete(`/api/submissions/${id}`))
       );
-      setSubmissions((prev) => prev.filter((s) => !selectedSubmissions.includes(s.id)));
+      // Reload submissions to get updated list
+      await loadSubmissions();
       setSelectedSubmissions([]);
-      setStatus(`${selectedSubmissions.length} submission(s) deleted.`);
+      setStatus(`${count} submission(s) deleted.`);
     } catch (err) {
       setStatus('Failed to delete selected submissions.');
     } finally {
@@ -425,7 +430,12 @@ function FormSubmissionsPage() {
             </div>
           </div>
           <hr style={{ margin: '0.75rem 0', border: 'none', borderTop: '1px dashed #e2e8f0' }} />
-          {filteredSubmissions.map((sub) => (
+          {filteredSubmissions.map((sub, index) => {
+            // Get the index from the original submissions array to maintain sequential numbering
+            // Always start at 1, not 0
+            const submissionIndex = submissions.findIndex(s => s.id === sub.id);
+            const submissionNumber = submissionIndex >= 0 ? submissionIndex + 1 : index + 1;
+            return (
             <div key={sub.id} className="submission-block">
               <div className="submission-header">
                 <div style={{ display: 'flex', alignItems: 'flex-start', gap: '0.75rem' }}>
@@ -437,7 +447,7 @@ function FormSubmissionsPage() {
                   />
                   <div>
                     <h4 className="submission-title">
-                      Submission #{sub.id}
+                      Submission #{submissionNumber}
                     </h4>
                     <div className="submission-meta">
                       {isAllSubmissions && sub.form && (
@@ -559,7 +569,8 @@ function FormSubmissionsPage() {
                 </ul>
               )}
             </div>
-          ))}
+          );
+          })}
         </div>
       )}
     </div>
