@@ -6,6 +6,14 @@ const helmet = require('helmet');
 const cors = require('cors');
 
 const { sequelize } = require('./sequelize');
+// Load all models to ensure relationships are defined before sync
+require('./models/User');
+require('./models/Form');
+require('./models/FormField');
+require('./models/Submission');
+require('./models/SubmissionData');
+require('./models/AuditLog');
+
 const { apiLimiter, authLimiter, submissionLimiter } = require('./middleware/rateLimiter');
 const authRoutes = require('./routes/auth');
 const formRoutes = require('./routes/forms');

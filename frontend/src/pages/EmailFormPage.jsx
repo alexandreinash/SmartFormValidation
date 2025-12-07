@@ -7,6 +7,7 @@ import '../css/CreateFormPage.css';
 function EmailFormPage() {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
+  const [showLogoutMessage, setShowLogoutMessage] = useState(false);
   const [title, setTitle] = useState('');
   const [fields, setFields] = useState([{ label: '', type: 'email', is_required: false, ai_validation_enabled: false }]);
   const [message, setMessage] = useState('');
@@ -139,8 +140,11 @@ function EmailFormPage() {
             <button
               type="button"
               onClick={() => {
+                setShowLogoutMessage(true);
                 logout();
-                navigate('/login');
+                setTimeout(() => {
+                  navigate('/login', { state: { justLoggedOut: true }, replace: true });
+                }, 500);
               }}
               className="sidebar-nav-item sidebar-logout-button"
             >
@@ -150,6 +154,25 @@ function EmailFormPage() {
           </nav>
         </div>
       </div>
+
+      {/* Logout Message */}
+      {showLogoutMessage && (
+        <div style={{
+          position: 'fixed',
+          top: '20px',
+          right: '20px',
+          backgroundColor: '#ef4444',
+          color: 'white',
+          padding: '16px 24px',
+          borderRadius: '8px',
+          boxShadow: '0 4px 6px rgba(0, 0, 0, 0.1)',
+          zIndex: 1000,
+          fontWeight: '600',
+          animation: 'slideIn 0.3s ease-out'
+        }}>
+          ✓ You have successfully logged out! Redirecting...
+        </div>
+      )}
 
       {/* Main Content */}
       <div className="create-form-main">

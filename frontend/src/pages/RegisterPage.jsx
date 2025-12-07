@@ -9,18 +9,25 @@ function RegisterPage() {
   const [password, setPassword] = useState('');
   const [role, setRole] = useState('admin');
   const [status, setStatus] = useState('');
+  const [isSuccess, setIsSuccess] = useState(false);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     setStatus('');
+    setIsSuccess(false);
     try {
       await register(email, password, role);
-      setStatus('Registration successful. You may now log in.');
-      navigate('/login');
+      setIsSuccess(true);
+      setStatus('Registration successful! Redirecting...');
+      // Wait 0.5 seconds before navigating
+      setTimeout(() => {
+        navigate('/login', { state: { justRegistered: true } });
+      }, 500);
     } catch (err) {
+      setIsSuccess(false);
       if (!err.response) {
         setStatus(
-          'Cannot reach the API server. Make sure the backend is running on port 4000.'
+          'Cannot reach the API server. Make sure the backend is running on port 5000.'
         );
       } else {
         setStatus(
@@ -88,7 +95,18 @@ function RegisterPage() {
               <button type="submit" className="auth-button">
                 Create account
               </button>
-              {status && <p className="status" style={{ marginTop: '1rem', color: '#ef4444' }}>{status}</p>}
+              {status && (
+                <p 
+                  className="status" 
+                  style={{ 
+                    marginTop: '1rem', 
+                    color: isSuccess ? '#10b981' : '#ef4444',
+                    fontWeight: isSuccess ? '600' : '400'
+                  }}
+                >
+                  {status}
+                </p>
+              )}
             </form>
             <div className="auth-footer">
               Already have an account? <Link to="/login">Log in</Link>
