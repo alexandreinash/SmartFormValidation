@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../AuthContext';
 import '../css/AdminDashboard.css';
@@ -6,15 +6,12 @@ import '../css/AdminDashboard.css';
 function AdminDashboard() {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
-  const [showLogoutMessage, setShowLogoutMessage] = useState(false);
 
   const handleLogout = () => {
-    setShowLogoutMessage(true);
+    const ok = window.confirm('Are you sure you want to log out?');
+    if (!ok) return;
     logout();
-    // Wait 0.5 seconds before navigating
-    setTimeout(() => {
-      navigate('/login', { state: { justLoggedOut: true }, replace: true });
-    }, 500);
+    navigate('/login');
   };
 
   return (
@@ -30,25 +27,6 @@ function AdminDashboard() {
       >
         Log out
       </button>
-
-      {/* Logout Message */}
-      {showLogoutMessage && (
-        <div style={{
-          position: 'fixed',
-          top: '20px',
-          right: '20px',
-          backgroundColor: '#ef4444',
-          color: 'white',
-          padding: '16px 24px',
-          borderRadius: '8px',
-          boxShadow: '0 4px 6px rgba(0, 0, 0, 0.1)',
-          zIndex: 1000,
-          fontWeight: '600',
-          animation: 'slideIn 0.3s ease-out'
-        }}>
-          ✓ You have successfully logged out! Redirecting...
-        </div>
-      )}
 
       {/* Main Content */}
       <div className="admin-dashboard-content">

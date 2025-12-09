@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import api from '../api';
 import { useAuth } from '../AuthContext';
@@ -11,6 +11,8 @@ function AnalyticsPage() {
   const [error, setError] = useState('');
   const [selectedFormId, setSelectedFormId] = useState(null);
   const [formAnalytics, setFormAnalytics] = useState(null);
+  const formAnalyticsRef = useRef(null);
+  const [openSubmissionId, setOpenSubmissionId] = useState(null);
 
   useEffect(() => {
     if (!user || user.role !== 'admin') {
@@ -44,6 +46,38 @@ function AnalyticsPage() {
       console.error('Failed to load form analytics:', err);
     }
   };
+
+  // Smooth scroll helper — 400ms with ease-in-out-like curve
+  const smoothScrollTo = (targetY, duration = 400) => {
+    const startY = window.pageYOffset;
+    const diff = targetY - startY;
+    let startTime = null;
+
+    const step = (timestamp) => {
+      if (!startTime) startTime = timestamp;
+      const time = timestamp - startTime;
+      const progress = Math.min(time / duration, 1);
+      // easeInOutCubic
+      const eased = progress < 0.5 ? 4 * progress * progress * progress : 1 - Math.pow(-2 * progress + 2, 3) / 2;
+      window.scrollTo(0, Math.round(startY + diff * eased));
+      if (time < duration) {
+        window.requestAnimationFrame(step);
+      }
+    };
+
+    window.requestAnimationFrame(step);
+  };
+
+  // When formAnalytics is set, scroll to the analytics panel smoothly
+  useEffect(() => {
+    if (formAnalytics && formAnalyticsRef.current) {
+      // compute target position (slightly above element)
+      const rect = formAnalyticsRef.current.getBoundingClientRect();
+      const headerOffset = 24; // small offset so panel isn't flush to top
+      const targetY = window.pageYOffset + rect.top - headerOffset;
+      smoothScrollTo(targetY, 400);
+    }
+  }, [formAnalytics]);
 
   if (loading) {
     return (
@@ -103,32 +137,55 @@ function AnalyticsPage() {
             </div>
           </div>
 
-          {/* AI Validation Stats */}
+          {/* AI Validation Stats (show 'Not tracked' when backend doesn't provide these values) */}
           <div className="card" style={{ marginBottom: '2rem' }}>
             <h3 style={{ marginBottom: '1.5rem' }}>AI Validation Statistics</h3>
             <div className="summary-grid">
-              <div className="summary-card">
-                <div className="summary-label">Total Evaluated</div>
-                <div className="summary-value">{analytics.aiValidation.totalEvaluated}</div>
-              </div>
-              <div className="summary-card">
-                <div className="summary-label">Sentiment Flagged</div>
-                <div className="summary-value highlight-danger">
-                  {analytics.aiValidation.sentimentFlagged}
-                </div>
-              </div>
-              <div className="summary-card">
-                <div className="summary-label">Entity Flagged</div>
-                <div className="summary-value highlight-danger">
-                  {analytics.aiValidation.entityFlagged}
-                </div>
-              </div>
-              <div className="summary-card">
-                <div className="summary-label">Not Evaluated</div>
-                <div className="summary-value highlight-muted">
-                  {analytics.aiValidation.notEvaluated}
-                </div>
-              </div>
+              {analytics.aiValidation && (typeof analytics.aiValidation.totalEvaluated === 'number') ? (
+                <>
+                  <div className="summary-card">
+                    <div className="summary-label">Total Evaluated</div>
+                    <div className="summary-value">{analytics.aiValidation.totalEvaluated}</div>
+                  </div>
+                  <div className="summary-card">
+                    <div className="summary-label">Sentiment Flagged</div>
+                    <div className="summary-value highlight-danger">
+                      {analytics.aiValidation.sentimentFlagged}
+                    </div>
+                  </div>
+                  <div className="summary-card">
+                    <div className="summary-label">Entity Flagged</div>
+                    <div className="summary-value highlight-danger">
+                      {analytics.aiValidation.entityFlagged}
+                    </div>
+                  </div>
+                  <div className="summary-card">
+                    <div className="summary-label">Not Evaluated</div>
+                    <div className="summary-value highlight-muted">
+                      {analytics.aiValidation.notEvaluated}
+                    </div>
+                  </div>
+                </>
+              ) : (
+                <>
+                  <div className="summary-card">
+                    <div className="summary-label">Total Evaluated</div>
+                    <div className="summary-value">Not tracked</div>
+                  </div>
+                  <div className="summary-card">
+                    <div className="summary-label">Sentiment Flagged</div>
+                    <div className="summary-value">Not tracked</div>
+                  </div>
+                  <div className="summary-card">
+                    <div className="summary-label">Entity Flagged</div>
+                    <div className="summary-value">Not tracked</div>
+                  </div>
+                  <div className="summary-card">
+                    <div className="summary-label">Not Evaluated</div>
+                    <div className="summary-value">Not tracked</div>
+                  </div>
+                </>
+              )}
             </div>
           </div>
 
@@ -198,21 +255,11 @@ function AnalyticsPage() {
 
           {/* Form-specific Analytics */}
           {formAnalytics && (
-            <div className="card" style={{ marginBottom: '2rem' }}>
+            <div ref={formAnalyticsRef} className="card" style={{ marginBottom: '2rem' }}>
               <h3 style={{ marginBottom: '1.5rem' }}>
                 Analytics for: {formAnalytics.form.title}
               </h3>
-              <button
-                type="button"
-                className="button button-secondary"
-                style={{ marginBottom: '1rem' }}
-                onClick={() => {
-                  setFormAnalytics(null);
-                  setSelectedFormId(null);
-                }}
-              >
-                ← Back to System Analytics
-              </button>
+              {/* 'Back to System Analytics' button removed to simplify UI */}
 
               <div className="summary-grid" style={{ marginBottom: '1.5rem' }}>
                 <div className="summary-card">
@@ -222,13 +269,13 @@ function AnalyticsPage() {
                 <div className="summary-card">
                   <div className="summary-label">Sentiment Flagged</div>
                   <div className="summary-value highlight-danger">
-                    {formAnalytics.aiValidation.sentimentFlagged}
+                    {formAnalytics.aiValidation && typeof formAnalytics.aiValidation.sentimentFlagged === 'number' ? formAnalytics.aiValidation.sentimentFlagged : 'Not tracked'}
                   </div>
                 </div>
                 <div className="summary-card">
                   <div className="summary-label">Entity Flagged</div>
                   <div className="summary-value highlight-danger">
-                    {formAnalytics.aiValidation.entityFlagged}
+                    {formAnalytics.aiValidation && typeof formAnalytics.aiValidation.entityFlagged === 'number' ? formAnalytics.aiValidation.entityFlagged : 'Not tracked'}
                   </div>
                 </div>
               </div>
@@ -259,6 +306,76 @@ function AnalyticsPage() {
                             )}
                           </td>
                         </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+
+              {/* Submissions List */}
+              {formAnalytics.submissions && formAnalytics.submissions.length > 0 && (
+                <div style={{ marginTop: '1.5rem' }}>
+                  <h4 style={{ marginBottom: '1rem' }}>Recent Submissions</h4>
+                  <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+                    <thead>
+                      <tr style={{ borderBottom: '1px solid #eee' }}>
+                        <th style={{ textAlign: 'left', padding: '0.75rem' }}>Submission ID</th>
+                        <th style={{ textAlign: 'left', padding: '0.75rem' }}>Submitted At</th>
+                        <th style={{ textAlign: 'left', padding: '0.75rem' }}>Answers</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {formAnalytics.submissions.map((sub) => (
+                        <React.Fragment key={sub.id}>
+                          <tr style={{ borderBottom: '1px solid #f5f5f5' }}>
+                            <td style={{ padding: '0.75rem' }}>{sub.id}</td>
+                            <td style={{ padding: '0.75rem' }}>{new Date(sub.submittedAt).toLocaleString()}</td>
+                            <td style={{ padding: '0.75rem' }}>
+                              <button
+                                type="button"
+                                className="button button-secondary"
+                                onClick={() => setOpenSubmissionId(openSubmissionId === sub.id ? null : sub.id)}
+                              >
+                                {openSubmissionId === sub.id ? 'Hide Answers' : 'View Answers'}
+                              </button>
+                            </td>
+                          </tr>
+
+                          {openSubmissionId === sub.id && (
+                            <tr>
+                              <td colSpan={3} style={{ padding: '0.75rem', background: '#fafafa' }}>
+                                <table style={{ width: '100%' }}>
+                                  <thead>
+                                    <tr>
+                                      <th style={{ textAlign: 'left', padding: '0.5rem' }}>Field</th>
+                                      <th style={{ textAlign: 'left', padding: '0.5rem' }}>Value</th>
+                                      <th style={{ textAlign: 'left', padding: '0.5rem' }}>AI Flags</th>
+                                    </tr>
+                                  </thead>
+                                  <tbody>
+                                    {sub.answers.map((a, idx) => (
+                                      <tr key={idx} style={{ borderBottom: '1px solid #f5f5f5' }}>
+                                        <td style={{ padding: '0.5rem' }}>{a.fieldLabel || a.fieldId}</td>
+                                        <td style={{ padding: '0.5rem', whiteSpace: 'pre-wrap' }}>{a.value}</td>
+                                        <td style={{ padding: '0.5rem' }}>
+                                          {a.aiNotEvaluated ? (
+                                            <span style={{ color: '#999' }}>Not evaluated</span>
+                                          ) : (
+                                            <>
+                                              {a.aiSentimentFlag ? <span style={{ color: '#ef4444' }}>Sentiment</span> : null}
+                                              {a.aiEntityFlag ? <span style={{ color: '#ef4444', marginLeft: '0.5rem' }}>Entity</span> : null}
+                                              {!a.aiSentimentFlag && !a.aiEntityFlag ? <span style={{ color: '#16a34a' }}>OK</span> : null}
+                                            </>
+                                          )}
+                                        </td>
+                                      </tr>
+                                    ))}
+                                  </tbody>
+                                </table>
+                              </td>
+                            </tr>
+                          )}
+                        </React.Fragment>
                       ))}
                     </tbody>
                   </table>

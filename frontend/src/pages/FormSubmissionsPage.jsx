@@ -503,24 +503,81 @@ function FormSubmissionsPage() {
                 <div style={{ marginTop: '0.75rem', paddingLeft: '1.75rem' }}>
                   {editingId === sub.id ? (
                     <ul className="answers-list">
-                      {(sub.answers || []).map((ans) => (
-                        <li key={ans.id} className="answer-row">
-                          <div className="answer-label">
-                            {ans.field?.label || 'Field'}
-                          </div>
-                          <div className="answer-value">
-                            <textarea
-                              className="input"
-                              value={editValues[ans.field_id] ?? ''}
-                              onChange={(e) =>
-                                handleEditChange(ans.field_id, e.target.value)
-                              }
-                              rows={2}
-                              style={{ width: '100%', resize: 'vertical' }}
-                            />
-                          </div>
-                        </li>
-                      ))}
+                      {(sub.answers || []).map((ans) => {
+                        let quizData = null;
+                        try {
+                          if (ans.field && ans.field.options) {
+                            quizData = JSON.parse(ans.field.options);
+                          }
+                        } catch (e) {
+                          quizData = null;
+                        }
+
+                        return (
+                          <li key={ans.id} className="answer-row">
+                            <div className="answer-label">
+                              {ans.field?.label || 'Field'}
+                            </div>
+                            <div className="answer-value">
+                              {quizData && quizData.questionType ? (
+                                quizData.questionType === 'multiple_choice' ? (
+                                  <div>
+                                    {(quizData.options || []).filter(Boolean).map((opt, oi) => (
+                                      <label key={oi} style={{ display: 'block', marginBottom: '0.25rem' }}>
+                                        <input
+                                          type="radio"
+                                          name={`edit-${ans.field_id}-${sub.id}`}
+                                          value={opt}
+                                          checked={editValues[ans.field_id] === opt}
+                                          onChange={() => handleEditChange(ans.field_id, opt)}
+                                        />
+                                        <span style={{ marginLeft: '0.5rem' }}>{opt}</span>
+                                      </label>
+                                    ))}
+                                  </div>
+                                ) : quizData.questionType === 'true_false' ? (
+                                  <div>
+                                    {['True', 'False'].map((opt) => (
+                                      <label key={opt} style={{ display: 'block', marginBottom: '0.25rem' }}>
+                                        <input
+                                          type="radio"
+                                          name={`edit-${ans.field_id}-${sub.id}`}
+                                          value={opt}
+                                          checked={editValues[ans.field_id] === opt}
+                                          onChange={() => handleEditChange(ans.field_id, opt)}
+                                        />
+                                        <span style={{ marginLeft: '0.5rem' }}>{opt}</span>
+                                      </label>
+                                    ))}
+                                  </div>
+                                ) : (
+                                  // fill_blank
+                                  <div>
+                                    <textarea
+                                      className="input"
+                                      value={editValues[ans.field_id] ?? ''}
+                                      onChange={(e) => handleEditChange(ans.field_id, e.target.value)}
+                                      rows={2}
+                                      style={{ width: '100%', resize: 'vertical' }}
+                                    />
+                                    <small style={{ color: '#6b7280', display: 'block', marginTop: '0.25rem' }}>
+                                      Match mode: {(quizData.matchMode || 'case_insensitive') === 'exact' ? 'Exact (case-sensitive)' : 'Case-insensitive'}
+                                    </small>
+                                  </div>
+                                )
+                              ) : (
+                                <textarea
+                                  className="input"
+                                  value={editValues[ans.field_id] ?? ''}
+                                  onChange={(e) => handleEditChange(ans.field_id, e.target.value)}
+                                  rows={2}
+                                  style={{ width: '100%', resize: 'vertical' }}
+                                />
+                              )}
+                            </div>
+                          </li>
+                        );
+                      })}
                     </ul>
                   ) : (
                     <textarea
@@ -533,39 +590,94 @@ function FormSubmissionsPage() {
                   )}
                 </div>
               )}
-              {!isAllSubmissions && (
+                  {!isAllSubmissions && (
                 <ul className="answers-list">
-                  {(sub.answers || []).map((ans) => (
-                    <li key={ans.id} className="answer-row">
-                      <div className="answer-label">
-                        {ans.field?.label || 'Field'}
-                      </div>
-                      <div className="answer-value">
-                        {editingId === sub.id ? (
-                          <textarea
-                            className="input"
-                            value={editValues[ans.field_id] ?? ''}
-                            onChange={(e) =>
-                              handleEditChange(ans.field_id, e.target.value)
-                            }
-                            rows={2}
-                          />
-                        ) : (
-                          ans.value || (
-                            <span className="answer-empty">No answer</span>
-                          )
-                        )}
-                        {(ans.ai_sentiment_flag || ans.ai_entity_flag) && (
-                          <span className="flag">AI flagged for review</span>
-                        )}
-                        {ans.ai_not_evaluated && (
-                          <span className="flag secondary">
-                            AI not evaluated
-                          </span>
-                        )}
-                      </div>
-                    </li>
-                  ))}
+                  {(sub.answers || []).map((ans) => {
+                    let quizData = null;
+                    try {
+                      if (ans.field && ans.field.options) {
+                        quizData = JSON.parse(ans.field.options);
+                      }
+                    } catch (e) {
+                      quizData = null;
+                    }
+
+                    return (
+                      <li key={ans.id} className="answer-row">
+                        <div className="answer-label">
+                          {ans.field?.label || 'Field'}
+                        </div>
+                        <div className="answer-value">
+                          {editingId === sub.id ? (
+                            quizData && quizData.questionType ? (
+                              quizData.questionType === 'multiple_choice' ? (
+                                <div>
+                                  {(quizData.options || []).filter(Boolean).map((opt, oi) => (
+                                    <label key={oi} style={{ display: 'block', marginBottom: '0.25rem' }}>
+                                      <input
+                                        type="radio"
+                                        name={`edit-${ans.field_id}-${sub.id}`}
+                                        value={opt}
+                                        checked={editValues[ans.field_id] === opt}
+                                        onChange={() => handleEditChange(ans.field_id, opt)}
+                                      />
+                                      <span style={{ marginLeft: '0.5rem' }}>{opt}</span>
+                                    </label>
+                                  ))}
+                                </div>
+                              ) : quizData.questionType === 'true_false' ? (
+                                <div>
+                                  {['True', 'False'].map((opt) => (
+                                    <label key={opt} style={{ display: 'block', marginBottom: '0.25rem' }}>
+                                      <input
+                                        type="radio"
+                                        name={`edit-${ans.field_id}-${sub.id}`}
+                                        value={opt}
+                                        checked={editValues[ans.field_id] === opt}
+                                        onChange={() => handleEditChange(ans.field_id, opt)}
+                                      />
+                                      <span style={{ marginLeft: '0.5rem' }}>{opt}</span>
+                                    </label>
+                                  ))}
+                                </div>
+                              ) : (
+                                <div>
+                                  <textarea
+                                    className="input"
+                                    value={editValues[ans.field_id] ?? ''}
+                                    onChange={(e) => handleEditChange(ans.field_id, e.target.value)}
+                                    rows={2}
+                                  />
+                                  <small style={{ color: '#6b7280', display: 'block', marginTop: '0.25rem' }}>
+                                    Match mode: {(quizData?.matchMode || 'case_insensitive') === 'exact' ? 'Exact (case-sensitive)' : 'Case-insensitive'}
+                                  </small>
+                                </div>
+                              )
+                            ) : (
+                              <textarea
+                                className="input"
+                                value={editValues[ans.field_id] ?? ''}
+                                onChange={(e) => handleEditChange(ans.field_id, e.target.value)}
+                                rows={2}
+                              />
+                            )
+                          ) : (
+                            ans.value || (
+                              <span className="answer-empty">No answer</span>
+                            )
+                          )}
+                          {(ans.ai_sentiment_flag || ans.ai_entity_flag) && (
+                            <span className="flag">AI flagged for review</span>
+                          )}
+                          {ans.ai_not_evaluated && (
+                            <span className="flag secondary">
+                              AI not evaluated
+                            </span>
+                          )}
+                        </div>
+                      </li>
+                    );
+                  })}
                 </ul>
               )}
             </div>

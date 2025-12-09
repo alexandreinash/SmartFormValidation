@@ -231,7 +231,13 @@ function FormFillPage() {
           if (quizData.questionType === 'multiple_choice') {
             isCorrect = userAnswer.trim() === correctAnswer.trim();
           } else if (quizData.questionType === 'fill_blank') {
-            isCorrect = userAnswer.trim().toLowerCase() === correctAnswer.trim().toLowerCase();
+            const matchMode = quizData.matchMode || 'case_insensitive';
+            if (matchMode === 'exact') {
+              isCorrect = userAnswer.trim() === correctAnswer.trim();
+            } else {
+              // default: case-insensitive
+              isCorrect = userAnswer.trim().toLowerCase() === correctAnswer.trim().toLowerCase();
+            }
           } else if (quizData.questionType === 'true_false') {
             isCorrect = userAnswer.trim() === correctAnswer.trim();
           }
@@ -378,6 +384,14 @@ function FormFillPage() {
     }
     return '';
   };
+
+  // AI summary for legend: enabled / disabled / partially enabled
+  const aiEnabledCount = form && form.fields ? form.fields.filter(f => f.ai_validation_enabled).length : 0;
+  const aiLegendText = (form && form.fields)
+    ? (aiEnabledCount === form.fields.length ? 'AI validation enabled'
+       : aiEnabledCount === 0 ? 'AI validation disabled'
+       : 'AI validation partially enabled')
+    : 'AI validation disabled';
 
   if (!form) {
     return (
@@ -542,16 +556,24 @@ function FormFillPage() {
                             </div>
                           );
                         } else if (quizData.questionType === 'fill_blank') {
+                          const matchMode = quizData.matchMode || 'case_insensitive';
                           return (
-                            <input
-                              className="form-input"
-                              type="text"
-                              value={values[field.id] || ''}
-                              onChange={(e) => handleChange(field.id, e.target.value)}
-                              placeholder="Enter your answer..."
-                              disabled={quizResults !== null}
-                              required={field.is_required}
-                            />
+                            <div>
+                              <input
+                                className="form-input"
+                                type="text"
+                                value={values[field.id] || ''}
+                                onChange={(e) => handleChange(field.id, e.target.value)}
+                                placeholder="Enter your answer..."
+                                disabled={quizResults !== null}
+                                required={field.is_required}
+                              />
+                              <small style={{ color: '#6b7280', display: 'block', marginTop: '0.5rem' }}>
+                                {matchMode === 'exact'
+                                  ? 'Answers must match exact capitalization.'
+                                  : 'Answers compared case-insensitively.'}
+                              </small>
+                            </div>
                           );
                         } else if (quizData.questionType === 'true_false') {
                           return (
@@ -635,6 +657,12 @@ function FormFillPage() {
             })}
           </div>
 
+          {/* Submission Status (single location for quiz & non-quiz) */}
+          {status && status.includes('success') && (
+            <div className="status-message success" style={{ marginBottom: '1.5rem' }}>
+              {status}
+            </div>
+          )}
           {/* Quiz Results Summary */}
           {quizResults && (
             <div className="quiz-results-summary">
@@ -663,7 +691,7 @@ function FormFillPage() {
             <button 
               type="submit" 
               className="submit-button"
-              disabled={isSubmitting || quizResults !== null}
+              disabled={isSubmitting || quizResults !== null || (status && status.includes('success'))}
             >
               {isSubmitting ? (
                 <>
@@ -684,7 +712,7 @@ function FormFillPage() {
               </div>
               <div className="legend-item">
                 <span className="legend-marker ai-marker">🤖</span>
-                <small>AI validation enabled</small>
+                <small>{aiLegendText}</small>
               </div>
             </div>
           </div>
@@ -695,11 +723,7 @@ function FormFillPage() {
               Some answers need review based on validation and AI checking.
             </div>
           )}
-          {status && status.includes('success') && (
-            <div className={`status-message success`}>
-              {status}
-            </div>
-          )}
+          {/* Remove duplicate success message below scoreboard */}
         </form>
       </div>
       

@@ -7,7 +7,6 @@ import '../css/CreateFormPage.css';
 function QuizFormPage() {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
-  const [showLogoutMessage, setShowLogoutMessage] = useState(false);
   const [title, setTitle] = useState('');
   const [fields, setFields] = useState([{
     label: '',
@@ -16,7 +15,8 @@ function QuizFormPage() {
     ai_validation_enabled: true, // AI validation enabled by default for quiz forms
     options: ['', '', '', ''],
     correct_answer: '',
-    points: 1
+    points: 1,
+    match_mode: 'case_insensitive'
   }]);
   const [message, setMessage] = useState('');
   const [fieldErrors, setFieldErrors] = useState({});
@@ -30,12 +30,15 @@ function QuizFormPage() {
       if (value === 'multiple_choice') {
         next[index].options = ['', '', '', ''];
         next[index].correct_answer = '';
+        next[index].match_mode = 'case_insensitive';
       } else if (value === 'fill_blank') {
         next[index].options = [];
         next[index].correct_answer = '';
+        next[index].match_mode = 'case_insensitive';
       } else if (value === 'true_false') {
         next[index].options = ['True', 'False'];
         next[index].correct_answer = 'True';
+        next[index].match_mode = 'case_insensitive';
       }
     }
     
@@ -68,7 +71,8 @@ function QuizFormPage() {
       ai_validation_enabled: true, // AI validation enabled by default for quiz forms
       options: ['', '', '', ''],
       correct_answer: '',
-      points: 1
+      points: 1,
+      match_mode: 'case_insensitive'
     }]);
   };
 
@@ -151,7 +155,8 @@ function QuizFormPage() {
           questionType: field.type,
           options: validOptions,
           correctAnswer: field.correct_answer,
-          points: field.points || 1
+          points: field.points || 1,
+          matchMode: field.match_mode || 'case_insensitive'
         });
         
         return {
@@ -225,11 +230,10 @@ function QuizFormPage() {
             <button
               type="button"
               onClick={() => {
-                setShowLogoutMessage(true);
+                const ok = window.confirm('Are you sure you want to log out?');
+                if (!ok) return;
                 logout();
-                setTimeout(() => {
-                  navigate('/login', { state: { justLoggedOut: true }, replace: true });
-                }, 500);
+                navigate('/login');
               }}
               className="sidebar-nav-item sidebar-logout-button"
             >
@@ -239,25 +243,6 @@ function QuizFormPage() {
           </nav>
         </div>
       </div>
-
-      {/* Logout Message */}
-      {showLogoutMessage && (
-        <div style={{
-          position: 'fixed',
-          top: '20px',
-          right: '20px',
-          backgroundColor: '#ef4444',
-          color: 'white',
-          padding: '16px 24px',
-          borderRadius: '8px',
-          boxShadow: '0 4px 6px rgba(0, 0, 0, 0.1)',
-          zIndex: 1000,
-          fontWeight: '600',
-          animation: 'slideIn 0.3s ease-out'
-        }}>
-          ✓ You have successfully logged out! Redirecting...
-        </div>
-      )}
 
       {/* Main Content */}
       <div className="create-form-main">
@@ -405,9 +390,23 @@ function QuizFormPage() {
                       className="field-input"
                       style={{ width: '100%' }}
                     />
-                    <small style={{ color: '#6b7280', marginTop: '0.25rem', display: 'block' }}>
-                      Note: Answers will be compared case-insensitively
-                    </small>
+                      <div style={{ display: 'flex', gap: '1rem', alignItems: 'center', marginTop: '0.5rem' }}>
+                        <div style={{ minWidth: '220px' }}>
+                          <label style={{ display: 'block', fontSize: '0.85rem', color: '#374151' }}>Match Mode</label>
+                          <select
+                            value={field.match_mode}
+                            onChange={(e) => updateField(index, 'match_mode', e.target.value)}
+                            className="field-input"
+                            style={{ padding: '0.5rem', width: '100%' }}
+                          >
+                            <option value="case_insensitive">Case-insensitive (default)</option>
+                            <option value="exact">Exact (case-sensitive)</option>
+                          </select>
+                        </div>
+                        <small style={{ color: '#6b7280', display: 'block' }}>
+                          Controls how user answers are compared to the correct answer when grading.
+                        </small>
+                      </div>
                   </div>
                 )}
 
