@@ -262,6 +262,11 @@ function UserFormSelectionPage() {
               Select a form below to fill out and submit. All forms use AI-powered validation for better accuracy.
             </p>
           </div>
+          {user && (
+            <div className="user-info">
+              <div className="user-welcome">Welcome, <strong>{user.email.split('@')[0]}</strong></div>
+            </div>
+          )}
         </div>
 
         {status && (
