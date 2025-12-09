@@ -126,13 +126,13 @@
   align-items: center;
   gap: 0.875rem;
   padding: 0.875rem 1rem;
-  color: #ffffff;
+  color: #111827;
   text-decoration: none;
   border-radius: 0.5rem;
   transition: all 0.2s ease;
   font-size: 0.95rem;
   font-weight: 500;
-  background: #ef4444;
+  background: linear-gradient(135deg, #fbbf24, #f59e0b);
   border: none;
   width: 100%;
   text-align: left;
@@ -141,8 +141,8 @@
 }
 
 .sidebar-logout-button:hover {
-  background: #dc2626;
-  color: #ffffff;
+  background: linear-gradient(135deg, #f59e0b, #d97706);
+  color: #111827;
 }
 
 /* Main Content Area */
