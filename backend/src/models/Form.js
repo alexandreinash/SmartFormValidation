@@ -8,6 +8,7 @@ const Form = sequelize.define(
     id: { type: DataTypes.INTEGER, autoIncrement: true, primaryKey: true },
     title: { type: DataTypes.STRING, allowNull: false },
     created_by: { type: DataTypes.INTEGER, allowNull: false },
+    account_id: { type: DataTypes.INTEGER, allowNull: true },
     created_at: { type: DataTypes.DATE, defaultValue: DataTypes.NOW },
   },
   {
@@ -17,6 +18,7 @@ const Form = sequelize.define(
 );
 
 Form.belongsTo(User, { foreignKey: 'created_by', as: 'creator' });
+Form.belongsTo(User, { foreignKey: 'account_id', as: 'account' });
 // A form has many fields (for eager loading via include: { as: 'fields' })
 Form.hasMany(require('./FormField'), {
   foreignKey: 'form_id',

@@ -11,6 +11,7 @@ import UserFormSelectionPage from './pages/UserFormSelectionPage';
 import FormSubmissionsPage from './pages/FormSubmissionsPage';
 import AdminFormsPage from './pages/AdminFormsPage';
 import AnalyticsPage from './pages/AnalyticsPage';
+import ManageGroupsPage from './pages/ManageGroupsPage';
 import LoginPage from './pages/LoginPage';
 import RegisterPage from './pages/RegisterPage';
 import HomePage from './pages/HomePage';
@@ -60,6 +61,7 @@ function AppShell() {
             element={<AdminFormsPage />}
           />
           <Route path="/admin/analytics" element={<AnalyticsPage />} />
+          <Route path="/admin/groups" element={<ManageGroupsPage />} />
           <Route path="*" element={<Navigate to="/login" replace />} />
         </Routes>
       </main>

@@ -47,9 +47,20 @@ async function register(req, res, next) {
       console.error('Failed to send registration email:', err);
     });
 
+    // Generate JWT token for auto-login
+    const token = jwt.sign(
+      { id: user.id, role: user.role },
+      process.env.JWT_SECRET || 'dev_secret',
+      { expiresIn: '8h' }
+    );
+
     return res.status(201).json({
       success: true,
-      data: { id: user.id, email: user.email, role: user.role },
+      data: { 
+        token, 
+        user: { id: user.id, email: user.email, role: user.role } 
+      },
+      message: 'Registration successful',
     });
   } catch (err) {
     next(err);
@@ -101,11 +112,34 @@ async function login(req, res, next) {
   }
 }
 
+// Get all users (for admin - to see available end-users)
+async function listUsers(req, res, next) {
+  try {
+    const { role } = req.query;
+    
+    const whereClause = {};
+    if (role) {
+      whereClause.role = role;
+    }
+    
+    const users = await User.findAll({
+      where: whereClause,
+      attributes: ['id', 'email', 'role', 'created_at'],
+      order: [['email', 'ASC']],
+    });
+
+    res.json({ success: true, data: users });
+  } catch (err) {
+    next(err);
+  }
+}
+
 module.exports = {
   validateRegister,
   validateLogin,
   register,
   login,
+  listUsers,
 };
 
 

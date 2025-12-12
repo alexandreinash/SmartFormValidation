@@ -43,7 +43,16 @@ export function AuthProvider({ children }) {
   };
 
   const register = async (email, password, role) => {
-    await api.post('/api/auth/register', { email, password, role });
+    const res = await api.post('/api/auth/register', { email, password, role });
+    const { token, user } = res.data.data;
+    
+    // Auto-login: save token and user data
+    localStorage.setItem('sfv_token', token);
+    localStorage.setItem('sfv_user', JSON.stringify(user));
+    setToken(token);
+    setUser(user);
+    
+    return user;
   };
 
   const logout = () => {

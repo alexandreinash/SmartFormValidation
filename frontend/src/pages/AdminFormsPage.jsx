@@ -2,6 +2,7 @@ import React, { useEffect, useState, useCallback } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import api from '../api';
 import { useAuth } from '../AuthContext';
+import SendToModal from '../components/SendToModal';
 import '../css/submissions.css';
 
 function AdminFormsPage() {
@@ -12,6 +13,7 @@ function AdminFormsPage() {
   const [status, setStatus] = useState('');
   const [isBusy, setIsBusy] = useState(false);
   const [selectedForms, setSelectedForms] = useState([]);
+  const [sendToFormId, setSendToFormId] = useState(null);
 
   const loadForms = useCallback(async () => {
     if (!user || user.role !== 'admin') {
@@ -315,6 +317,19 @@ function AdminFormsPage() {
                   </button>
                   <button
                     type="button"
+                    className="button button-primary"
+                    onClick={() => setSendToFormId(form.id)}
+                    disabled={isBusy}
+                    style={{ 
+                      background: '#3b82f6', 
+                      color: 'white',
+                      border: 'none'
+                    }}
+                  >
+                    Send To
+                  </button>
+                  <button
+                    type="button"
                     className="button button-danger"
                     onClick={() => deleteForm(form.id)}
                     disabled={isBusy}
@@ -326,6 +341,18 @@ function AdminFormsPage() {
             </div>
           ))}
         </div>
+      )}
+
+      {/* Send To Modal */}
+      {sendToFormId && (
+        <SendToModal
+          formId={sendToFormId}
+          onClose={() => setSendToFormId(null)}
+          onSuccess={() => {
+            setStatus('Form sent successfully');
+            setSendToFormId(null);
+          }}
+        />
       )}
     </div>
   );

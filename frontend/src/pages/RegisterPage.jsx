@@ -16,12 +16,16 @@ function RegisterPage() {
     setStatus('');
     setIsSuccess(false);
     try {
-      await register(email, password, role);
+      const user = await register(email, password, role);
       setIsSuccess(true);
       setStatus('Registration successful! Redirecting...');
-      // Wait 0.5 seconds before navigating
+      // Wait 0.5 seconds before navigating to appropriate dashboard
       setTimeout(() => {
-        navigate('/login', { state: { justRegistered: true } });
+        if (user.role === 'admin') {
+          navigate('/admin');
+        } else {
+          navigate('/user/forms');
+        }
       }, 500);
     } catch (err) {
       setIsSuccess(false);

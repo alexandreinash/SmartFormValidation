@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import api from '../api';
 import { useAuth } from '../AuthContext';
+import SendToModal from '../components/SendToModal';
 import '../css/CreateFormPage.css';
 
 function CreateFormPage() {
@@ -10,6 +11,7 @@ function CreateFormPage() {
   const [title, setTitle] = useState('');
   const [fields, setFields] = useState([{ label: '', type: 'number', is_required: false, ai_validation_enabled: false }]);
   const [message, setMessage] = useState('');
+  const [sendToFormId, setSendToFormId] = useState(null);
 
   const updateField = (index, key, value) => {
     const next = [...fields];
@@ -39,8 +41,18 @@ function CreateFormPage() {
       setMessage(`Form created successfully with ID ${res.data.data.form.id}`);
       setTitle('');
       setFields([{ label: '', type: 'number', is_required: false, ai_validation_enabled: false }]);
+      return res.data.data.form.id;
     } catch (err) {
       setMessage(err.response?.data?.message || 'Failed to create form.');
+      return null;
+    }
+  };
+
+  const handleSaveAndSend = async (e) => {
+    e.preventDefault();
+    const formId = await handleSubmit(e);
+    if (formId) {
+      setSendToFormId(formId);
     }
   };
 
@@ -177,12 +189,25 @@ function CreateFormPage() {
             ))}
           </div>
 
-          <button
-            type="submit"
-            className="save-form-button save-form-button-yellow"
-          >
-            Save Form
-          </button>
+          <div style={{ display: 'flex', gap: '12px' }}>
+            <button
+              type="submit"
+              className="save-form-button save-form-button-yellow"
+            >
+              Save Form
+            </button>
+            <button
+              type="button"
+              onClick={handleSaveAndSend}
+              className="save-form-button"
+              style={{ 
+                background: '#3b82f6', 
+                color: 'white'
+              }}
+            >
+              Save and Send
+            </button>
+          </div>
 
           {message && (
             <div className={`message ${message.includes('successfully') ? 'message-success' : 'message-error'}`}>
@@ -191,6 +216,18 @@ function CreateFormPage() {
           )}
         </form>
       </div>
+
+      {/* Send To Modal */}
+      {sendToFormId && (
+        <SendToModal
+          formId={sendToFormId}
+          onClose={() => setSendToFormId(null)}
+          onSuccess={() => {
+            setMessage('Form sent successfully');
+            setSendToFormId(null);
+          }}
+        />
+      )}
     </div>
   );
 }

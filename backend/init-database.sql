@@ -22,9 +22,13 @@ CREATE TABLE `users` (
   `email` VARCHAR(255) NOT NULL UNIQUE,
   `password` VARCHAR(255) NOT NULL,
   `role` ENUM('admin', 'user') NOT NULL,
+  `account_id` INT NULL,
+  `is_account_owner` BOOLEAN DEFAULT FALSE,
   `created_at` DATETIME DEFAULT CURRENT_TIMESTAMP,
+  FOREIGN KEY (`account_id`) REFERENCES `users`(`id`) ON DELETE SET NULL,
   INDEX `idx_email` (`email`),
-  INDEX `idx_role` (`role`)
+  INDEX `idx_role` (`role`),
+  INDEX `idx_account_id` (`account_id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- Table: forms
@@ -32,9 +36,12 @@ CREATE TABLE `forms` (
   `id` INT AUTO_INCREMENT PRIMARY KEY,
   `title` VARCHAR(255) NOT NULL,
   `created_by` INT NOT NULL,
+  `account_id` INT NULL,
   `created_at` DATETIME DEFAULT CURRENT_TIMESTAMP,
   FOREIGN KEY (`created_by`) REFERENCES `users`(`id`) ON DELETE CASCADE,
+  FOREIGN KEY (`account_id`) REFERENCES `users`(`id`) ON DELETE SET NULL,
   INDEX `idx_created_by` (`created_by`),
+  INDEX `idx_account_id` (`account_id`),
   INDEX `idx_created_at` (`created_at`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
@@ -97,6 +104,24 @@ CREATE TABLE `audit_logs` (
   INDEX `idx_action` (`action`),
   INDEX `idx_entity` (`entity_type`, `entity_id`),
   INDEX `idx_created_at` (`created_at`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- Table: form_permissions
+CREATE TABLE `form_permissions` (
+  `id` INT AUTO_INCREMENT PRIMARY KEY,
+  `form_id` INT NOT NULL,
+  `user_id` INT NULL,
+  `account_id` INT NULL,
+  `permission_type` ENUM('view', 'edit', 'admin') NOT NULL,
+  `created_at` DATETIME DEFAULT CURRENT_TIMESTAMP,
+  FOREIGN KEY (`form_id`) REFERENCES `forms`(`id`) ON DELETE CASCADE,
+  FOREIGN KEY (`user_id`) REFERENCES `users`(`id`) ON DELETE CASCADE,
+  FOREIGN KEY (`account_id`) REFERENCES `users`(`id`) ON DELETE CASCADE,
+  UNIQUE KEY `unique_form_user_permission` (`form_id`, `user_id`),
+  UNIQUE KEY `unique_form_account_permission` (`form_id`, `account_id`),
+  INDEX `idx_form_id` (`form_id`),
+  INDEX `idx_user_id` (`user_id`),
+  INDEX `idx_account_id` (`account_id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- Success message

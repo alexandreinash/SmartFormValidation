@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import api from '../api';
 import { useAuth } from '../AuthContext';
+import SendToModal from '../components/SendToModal';
 import '../css/CreateFormPage.css';
 
 function QuizFormPage() {
@@ -20,6 +21,7 @@ function QuizFormPage() {
   }]);
   const [message, setMessage] = useState('');
   const [fieldErrors, setFieldErrors] = useState({});
+  const [sendToFormId, setSendToFormId] = useState(null);
 
   const updateField = (index, key, value) => {
     const next = [...fields];
@@ -184,6 +186,7 @@ function QuizFormPage() {
         points: 1
       }]);
       setFieldErrors({});
+      return res.data.data.form.id;
     } catch (err) {
       console.error('Quiz creation error:', err);
       const errorMessage = err.response?.data?.message || 
@@ -191,6 +194,15 @@ function QuizFormPage() {
                           err.message || 
                           'Failed to create quiz. Please check the console for details.';
       setMessage(errorMessage);
+      return null;
+    }
+  };
+
+  const handleSaveAndSend = async (e) => {
+    e.preventDefault();
+    const formId = await handleSubmit(e);
+    if (formId) {
+      setSendToFormId(formId);
     }
   };
 
@@ -452,12 +464,25 @@ function QuizFormPage() {
             ))}
           </div>
 
-          <button
-            type="submit"
-            className="save-form-button save-form-button-yellow"
-          >
-            Save Quiz
-          </button>
+          <div style={{ display: 'flex', gap: '12px' }}>
+            <button
+              type="submit"
+              className="save-form-button save-form-button-yellow"
+            >
+              Save Quiz
+            </button>
+            <button
+              type="button"
+              onClick={handleSaveAndSend}
+              className="save-form-button"
+              style={{ 
+                background: '#3b82f6', 
+                color: 'white'
+              }}
+            >
+              Save and Send
+            </button>
+          </div>
 
           {message && (
             <div className={`message ${message.includes('successfully') ? 'message-success' : 'message-error'}`}>
@@ -466,6 +491,18 @@ function QuizFormPage() {
           )}
         </form>
       </div>
+
+      {/* Send To Modal */}
+      {sendToFormId && (
+        <SendToModal
+          formId={sendToFormId}
+          onClose={() => setSendToFormId(null)}
+          onSuccess={() => {
+            setMessage('Quiz sent successfully');
+            setSendToFormId(null);
+          }}
+        />
+      )}
     </div>
   );
 }

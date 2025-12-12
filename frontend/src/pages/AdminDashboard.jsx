@@ -1,6 +1,7 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../AuthContext';
+import api from '../api';
 import '../css/AdminDashboard.css';
 
 function AdminDashboard() {
@@ -12,6 +13,29 @@ function AdminDashboard() {
     if (!ok) return;
     logout();
     navigate('/login');
+  };
+
+  const handleRemoveAccount = async () => {
+    const input = window.prompt("Type 'confirm' to remove this account (this cannot be undone)");
+    if (input !== 'confirm') {
+      window.alert('Account removal cancelled or confirmation text incorrect.');
+      return;
+    }
+
+    try {
+      const res = await api.delete('/api/accounts/remove', { data: { confirm: 'confirm' } });
+      if (res.data && res.data.success) {
+        window.alert(res.data.message || 'Account removed');
+        // logout and navigate to login
+        logout();
+        navigate('/login');
+      } else {
+        window.alert('Failed to remove account');
+      }
+    } catch (err) {
+      console.error(err);
+      window.alert('Error removing account');
+    }
   };
 
   return (
@@ -26,6 +50,15 @@ function AdminDashboard() {
         onClick={handleLogout}
       >
         Log out
+      </button>
+
+      {/* Remove Account Button */}
+      <button
+        type="button"
+        className="admin-remove-account-button"
+        onClick={handleRemoveAccount}
+      >
+        Remove Account
       </button>
 
       {/* Main Content */}
@@ -112,6 +145,22 @@ function AdminDashboard() {
               onClick={() => navigate('/admin/analytics')}
             >
               View Analytics
+            </button>
+          </div>
+
+          {/* Manage Groups Card */}
+          <div className="admin-card">
+            <div className="admin-card-icon">👥</div>
+            <h3 className="admin-card-title">Manage Groups</h3>
+            <p className="admin-card-description">
+              Create and manage groups of end-users for efficient form sharing.
+            </p>
+            <button
+              type="button"
+              className="admin-card-button"
+              onClick={() => navigate('/admin/groups')}
+            >
+              Manage Groups
             </button>
           </div>
         </div>

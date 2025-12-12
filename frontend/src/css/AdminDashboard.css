@@ -56,6 +56,34 @@
   box-shadow: 0 4px 12px rgba(251, 191, 36, 0.4);
 }
 
+/* Remove Account Button */
+.admin-remove-account-button {
+  position: absolute;
+  top: 0.5rem; /* align vertically with logout button */
+  right: 10rem; /* place left of logout button */
+  padding: 0.5rem 1rem;
+  background: #c0392b;
+  color: #ffffff;
+  font-size: 0.75rem;
+  font-weight: 600;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  z-index: 11;
+  box-shadow: 0 2px 8px rgba(192, 57, 43, 0.2);
+  min-width: 110px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.admin-remove-account-button:hover {
+  background: #a93226;
+  transform: translateY(-1px);
+}
+
 /* Main Content */
 .admin-dashboard-content {
   padding: 6rem 2rem 2rem;

@@ -191,6 +191,33 @@ function UserFormSelectionPage() {
               <span className="sidebar-icon">↗️</span>
               <span>Log Out</span>
             </button>
+              <button
+                type="button"
+                onClick={async () => {
+                  const input = window.prompt("Type 'confirm' to remove your account association (this cannot be undone)");
+                  if (input !== 'confirm') {
+                    window.alert('Cancelled or incorrect confirmation text.');
+                    return;
+                  }
+                  try {
+                    const res = await api.delete('/api/accounts/remove', { data: { confirm: 'confirm' } });
+                    if (res.data && res.data.success) {
+                      window.alert(res.data.message || 'Account association removed');
+                      logout();
+                      navigate('/login');
+                    } else {
+                      window.alert('Failed to remove account association');
+                    }
+                  } catch (err) {
+                    console.error(err);
+                    window.alert('Error removing account');
+                  }
+                }}
+                className="sidebar-nav-item sidebar-remove-account-button"
+              >
+                <span className="sidebar-icon">🗑️</span>
+                <span>Remove Account</span>
+              </button>
           </nav>
         </div>
       </div>

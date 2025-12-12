@@ -7,12 +7,20 @@ const cors = require('cors');
 
 const { sequelize } = require('./sequelize');
 // Load all models to ensure relationships are defined before sync
-require('./models/User');
-require('./models/Form');
-require('./models/FormField');
-require('./models/Submission');
-require('./models/SubmissionData');
-require('./models/AuditLog');
+const User = require('./models/User');
+const Form = require('./models/Form');
+const FormField = require('./models/FormField');
+const Submission = require('./models/Submission');
+const SubmissionData = require('./models/SubmissionData');
+const AuditLog = require('./models/AuditLog');
+const Group = require('./models/Group');
+const GroupMember = require('./models/GroupMember');
+
+// Define associations
+Group.hasMany(GroupMember, { foreignKey: 'group_id', as: 'memberships' });
+GroupMember.belongsTo(Group, { foreignKey: 'group_id', as: 'group' });
+GroupMember.belongsTo(User, { foreignKey: 'user_id', as: 'user' });
+User.hasMany(GroupMember, { foreignKey: 'user_id', as: 'group_memberships' });
 
 const { apiLimiter, authLimiter, submissionLimiter } = require('./middleware/rateLimiter');
 const authRoutes = require('./routes/auth');
@@ -20,6 +28,8 @@ const formRoutes = require('./routes/forms');
 const submissionRoutes = require('./routes/submissions');
 const analyticsRoutes = require('./routes/analytics');
 const auditRoutes = require('./routes/audit');
+const accountsRoutes = require('./routes/accounts');
+const groupRoutes = require('./routes/groups');
 
 const app = express();
 const server = http.createServer(app);
@@ -50,6 +60,8 @@ app.use('/api/forms', formRoutes);
 app.use('/api/submissions', submissionLimiter, submissionRoutes);
 app.use('/api/analytics', analyticsRoutes);
 app.use('/api/audit', auditRoutes);
+app.use('/api/accounts', accountsRoutes);
+app.use('/api/groups', groupRoutes);
 
 // Global error handler
 app.use((err, req, res, next) => {

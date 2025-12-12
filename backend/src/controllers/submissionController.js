@@ -365,6 +365,23 @@ async function getFormSubmissions(req, res, next) {
         .json({ success: false, message: 'Form not found' });
     }
 
+    // Check if admin has access to this form based on account
+    const userAccountId = req.user.is_account_owner ? req.user.id : req.user.account_id;
+    
+    // If admin has an account, verify form belongs to their account
+    if (userAccountId && form.account_id !== userAccountId) {
+      return res
+        .status(403)
+        .json({ success: false, message: 'Access denied to this form' });
+    }
+    
+    // If admin has no account, verify form also has no account
+    if (!userAccountId && form.account_id !== null) {
+      return res
+        .status(403)
+        .json({ success: false, message: 'Access denied to this form' });
+    }
+
     const submissions = await Submission.findAll({
       where: { form_id: form.id },
       order: [['submitted_at', 'DESC']],
@@ -392,13 +409,26 @@ async function getFormSubmissions(req, res, next) {
 // Admin-only: list all submissions from all forms
 async function getAllSubmissions(req, res, next) {
   try {
+    // Determine which forms the admin can see based on their account
+    const userAccountId = req.user.is_account_owner ? req.user.id : req.user.account_id;
+    
+    let formFilter = {};
+    if (userAccountId) {
+      // Admin has an account - only show submissions for their account's forms
+      formFilter = { account_id: userAccountId };
+    } else {
+      // Admin has no account - only show submissions for forms with no account_id
+      formFilter = { account_id: null };
+    }
+
     const submissions = await Submission.findAll({
       order: [['submitted_at', 'DESC']],
       include: [
         {
           model: Form,
           as: 'form',
-          attributes: ['id', 'title'],
+          attributes: ['id', 'title', 'account_id'],
+          where: formFilter,
         },
         {
           model: SubmissionData,
