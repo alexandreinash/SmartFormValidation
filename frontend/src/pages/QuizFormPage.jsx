@@ -205,18 +205,6 @@ function QuizFormPage() {
               <span className="sidebar-icon">🏠</span>
               <span>Home</span>
             </Link>
-            <Link to="/text-form" className="sidebar-nav-item">
-              <span className="sidebar-icon">💬</span>
-              <span>Text Form</span>
-            </Link>
-            <Link to="/email-form" className="sidebar-nav-item">
-              <span className="sidebar-icon">✉️</span>
-              <span>Email</span>
-            </Link>
-            <Link to="/number-form" className="sidebar-nav-item">
-              <span className="sidebar-icon">#</span>
-              <span>Number</span>
-            </Link>
             <Link to="/quiz-form" className="sidebar-nav-item sidebar-nav-item-active">
               <span className="sidebar-icon">📝</span>
               <span>Quiz Form</span>
