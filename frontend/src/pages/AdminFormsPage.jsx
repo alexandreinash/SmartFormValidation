@@ -303,6 +303,12 @@ function AdminFormsPage() {
                     </h4>
                     <div className="submission-meta">
                       Created: {form.created_at ? new Date(form.created_at).toLocaleString() : 'N/A'}
+                      {form.creator && (
+                        <>
+                          <br />
+                          Created by: {form.creator.email}
+                        </>
+                      )}
                     </div>
                   </div>
                 </div>
@@ -310,10 +316,31 @@ function AdminFormsPage() {
                   <button
                     type="button"
                     className="button button-secondary"
-                    onClick={() => navigate(`/admin/forms/${form.id}/submissions`)}
+                    onClick={() => {
+                      // Determine if it's a quiz form based on expected_entity
+                      const isQuiz = form.fields && form.fields.length > 0 && form.fields[0].expected_entity === 'quiz';
+                      if (isQuiz) {
+                        navigate(`/admin/forms/${form.id}/edit-quiz`);
+                      } else {
+                        navigate(`/admin/forms/${form.id}/edit`);
+                      }
+                    }}
                     disabled={isBusy}
                   >
                     Edit
+                  </button>
+                  <button
+                    type="button"
+                    className="button button-secondary"
+                    onClick={() => navigate(`/admin/forms/${form.id}/submissions`)}
+                    disabled={isBusy}
+                    style={{ 
+                      background: '#10b981', 
+                      color: 'white',
+                      border: 'none'
+                    }}
+                  >
+                    View Submissions
                   </button>
                   <button
                     type="button"

@@ -373,6 +373,11 @@ function UserFormSelectionPage() {
                           <p className="form-card-description">
                             Click below to fill out this text form. All fields are validated using AI-powered technology.
                           </p>
+                          {form.creator && (
+                            <p className="form-card-creator">
+                              Created by: {form.creator.email}
+                            </p>
+                          )}
                         </div>
                         <Link to={`/forms/${form.id}`} className="form-fill-button">
                           Fill Out Form →
@@ -401,6 +406,11 @@ function UserFormSelectionPage() {
                           <p className="form-card-description">
                             Click below to fill out this email form. All fields are validated using AI-powered technology.
                           </p>
+                          {form.creator && (
+                            <p className="form-card-creator">
+                              Created by: {form.creator.email}
+                            </p>
+                          )}
                         </div>
                         <Link to={`/forms/${form.id}`} className="form-fill-button">
                           Fill Out Form →
@@ -429,6 +439,11 @@ function UserFormSelectionPage() {
                           <p className="form-card-description">
                             Click below to fill out this number form. All fields are validated using AI-powered technology.
                           </p>
+                          {form.creator && (
+                            <p className="form-card-creator">
+                              Created by: {form.creator.email}
+                            </p>
+                          )}
                         </div>
                         <Link to={`/forms/${form.id}`} className="form-fill-button">
                           Fill Out Form →
@@ -457,6 +472,11 @@ function UserFormSelectionPage() {
                           <p className="form-card-description">
                             Click below to take this quiz. Your score will be calculated automatically after submission.
                           </p>
+                          {form.creator && (
+                            <p className="form-card-creator">
+                              Created by: {form.creator.email}
+                            </p>
+                          )}
                         </div>
                         <Link to={`/forms/${form.id}`} className="form-fill-button">
                           Take Quiz →

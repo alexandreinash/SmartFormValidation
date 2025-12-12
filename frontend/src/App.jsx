@@ -6,6 +6,8 @@ import TextFormPage from './pages/TextFormPage';
 import EmailFormPage from './pages/EmailFormPage';
 import NumberFormPage from './pages/NumberFormPage';
 import QuizFormPage from './pages/QuizFormPage';
+import EditFormPage from './pages/EditFormPage';
+import EditQuizFormPage from './pages/EditQuizFormPage';
 import FormFillPage from './pages/FormFillPage';
 import UserFormSelectionPage from './pages/UserFormSelectionPage';
 import FormSubmissionsPage from './pages/FormSubmissionsPage';
@@ -30,7 +32,8 @@ function AppShell() {
     location.pathname === '/email-form' ||
     location.pathname === '/number-form' ||
     location.pathname === '/quiz-form' ||
-    location.pathname === '/user/forms';
+    location.pathname === '/user/forms' ||
+    location.pathname.includes('/admin/forms/') && (location.pathname.includes('/edit') || location.pathname.includes('/edit-quiz'));
 
   return (
     <div className="app">
@@ -48,6 +51,14 @@ function AppShell() {
           <Route path="/forms" element={<Navigate to="/user/forms" replace />} />
           <Route path="/user/forms" element={<UserFormSelectionPage />} />
           <Route path="/forms/:id" element={<FormFillPage />} />
+          <Route
+            path="/admin/forms/:id/edit"
+            element={<EditFormPage />}
+          />
+          <Route
+            path="/admin/forms/:id/edit-quiz"
+            element={<EditQuizFormPage />}
+          />
           <Route
             path="/admin/forms/:id/submissions"
             element={<FormSubmissionsPage />}

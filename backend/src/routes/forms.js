@@ -16,6 +16,7 @@ const {
   replicateFormToAdmin,
   listAdmins,
   sendFormTo,
+  checkHasSubmissions,
 } = require('../controllers/formController');
 
 const router = express.Router();
@@ -29,6 +30,9 @@ router.get('/', auth(), listForms);
 // Get a single form with fields (authenticated)
 // Get a single form with fields (optional auth)
 router.get('/:id', auth(), getForm);
+
+// Check if form has submissions (authenticated)
+router.get('/:id/has-submissions', auth(), checkHasSubmissions);
 
 // Update a form (Admin only)
 router.put('/:id', auth('admin'), validateCreateForm, updateForm);

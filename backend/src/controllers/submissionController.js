@@ -263,7 +263,7 @@ async function submitForm(req, res, next) {
 
     const submission = await Submission.create({
       form_id: form.id,
-      submitted_by: null,
+      submitted_by: req.user?.id || null,
     });
 
     const dataRows = [];
@@ -391,6 +391,12 @@ async function getFormSubmissions(req, res, next) {
           as: 'answers',
           include: [{ model: FormField, as: 'field' }],
         },
+        {
+          model: User,
+          as: 'submitter',
+          attributes: ['id', 'email'],
+          required: false
+        },
       ],
     });
 
@@ -434,6 +440,12 @@ async function getAllSubmissions(req, res, next) {
           model: SubmissionData,
           as: 'answers',
           include: [{ model: FormField, as: 'field' }],
+        },
+        {
+          model: User,
+          as: 'submitter',
+          attributes: ['id', 'email'],
+          required: false
         },
       ],
     });

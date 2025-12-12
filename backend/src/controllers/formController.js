@@ -142,6 +142,11 @@ async function listForms(req, res, next) {
           where: {
             account_id: userAccountId
           },
+          include: [{
+            model: User,
+            as: 'creator',
+            attributes: ['id', 'email']
+          }],
           order: [['created_at', 'DESC']]
         });
       } else {
@@ -150,6 +155,11 @@ async function listForms(req, res, next) {
           where: {
             account_id: null
           },
+          include: [{
+            model: User,
+            as: 'creator',
+            attributes: ['id', 'email']
+          }],
           order: [['created_at', 'DESC']]
         });
       }
@@ -185,6 +195,11 @@ async function listForms(req, res, next) {
         where: whereConditions.length > 0 ? {
           [Op.or]: whereConditions
         } : { id: 0 }, // No results if no conditions
+        include: [{
+          model: User,
+          as: 'creator',
+          attributes: ['id', 'email']
+        }],
         order: [['created_at', 'DESC']]
       });
     }
@@ -373,6 +388,7 @@ async function updateForm(req, res, next) {
           ai_validation_enabled: !!f.ai_validation_enabled,
           expected_entity: f.expected_entity || 'none',
           expected_sentiment: f.expected_sentiment || 'any',
+          options: f.options || null,
         })
       )
     );
@@ -928,6 +944,40 @@ async function deleteAllForms(req, res, next) {
   }
 }
 
+// Check if a form has submissions
+async function checkHasSubmissions(req, res, next) {
+  try {
+    const form = await Form.findByPk(req.params.id);
+    if (!form) {
+      return res
+        .status(404)
+        .json({ success: false, message: 'Form not found' });
+    }
+
+    // Check if user has access to this form
+    const hasAccess = await checkFormAccess(form, req.user);
+    if (!hasAccess) {
+      return res
+        .status(403)
+        .json({ success: false, message: 'Access denied' });
+    }
+
+    const submissionCount = await Submission.count({
+      where: { form_id: form.id }
+    });
+
+    res.json({ 
+      success: true, 
+      data: { 
+        hasSubmissions: submissionCount > 0,
+        submissionCount
+      } 
+    });
+  } catch (err) {
+    next(err);
+  }
+}
+
 module.exports = {
   validateCreateForm,
   createForm,
@@ -944,6 +994,7 @@ module.exports = {
   replicateFormToAdmin,
   listAdmins,
   sendFormTo,
+  checkHasSubmissions,
 };
 
 

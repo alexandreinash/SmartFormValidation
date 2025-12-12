@@ -13,8 +13,7 @@ function FormSubmissionsPage() {
   const [submissions, setSubmissions] = useState([]);
   const [status, setStatus] = useState('');
   const [filter, setFilter] = useState('all'); // all | ai_flagged | ai_not_evaluated
-  const [editingId, setEditingId] = useState(null);
-  const [editValues, setEditValues] = useState({});
+  const [viewingId, setViewingId] = useState(null);
   const [isBusy, setIsBusy] = useState(false);
   const [selectedSubmissions, setSelectedSubmissions] = useState([]);
 
@@ -63,40 +62,11 @@ function FormSubmissionsPage() {
     }
   }, [lastMessage, id, isAllSubmissions]);
 
-  const startEdit = (submission) => {
-    const values = {};
-    (submission.answers || []).forEach((ans) => {
-      values[ans.field_id] = ans.value || '';
-    });
-    setEditingId(submission.id);
-    setEditValues(values);
-  };
-
-  const cancelEdit = () => {
-    setEditingId(null);
-    setEditValues({});
-  };
-
-  const handleEditChange = (fieldId, value) => {
-    setEditValues((prev) => ({ ...prev, [fieldId]: value }));
-  };
-
-  const saveEdit = async (submissionId) => {
-    try {
-      setIsBusy(true);
-      await api.put(`/api/submissions/${submissionId}`, {
-        values: editValues,
-      });
-
-      // Refresh list after successful update
-      await loadSubmissions();
-      setStatus('Submission updated.');
-      setEditingId(null);
-      setEditValues({});
-    } catch (err) {
-      setStatus('Failed to update submission.');
-    } finally {
-      setIsBusy(false);
+  const toggleView = (submissionId) => {
+    if (viewingId === submissionId) {
+      setViewingId(null);
+    } else {
+      setViewingId(submissionId);
     }
   };
 
@@ -454,217 +424,51 @@ function FormSubmissionsPage() {
                         <>Form: {sub.form.title} (#{sub.form.id})<br /></>
                       )}
                       {new Date(sub.submitted_at).toLocaleString()}
+                      {sub.submitter && (
+                        <>
+                          <br />
+                          <strong>Submitted by:</strong> {sub.submitter.email}
+                        </>
+                      )}
+                      {!sub.submitter && (
+                        <>
+                          <br />
+                          <span style={{ color: '#6b7280', fontStyle: 'italic' }}>Submitted by: Anonymous (not logged in)</span>
+                        </>
+                      )}
                     </div>
                   </div>
                 </div>
                 <div className="submission-actions">
-                  {editingId === sub.id ? (
-                    <>
-                      <button
-                        type="button"
-                        className="button button-secondary"
-                        onClick={cancelEdit}
-                        disabled={isBusy}
-                      >
-                        Cancel
-                      </button>
-                      <button
-                        type="button"
-                        className="button button-danger"
-                        onClick={() => saveEdit(sub.id)}
-                        disabled={isBusy}
-                      >
-                        Save changes
-                      </button>
-                    </>
-                  ) : (
-                    <>
-                      <button
-                        type="button"
-                        className="button button-secondary"
-                        onClick={() => startEdit(sub)}
-                        disabled={isBusy}
-                      >
-                        Edit
-                      </button>
-                      <button
-                        type="button"
-                        className="button button-danger"
-                        onClick={() => deleteSubmission(sub.id)}
-                        disabled={isBusy}
-                      >
-                        Delete
-                      </button>
-                    </>
-                  )}
+                  <button
+                    type="button"
+                    className="button button-secondary"
+                    onClick={() => toggleView(sub.id)}
+                    disabled={isBusy}
+                  >
+                    {viewingId === sub.id ? 'Hide' : 'View'}
+                  </button>
+                  <button
+                    type="button"
+                    className="button button-danger"
+                    onClick={() => deleteSubmission(sub.id)}
+                    disabled={isBusy}
+                  >
+                    Delete
+                  </button>
                 </div>
               </div>
-              {isAllSubmissions && (
+              {isAllSubmissions && viewingId === sub.id && (
                 <div style={{ marginTop: '0.75rem', paddingLeft: '1.75rem' }}>
-                  {editingId === sub.id ? (
-                    <ul className="answers-list">
-                      {(sub.answers || []).map((ans) => {
-                        let quizData = null;
-                        try {
-                          if (ans.field && ans.field.options) {
-                            quizData = JSON.parse(ans.field.options);
-                          }
-                        } catch (e) {
-                          quizData = null;
-                        }
-
-                        return (
-                          <li key={ans.id} className="answer-row">
-                            <div className="answer-label">
-                              {ans.field?.label || 'Field'}
-                            </div>
-                            <div className="answer-value">
-                              {quizData && quizData.questionType ? (
-                                quizData.questionType === 'multiple_choice' ? (
-                                  <div>
-                                    {(quizData.options || []).filter(Boolean).map((opt, oi) => (
-                                      <label key={oi} style={{ display: 'block', marginBottom: '0.25rem' }}>
-                                        <input
-                                          type="radio"
-                                          name={`edit-${ans.field_id}-${sub.id}`}
-                                          value={opt}
-                                          checked={editValues[ans.field_id] === opt}
-                                          onChange={() => handleEditChange(ans.field_id, opt)}
-                                        />
-                                        <span style={{ marginLeft: '0.5rem' }}>{opt}</span>
-                                      </label>
-                                    ))}
-                                  </div>
-                                ) : quizData.questionType === 'true_false' ? (
-                                  <div>
-                                    {['True', 'False'].map((opt) => (
-                                      <label key={opt} style={{ display: 'block', marginBottom: '0.25rem' }}>
-                                        <input
-                                          type="radio"
-                                          name={`edit-${ans.field_id}-${sub.id}`}
-                                          value={opt}
-                                          checked={editValues[ans.field_id] === opt}
-                                          onChange={() => handleEditChange(ans.field_id, opt)}
-                                        />
-                                        <span style={{ marginLeft: '0.5rem' }}>{opt}</span>
-                                      </label>
-                                    ))}
-                                  </div>
-                                ) : (
-                                  // fill_blank
-                                  <div>
-                                    <textarea
-                                      className="input"
-                                      value={editValues[ans.field_id] ?? ''}
-                                      onChange={(e) => handleEditChange(ans.field_id, e.target.value)}
-                                      rows={2}
-                                      style={{ width: '100%', resize: 'vertical' }}
-                                    />
-                                    <small style={{ color: '#6b7280', display: 'block', marginTop: '0.25rem' }}>
-                                      Match mode: {(quizData.matchMode || 'case_insensitive') === 'exact' ? 'Exact (case-sensitive)' : 'Case-insensitive'}
-                                    </small>
-                                  </div>
-                                )
-                              ) : (
-                                <textarea
-                                  className="input"
-                                  value={editValues[ans.field_id] ?? ''}
-                                  onChange={(e) => handleEditChange(ans.field_id, e.target.value)}
-                                  rows={2}
-                                  style={{ width: '100%', resize: 'vertical' }}
-                                />
-                              )}
-                            </div>
-                          </li>
-                        );
-                      })}
-                    </ul>
-                  ) : (
-                    <textarea
-                      className="input"
-                      value={(sub.answers || []).map((ans) => ans.value).filter(Boolean).join('\n')}
-                      readOnly
-                      rows={2}
-                      style={{ width: '100%', resize: 'vertical' }}
-                    />
-                  )}
-                </div>
-              )}
-                  {!isAllSubmissions && (
-                <ul className="answers-list">
-                  {(sub.answers || []).map((ans) => {
-                    let quizData = null;
-                    try {
-                      if (ans.field && ans.field.options) {
-                        quizData = JSON.parse(ans.field.options);
-                      }
-                    } catch (e) {
-                      quizData = null;
-                    }
-
-                    return (
+                  <ul className="answers-list">
+                    {(sub.answers || []).map((ans) => (
                       <li key={ans.id} className="answer-row">
                         <div className="answer-label">
                           {ans.field?.label || 'Field'}
                         </div>
                         <div className="answer-value">
-                          {editingId === sub.id ? (
-                            quizData && quizData.questionType ? (
-                              quizData.questionType === 'multiple_choice' ? (
-                                <div>
-                                  {(quizData.options || []).filter(Boolean).map((opt, oi) => (
-                                    <label key={oi} style={{ display: 'block', marginBottom: '0.25rem' }}>
-                                      <input
-                                        type="radio"
-                                        name={`edit-${ans.field_id}-${sub.id}`}
-                                        value={opt}
-                                        checked={editValues[ans.field_id] === opt}
-                                        onChange={() => handleEditChange(ans.field_id, opt)}
-                                      />
-                                      <span style={{ marginLeft: '0.5rem' }}>{opt}</span>
-                                    </label>
-                                  ))}
-                                </div>
-                              ) : quizData.questionType === 'true_false' ? (
-                                <div>
-                                  {['True', 'False'].map((opt) => (
-                                    <label key={opt} style={{ display: 'block', marginBottom: '0.25rem' }}>
-                                      <input
-                                        type="radio"
-                                        name={`edit-${ans.field_id}-${sub.id}`}
-                                        value={opt}
-                                        checked={editValues[ans.field_id] === opt}
-                                        onChange={() => handleEditChange(ans.field_id, opt)}
-                                      />
-                                      <span style={{ marginLeft: '0.5rem' }}>{opt}</span>
-                                    </label>
-                                  ))}
-                                </div>
-                              ) : (
-                                <div>
-                                  <textarea
-                                    className="input"
-                                    value={editValues[ans.field_id] ?? ''}
-                                    onChange={(e) => handleEditChange(ans.field_id, e.target.value)}
-                                    rows={2}
-                                  />
-                                  <small style={{ color: '#6b7280', display: 'block', marginTop: '0.25rem' }}>
-                                    Match mode: {(quizData?.matchMode || 'case_insensitive') === 'exact' ? 'Exact (case-sensitive)' : 'Case-insensitive'}
-                                  </small>
-                                </div>
-                              )
-                            ) : (
-                              <textarea
-                                className="input"
-                                value={editValues[ans.field_id] ?? ''}
-                                onChange={(e) => handleEditChange(ans.field_id, e.target.value)}
-                                rows={2}
-                              />
-                            )
-                          ) : (
-                            ans.value || (
-                              <span className="answer-empty">No answer</span>
-                            )
+                          {ans.value || (
+                            <span className="answer-empty">No answer</span>
                           )}
                           {(ans.ai_sentiment_flag || ans.ai_entity_flag) && (
                             <span className="flag">AI flagged for review</span>
@@ -676,8 +480,32 @@ function FormSubmissionsPage() {
                           )}
                         </div>
                       </li>
-                    );
-                  })}
+                    ))}
+                  </ul>
+                </div>
+              )}
+              {!isAllSubmissions && viewingId === sub.id && (
+                <ul className="answers-list">
+                  {(sub.answers || []).map((ans) => (
+                    <li key={ans.id} className="answer-row">
+                      <div className="answer-label">
+                        {ans.field?.label || 'Field'}
+                      </div>
+                      <div className="answer-value">
+                        {ans.value || (
+                          <span className="answer-empty">No answer</span>
+                        )}
+                        {(ans.ai_sentiment_flag || ans.ai_entity_flag) && (
+                          <span className="flag">AI flagged for review</span>
+                        )}
+                        {ans.ai_not_evaluated && (
+                          <span className="flag secondary">
+                            AI not evaluated
+                          </span>
+                        )}
+                      </div>
+                    </li>
+                  ))}
                 </ul>
               )}
             </div>

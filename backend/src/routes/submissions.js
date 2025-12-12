@@ -12,8 +12,8 @@ const {
 
 const router = express.Router();
 
-// Submit a form (public)
-router.post('/:formId', validateSubmitForm, submitForm);
+// Submit a form (public, but capture user if logged in)
+router.post('/:formId', auth(), validateSubmitForm, submitForm);
 
 // View submissions for a form (Admin only)
 router.get('/form/:formId', auth('admin'), getFormSubmissions);

@@ -96,13 +96,13 @@
 
 .sidebar-nav-item-active {
   background: linear-gradient(135deg, #fbbf24, #f59e0b);
-  color: #ffffff;
+  color: #111824;
   font-weight: 600;
 }
 
 .sidebar-nav-item-active:hover {
   background: linear-gradient(135deg, #f59e0b, #d97706);
-  color: #ffffff;
+  color: #111824;
 }
 
 .sidebar-icon {
