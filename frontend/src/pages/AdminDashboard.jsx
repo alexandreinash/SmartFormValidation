@@ -1,18 +1,22 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../AuthContext';
 import api from '../api';
 import '../css/AdminDashboard.css';
+import '../css/components.css';
 
 function AdminDashboard() {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
+  const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
 
   const handleLogout = () => {
-    const ok = window.confirm('Are you sure you want to log out?');
-    if (!ok) return;
+    setShowLogoutConfirm(true);
+    localStorage.setItem('sfv_just_logged_out', 'true');
     logout();
-    navigate('/login');
+    setTimeout(() => {
+      navigate('/login');
+    }, 800);
   };
 
   const handleRemoveAccount = async () => {
@@ -27,8 +31,12 @@ function AdminDashboard() {
       if (res.data && res.data.success) {
         window.alert(res.data.message || 'Account removed');
         // logout and navigate to login
+        setShowLogoutConfirm(true);
+        localStorage.setItem('sfv_just_logged_out', 'true');
         logout();
-        navigate('/login');
+        setTimeout(() => {
+          navigate('/login');
+        }, 800);
       } else {
         window.alert('Failed to remove account');
       }
@@ -40,6 +48,21 @@ function AdminDashboard() {
 
   return (
     <div className="admin-dashboard-container">
+      {/* Logout confirmation text in top right corner */}
+      {showLogoutConfirm && (
+        <div className="logout-confirmation-text">
+          <div className="logout-confirmation-content">
+            <div className="logout-confirmation-icon">
+              <svg width="20" height="20" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <path d="M16.6667 5L7.50004 14.1667L3.33337 10" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+              </svg>
+            </div>
+            <div className="logout-confirmation-text-content">
+              You have successfully been logged out.
+            </div>
+          </div>
+        </div>
+      )}
       {/* Smart Form Validator Banner */}
       <div className="admin-banner">Smart Form Validator</div>
 

@@ -26,7 +26,7 @@ function RegisterPage() {
     }
     
     try {
-      const user = await register(email, password, role);
+      const user = await register(username, email, password, role);
       setIsSuccess(true);
       setStatus('Registration successful! Redirecting...');
       // Wait 0.5 seconds before navigating to appropriate dashboard

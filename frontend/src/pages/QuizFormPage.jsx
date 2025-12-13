@@ -4,6 +4,7 @@ import api from '../api';
 import { useAuth } from '../AuthContext';
 import SendToModal from '../components/SendToModal';
 import '../css/CreateFormPage.css';
+import '../css/components.css';
 
 function QuizFormPage() {
   const { user, logout } = useAuth();
@@ -22,6 +23,7 @@ function QuizFormPage() {
   const [message, setMessage] = useState('');
   const [fieldErrors, setFieldErrors] = useState({});
   const [sendToFormId, setSendToFormId] = useState(null);
+  const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
 
   const updateField = (index, key, value) => {
     const next = [...fields];
@@ -208,6 +210,21 @@ function QuizFormPage() {
 
   return (
     <div className="create-form-container">
+      {/* Logout confirmation text in top right corner */}
+      {showLogoutConfirm && (
+        <div className="logout-confirmation-text">
+          <div className="logout-confirmation-content">
+            <div className="logout-confirmation-icon">
+              <svg width="20" height="20" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <path d="M16.6667 5L7.50004 14.1667L3.33337 10" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+              </svg>
+            </div>
+            <div className="logout-confirmation-text-content">
+              You have successfully been logged out.
+            </div>
+          </div>
+        </div>
+      )}
       {/* Left Sidebar */}
       <div className="create-form-sidebar">
         <h2 className="sidebar-title">Forms</h2>
@@ -230,10 +247,12 @@ function QuizFormPage() {
             <button
               type="button"
               onClick={() => {
-                const ok = window.confirm('Are you sure you want to log out?');
-                if (!ok) return;
+                setShowLogoutConfirm(true);
+                localStorage.setItem('sfv_just_logged_out', 'true');
                 logout();
-                navigate('/login');
+                setTimeout(() => {
+                  navigate('/login');
+                }, 800);
               }}
               className="sidebar-nav-item sidebar-logout-button"
             >

@@ -192,3 +192,64 @@ button + button {
   background-color: #ffffff;
 }
 
+/* Logout confirmation text in top right corner */
+.logout-confirmation-text {
+  position: fixed;
+  top: 1rem;
+  right: 1rem;
+  background: #ef4444;
+  border-radius: 8px;
+  padding: 1rem 1.25rem;
+  z-index: 1001;
+  box-shadow: 0 4px 12px rgba(239, 68, 68, 0.3);
+  min-width: 280px;
+  animation: slideIn 0.8s ease-out;
+}
+
+.logout-confirmation-content {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.logout-confirmation-icon {
+  flex-shrink: 0;
+  width: 24px;
+  height: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.logout-confirmation-text-content {
+  color: white;
+  font-size: 0.875rem;
+  font-weight: 500;
+  line-height: 1.4;
+  flex: 1;
+}
+
+@keyframes slideIn {
+  from {
+    transform: translateX(100%);
+    opacity: 0;
+  }
+  to {
+    transform: translateX(0);
+    opacity: 1;
+  }
+}
+
+@media (max-width: 900px) {
+  .logout-confirmation-text {
+    top: 0.5rem;
+    right: 0.5rem;
+    padding: 0.75rem 1rem;
+    min-width: 200px;
+  }
+
+  .logout-confirmation-text-content {
+    font-size: 0.75rem;
+  }
+}
+

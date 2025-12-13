@@ -42,8 +42,8 @@ export function AuthProvider({ children }) {
     }
   };
 
-  const register = async (email, password, role) => {
-    const res = await api.post('/api/auth/register', { email, password, role });
+  const register = async (username, email, password, role) => {
+    const res = await api.post('/api/auth/register', { username, email, password, role });
     const { token, user } = res.data.data;
     
     // Auto-login: save token and user data
@@ -78,8 +78,22 @@ export function AuthProvider({ children }) {
     }
   };
 
+  // Method to sync user data from localStorage (useful after Google login)
+  const syncUserFromStorage = () => {
+    const storedToken = localStorage.getItem('sfv_token');
+    const storedUser = localStorage.getItem('sfv_user');
+    if (storedToken && storedUser) {
+      setToken(storedToken);
+      try {
+        setUser(JSON.parse(storedUser));
+      } catch {
+        setUser(null);
+      }
+    }
+  };
+
   return (
-    <AuthContext.Provider value={{ user, token, login, register, logout }}>
+    <AuthContext.Provider value={{ user, token, login, register, logout, syncUserFromStorage }}>
       {children}
     </AuthContext.Provider>
   );

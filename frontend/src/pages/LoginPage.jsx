@@ -5,7 +5,7 @@ import { useAuth } from '../AuthContext';
 import api from '../api';
 
 function LoginPage() {
-  const { login } = useAuth();
+  const { login, syncUserFromStorage } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
   const [email, setEmail] = useState('');
@@ -13,7 +13,6 @@ function LoginPage() {
   const [rememberMe, setRememberMe] = useState(false);
   const [status, setStatus] = useState('');
   const [isSuccess, setIsSuccess] = useState(false);
-  const [isLogout, setIsLogout] = useState(false);
 
   useEffect(() => {
     // Load remembered credentials if they exist
@@ -34,17 +33,8 @@ function LoginPage() {
       }, 5000);
       return () => clearTimeout(timer);
     }
-    // Show success message if user just logged out
-    if (location.state?.justLoggedOut) {
-      setIsLogout(true);
-      setStatus('You have successfully logged out!');
-      // Clear the message after 1 second
-      const timer = setTimeout(() => {
-        setStatus('');
-        setIsLogout(false);
-      }, 1000);
-      return () => clearTimeout(timer);
-    }
+    // Clear logout flag if present (the logout notification already showed on the previous page)
+    localStorage.removeItem('sfv_just_logged_out');
   }, [location.state]);
 
   const handleSubmit = async (e) => {
@@ -60,6 +50,9 @@ function LoginPage() {
       } else {
         localStorage.removeItem('sfv_remembered_email');
       }
+      
+      // Set flag to show regular login notification
+      localStorage.setItem('sfv_regular_just_logged_in', 'true');
       
       setIsSuccess(true);
       setStatus('Login successful! Redirecting...');
@@ -91,10 +84,20 @@ function LoginPage() {
         credential: credentialResponse.credential
       });
       
-      if (response.data.success) {
+      if (response.data.success && response.data.data) {
+        const { token, user } = response.data.data;
+        
         // Store token and user data
-        localStorage.setItem('sfv_token', response.data.data.token);
-        localStorage.setItem('sfv_user', JSON.stringify(response.data.data.user));
+        localStorage.setItem('sfv_token', token);
+        localStorage.setItem('sfv_user', JSON.stringify(user));
+        
+        // Set flag to show Google sign-in notification
+        localStorage.setItem('sfv_google_just_logged_in', 'true');
+        
+        // Update auth context
+        if (syncUserFromStorage && typeof syncUserFromStorage === 'function') {
+          syncUserFromStorage();
+        }
         
         setIsSuccess(true);
         setStatus('Google login successful! Redirecting...');
@@ -102,11 +105,15 @@ function LoginPage() {
         // Wait 0.5 seconds before navigating
         setTimeout(() => {
           navigate('/', { state: { justLoggedIn: true } });
-          window.location.reload(); // Refresh to update auth context
+          // Reload to ensure AuthContext picks up the new token
+          window.location.reload();
         }, 500);
+      } else {
+        throw new Error('Invalid response from server');
       }
     } catch (err) {
       setIsSuccess(false);
+      console.error('Google login error:', err);
       if (!err.response) {
         setStatus(
           'Cannot reach the API server. Make sure the backend is running on port 5000.'
@@ -188,8 +195,8 @@ function LoginPage() {
                   className="status" 
                   style={{ 
                     marginTop: '1rem', 
-                    color: isLogout ? '#ef4444' : (isSuccess ? '#10b981' : '#ef4444'),
-                    fontWeight: (isSuccess || isLogout) ? '600' : '400'
+                    color: isSuccess ? '#10b981' : '#ef4444',
+                    fontWeight: isSuccess ? '600' : '400'
                   }}
                 >
                   {status}

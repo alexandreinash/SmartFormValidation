@@ -18,7 +18,7 @@ import ManageGroupsPage from './pages/ManageGroupsPage';
 import LoginPage from './pages/LoginPage';
 import RegisterPage from './pages/RegisterPage';
 import HomePage from './pages/HomePage';
-import { useAuth } from './AuthContext';
+import GoogleSignInNotification from './components/GoogleSignInNotification';
 
 const GOOGLE_CLIENT_ID = '593069010968-07lknp6t8a8vjcpv5n08hv81sf6v6iir.apps.googleusercontent.com';
 
@@ -40,6 +40,7 @@ function AppShell() {
 
   return (
     <div className="app">
+      <GoogleSignInNotification />
       <main className={isAuthRoute || isHomePage || isAdminDashboard || isFormCreationPage ? 'content content-auth' : 'content'}>
         <Routes>
           <Route path="/" element={<HomePage />} />
