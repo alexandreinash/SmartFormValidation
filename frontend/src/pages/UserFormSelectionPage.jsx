@@ -3,6 +3,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import api from '../api';
 import { useAuth } from '../AuthContext';
 import '../css/UserFormSelectionPage.css';
+import '../css/components.css';
 
 function UserFormSelectionPage() {
   const { user, logout } = useAuth();
@@ -15,6 +16,7 @@ function UserFormSelectionPage() {
   const [activeTab, setActiveTab] = useState('text');
   const [loading, setLoading] = useState(true);
   const [status, setStatus] = useState('');
+  const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
 
   // Helper function to categorize form based on field types
   const categorizeForm = (form) => {
@@ -113,7 +115,9 @@ function UserFormSelectionPage() {
         
         setStatus('');
       } catch (err) {
-        setStatus('Failed to load forms.');
+        console.error('Failed to load forms:', err);
+        const errorMessage = err.response?.data?.message || err.message || 'Failed to load forms.';
+        setStatus(`Failed to load forms: ${errorMessage}`);
       }
       setLoading(false);
     };
@@ -132,6 +136,21 @@ function UserFormSelectionPage() {
 
   return (
     <div className="user-form-selection-container">
+      {/* Logout confirmation text in top right corner */}
+      {showLogoutConfirm && (
+        <div className="logout-confirmation-text">
+          <div className="logout-confirmation-content">
+            <div className="logout-confirmation-icon">
+              <svg width="20" height="20" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <path d="M16.6667 5L7.50004 14.1667L3.33337 10" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+              </svg>
+            </div>
+            <div className="logout-confirmation-text-content">
+              You have successfully been logged out.
+            </div>
+          </div>
+        </div>
+      )}
       {/* Left Sidebar */}
       <div className="user-form-selection-sidebar">
         <h2 className="sidebar-title">Forms</h2>
@@ -181,10 +200,12 @@ function UserFormSelectionPage() {
             <button
               type="button"
               onClick={() => {
-                const ok = window.confirm('Are you sure you want to log out?');
-                if (!ok) return;
+                setShowLogoutConfirm(true);
+                localStorage.setItem('sfv_just_logged_out', 'true');
                 logout();
-                navigate('/login');
+                setTimeout(() => {
+                  navigate('/login');
+                }, 800);
               }}
               className="sidebar-nav-item sidebar-logout-button"
             >
@@ -203,8 +224,12 @@ function UserFormSelectionPage() {
                     const res = await api.delete('/api/accounts/remove', { data: { confirm: 'confirm' } });
                     if (res.data && res.data.success) {
                       window.alert(res.data.message || 'Account association removed');
+                      setShowLogoutConfirm(true);
+                      localStorage.setItem('sfv_just_logged_out', 'true');
                       logout();
-                      navigate('/login');
+                      setTimeout(() => {
+                        navigate('/login');
+                      }, 800);
                     } else {
                       window.alert('Failed to remove account association');
                     }
@@ -275,7 +300,9 @@ function UserFormSelectionPage() {
                     
                     setStatus('');
                   } catch (err) {
-                    setStatus('Failed to load forms.');
+                    console.error('Failed to load forms:', err);
+                    const errorMessage = err.response?.data?.message || err.message || 'Failed to load forms.';
+                    setStatus(`Failed to load forms: ${errorMessage}`);
                   }
                   setLoading(false);
                 };

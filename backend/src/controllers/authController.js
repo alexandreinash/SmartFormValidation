@@ -6,10 +6,13 @@ const User = require('../models/User');
 const { logAudit } = require('../services/auditLogger');
 const { sendRegistrationEmail } = require('../services/emailService');
 
-const googleClient = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
+const googleClient = process.env.GOOGLE_CLIENT_ID 
+  ? new OAuth2Client(process.env.GOOGLE_CLIENT_ID)
+  : null;
 
 // Validation chains used by the routes
 const validateRegister = [
+  body('username').trim().notEmpty().withMessage('Username is required'),
   body('email').isEmail(),
   body('password').isLength({ min: 6 }),
   body('role').isIn(['admin', 'user']),
@@ -27,7 +30,7 @@ async function register(req, res, next) {
       return res.status(400).json({ success: false, errors: errors.array() });
     }
 
-    const { email, password, role } = req.body;
+    const { username, email, password, role } = req.body;
     const existing = await User.findOne({ where: { email } });
     if (existing) {
       return res
@@ -36,7 +39,7 @@ async function register(req, res, next) {
     }
 
     const hashed = await bcrypt.hash(password, 10);
-    const user = await User.create({ email, password: hashed, role });
+    const user = await User.create({ username, email, password: hashed, role });
 
     await logAudit({
       userId: user.id,
@@ -74,10 +77,22 @@ async function login(req, res, next) {
   try {
     const errors = validationResult(req);
     if (!errors.isEmpty()) {
-      return res.status(400).json({ success: false, errors: errors.array() });
+      return res.status(400).json({ 
+        success: false, 
+        message: 'Validation failed',
+        errors: errors.array() 
+      });
     }
 
     const { email, password } = req.body;
+    
+    if (!email || !password) {
+      return res.status(400).json({ 
+        success: false, 
+        message: 'Email and password are required' 
+      });
+    }
+
     const user = await User.findOne({ where: { email } });
     if (!user) {
       return res
@@ -104,13 +119,24 @@ async function login(req, res, next) {
       message: 'Login successful',
     });
 
-    await logAudit({
+    // Log audit asynchronously, don't wait for it
+    logAudit({
       userId: user.id,
       action: 'user_logged_in',
       entityType: 'user',
       entityId: user.id,
+    }).catch((err) => {
+      console.error('Failed to log audit:', err);
     });
   } catch (err) {
+    console.error('Login error:', err);
+    // Check if it's a database connection error
+    if (err.name === 'SequelizeConnectionError' || err.name === 'SequelizeConnectionRefusedError') {
+      return res.status(500).json({ 
+        success: false, 
+        message: 'Database connection error. Please check if the database server is running.' 
+      });
+    }
     next(err);
   }
 }
@@ -149,6 +175,13 @@ async function googleLogin(req, res, next) {
       });
     }
 
+    if (!googleClient || !process.env.GOOGLE_CLIENT_ID) {
+      return res.status(500).json({ 
+        success: false, 
+        message: 'Google OAuth is not configured. Please set GOOGLE_CLIENT_ID in environment variables.' 
+      });
+    }
+
     // Verify the Google token
     const ticket = await googleClient.verifyIdToken({
       idToken: credential,
@@ -158,6 +191,13 @@ async function googleLogin(req, res, next) {
     const payload = ticket.getPayload();
     const email = payload.email;
     const googleId = payload.sub;
+    
+    if (!email) {
+      return res.status(400).json({ 
+        success: false, 
+        message: 'Email not found in Google account' 
+      });
+    }
     
     // Check if user exists
     let user = await User.findOne({ where: { email } });
@@ -171,11 +211,13 @@ async function googleLogin(req, res, next) {
         role: 'user' // Default role for Google sign-in users
       });
       
-      await logAudit({
+      logAudit({
         userId: user.id,
         action: 'user_registered_google',
         entityType: 'user',
         entityId: user.id,
+      }).catch((err) => {
+        console.error('Failed to log audit:', err);
       });
       
       // Send registration email (non-blocking)
@@ -191,11 +233,13 @@ async function googleLogin(req, res, next) {
       { expiresIn: '8h' }
     );
     
-    await logAudit({
+    logAudit({
       userId: user.id,
       action: 'user_logged_in_google',
       entityType: 'user',
       entityId: user.id,
+    }).catch((err) => {
+      console.error('Failed to log audit:', err);
     });
     
     return res.json({
@@ -208,9 +252,26 @@ async function googleLogin(req, res, next) {
     });
   } catch (err) {
     console.error('Google login error:', err);
+    
+    // Check if it's a database connection error
+    if (err.name === 'SequelizeConnectionError' || err.name === 'SequelizeConnectionRefusedError') {
+      return res.status(500).json({ 
+        success: false, 
+        message: 'Database connection error. Please check if the database server is running.' 
+      });
+    }
+    
+    // Check if it's a Google token verification error
+    if (err.message && err.message.includes('Token used too early')) {
+      return res.status(401).json({ 
+        success: false, 
+        message: 'Invalid Google token. Please try again.' 
+      });
+    }
+    
     return res.status(401).json({ 
       success: false, 
-      message: 'Invalid Google credential' 
+      message: err.message || 'Invalid Google credential. Please try again.' 
     });
   }
 }

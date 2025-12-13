@@ -145,7 +145,8 @@ async function listForms(req, res, next) {
           include: [{
             model: User,
             as: 'creator',
-            attributes: ['id', 'email']
+            attributes: ['id', 'email'],
+            required: false
           }],
           order: [['created_at', 'DESC']]
         });
@@ -158,19 +159,26 @@ async function listForms(req, res, next) {
           include: [{
             model: User,
             as: 'creator',
-            attributes: ['id', 'email']
+            attributes: ['id', 'email'],
+            required: false
           }],
           order: [['created_at', 'DESC']]
         });
       }
     } else {
       // Regular users see forms from their account and forms explicitly shared with them
-      const sharedForms = await FormPermission.findAll({
-        attributes: ['form_id'],
-        where: {
-          user_id: req.user.id
-        }
-      });
+      let sharedForms = [];
+      try {
+        sharedForms = await FormPermission.findAll({
+          attributes: ['form_id'],
+          where: {
+            user_id: req.user.id
+          }
+        });
+      } catch (permErr) {
+        console.error('Error fetching form permissions:', permErr);
+        // Continue with empty shared forms list
+      }
 
       const sharedFormIds = sharedForms.map(perm => perm.form_id);
 
@@ -191,21 +199,29 @@ async function listForms(req, res, next) {
         whereConditions.push({ account_id: null });
       }
 
-      forms = await Form.findAll({
-        where: whereConditions.length > 0 ? {
-          [Op.or]: whereConditions
-        } : { id: 0 }, // No results if no conditions
-        include: [{
-          model: User,
-          as: 'creator',
-          attributes: ['id', 'email']
-        }],
-        order: [['created_at', 'DESC']]
-      });
+      try {
+        forms = await Form.findAll({
+          where: whereConditions.length > 0 ? {
+            [Op.or]: whereConditions
+          } : { id: 0 }, // No results if no conditions
+          include: [{
+            model: User,
+            as: 'creator',
+            attributes: ['id', 'email'],
+            required: false
+          }],
+          order: [['created_at', 'DESC']]
+        });
+      } catch (queryErr) {
+        console.error('Error querying forms:', queryErr);
+        // Return empty array if query fails
+        forms = [];
+      }
     }
 
     res.json({ success: true, data: forms });
   } catch (err) {
+    console.error('Error in listForms:', err);
     next(err);
   }
 }
