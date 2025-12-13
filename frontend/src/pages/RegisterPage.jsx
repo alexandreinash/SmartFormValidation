@@ -5,8 +5,10 @@ import { useAuth } from '../AuthContext';
 function RegisterPage() {
   const { register } = useAuth();
   const navigate = useNavigate();
+  const [username, setUsername] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
   const [role, setRole] = useState('admin');
   const [status, setStatus] = useState('');
   const [isSuccess, setIsSuccess] = useState(false);
@@ -15,6 +17,14 @@ function RegisterPage() {
     e.preventDefault();
     setStatus('');
     setIsSuccess(false);
+    
+    // Validate password confirmation
+    if (password !== confirmPassword) {
+      setIsSuccess(false);
+      setStatus('Passwords do not match. Please try again.');
+      return;
+    }
+    
     try {
       const user = await register(email, password, role);
       setIsSuccess(true);
@@ -65,12 +75,24 @@ function RegisterPage() {
             <form onSubmit={handleSubmit}>
               <div className="field-column">
                 <label>
+                  Username
+                  <input
+                    type="text"
+                    value={username}
+                    onChange={(e) => setUsername(e.target.value)}
+                    placeholder="Enter your username"
+                    required
+                  />
+                </label>
+              </div>
+              <div className="field-column">
+                <label>
                   Email
                   <input
                     type="email"
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
-                    placeholder="drei2@gmail.com"
+                    placeholder="Enter your email"
                     required
                   />
                 </label>
@@ -82,7 +104,19 @@ function RegisterPage() {
                     type="password"
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
-                    placeholder="••••••"
+                    placeholder="Enter your password"
+                    required
+                  />
+                </label>
+              </div>
+              <div className="field-column">
+                <label>
+                  Confirm Password
+                  <input
+                    type="password"
+                    value={confirmPassword}
+                    onChange={(e) => setConfirmPassword(e.target.value)}
+                    placeholder="Confirm your password"
                     required
                   />
                 </label>

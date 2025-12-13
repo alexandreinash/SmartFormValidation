@@ -1,5 +1,6 @@
 import React from 'react';
 import { Routes, Route, Link, useNavigate, useLocation, Navigate } from 'react-router-dom';
+import { GoogleOAuthProvider } from '@react-oauth/google';
 import AdminDashboard from './pages/AdminDashboard';
 import CreateFormPage from './pages/CreateFormPage';
 import TextFormPage from './pages/TextFormPage';
@@ -18,6 +19,8 @@ import LoginPage from './pages/LoginPage';
 import RegisterPage from './pages/RegisterPage';
 import HomePage from './pages/HomePage';
 import { useAuth } from './AuthContext';
+
+const GOOGLE_CLIENT_ID = '593069010968-07lknp6t8a8vjcpv5n08hv81sf6v6iir.apps.googleusercontent.com';
 
 function AppShell() {
   const location = useLocation();
@@ -81,7 +84,11 @@ function AppShell() {
 }
 
 export default function App() {
-  return <AppShell />;
+  return (
+    <GoogleOAuthProvider clientId={GOOGLE_CLIENT_ID}>
+      <AppShell />
+    </GoogleOAuthProvider>
+  );
 }
 
 

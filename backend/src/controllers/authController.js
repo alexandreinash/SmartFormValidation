@@ -1,9 +1,12 @@
 const { body, validationResult } = require('express-validator');
 const jwt = require('jsonwebtoken');
 const bcrypt = require('bcryptjs');
+const { OAuth2Client } = require('google-auth-library');
 const User = require('../models/User');
 const { logAudit } = require('../services/auditLogger');
 const { sendRegistrationEmail } = require('../services/emailService');
+
+const googleClient = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
 
 // Validation chains used by the routes
 const validateRegister = [
@@ -134,12 +137,91 @@ async function listUsers(req, res, next) {
   }
 }
 
+// Google OAuth Login
+async function googleLogin(req, res, next) {
+  try {
+    const { credential } = req.body;
+    
+    if (!credential) {
+      return res.status(400).json({ 
+        success: false, 
+        message: 'Google credential is required' 
+      });
+    }
+
+    // Verify the Google token
+    const ticket = await googleClient.verifyIdToken({
+      idToken: credential,
+      audience: process.env.GOOGLE_CLIENT_ID,
+    });
+    
+    const payload = ticket.getPayload();
+    const email = payload.email;
+    const googleId = payload.sub;
+    
+    // Check if user exists
+    let user = await User.findOne({ where: { email } });
+    
+    if (!user) {
+      // Create new user with random password (since they're using Google OAuth)
+      const randomPassword = await bcrypt.hash(Math.random().toString(36), 10);
+      user = await User.create({ 
+        email, 
+        password: randomPassword,
+        role: 'user' // Default role for Google sign-in users
+      });
+      
+      await logAudit({
+        userId: user.id,
+        action: 'user_registered_google',
+        entityType: 'user',
+        entityId: user.id,
+      });
+      
+      // Send registration email (non-blocking)
+      sendRegistrationEmail(user.email, user.role).catch((err) => {
+        console.error('Failed to send registration email:', err);
+      });
+    }
+    
+    // Generate JWT token
+    const token = jwt.sign(
+      { id: user.id, role: user.role },
+      process.env.JWT_SECRET || 'dev_secret',
+      { expiresIn: '8h' }
+    );
+    
+    await logAudit({
+      userId: user.id,
+      action: 'user_logged_in_google',
+      entityType: 'user',
+      entityId: user.id,
+    });
+    
+    return res.json({
+      success: true,
+      data: { 
+        token, 
+        user: { id: user.id, email: user.email, role: user.role } 
+      },
+      message: 'Google login successful',
+    });
+  } catch (err) {
+    console.error('Google login error:', err);
+    return res.status(401).json({ 
+      success: false, 
+      message: 'Invalid Google credential' 
+    });
+  }
+}
+
 module.exports = {
   validateRegister,
   validateLogin,
   register,
   login,
   listUsers,
+  googleLogin,
 };
 
 

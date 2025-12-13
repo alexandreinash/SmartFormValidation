@@ -30,8 +30,8 @@
 }
 
 .auth-footer {
-  margin-top: 2rem;
-  font-size: 1rem;
+  margin-top: 0.75rem;
+  font-size: 0.9rem;
   color: #9ca3af;
   text-align: center;
 }
@@ -49,13 +49,13 @@
 
 .auth-button {
   width: 100%;
-  margin-top: 1.5rem;
-  padding: 1rem 1.5rem;
+  margin-top: 0.75rem;
+  padding: 0.75rem 1.25rem;
   background: #fbbf24;
   color: #000000;
   border: none;
   border-radius: 8px;
-  font-size: 1.1rem;
+  font-size: 1rem;
   font-weight: 700;
   cursor: pointer;
   transition: all 0.2s;
@@ -151,10 +151,11 @@
 
 .auth-card {
   width: 100%;
-  max-width: 420px;
-  min-height: 500px;
+  max-width: 460px;
+  min-height: 96px;
   border-radius: 16px;
-  padding: 2.5rem;
+  padding: 0.75rem;
+  margin: 1.5rem;
   background: rgba(15, 23, 42, 0.95);
   box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
   border: 1px solid rgba(148, 163, 184, 0.2);
@@ -172,43 +173,43 @@
 
 .auth-title {
   color: #ffffff;
-  font-size: 2.25rem;
+  font-size: 1.5rem;
   font-weight: 700;
-  margin-bottom: 0.75rem;
+  margin-bottom: 0.15rem;
   text-align: left;
 }
 
 .auth-subtitle {
   color: #d1d5db;
-  font-size: 1rem;
-  margin-bottom: 2rem;
-  line-height: 1.6;
+  font-size: 0.8rem;
+  margin-bottom: 0.5rem;
+  line-height: 1.3;
   text-align: left;
 }
 
 /* Tighter, aligned fields inside auth card */
 .auth-card .field-column {
   width: 100%;
-  margin-bottom: 1rem;
+  margin-bottom: 0.35rem;
 }
 
 .auth-card .field-column > label {
   display: flex;
   flex-direction: column;
-  gap: 0.4rem;
+  gap: 0.15rem;
 }
 
 .auth-card input:not([type='checkbox']),
 .auth-card select,
 .auth-card textarea {
   width: 100%;
-  padding: 0.75rem 1rem;
+  padding: 0.6rem 0.85rem;
   background: #ffffff;
   border: 1px solid #e5e7eb;
   border-radius: 8px;
   color: #0f172a;
-  font-size: 0.95rem;
-  margin-top: 0.5rem;
+  font-size: 0.9rem;
+  margin-top: 0.3rem;
 }
 
 .auth-card input:not([type='checkbox']):focus,
@@ -225,9 +226,9 @@
 
 .auth-card label {
   color: #ffffff;
-  font-size: 0.9rem;
+  font-size: 0.85rem;
   font-weight: 500;
-  margin-bottom: 0.4rem;
+  margin-bottom: 0.2rem;
 }
 
 .auth-remember-row {
@@ -271,6 +272,17 @@
   cursor: pointer;
   accent-color: #fbbf24;
   flex-shrink: 0;
+}
+
+.google-signin-button {
+  background: #ffffff !important;
+  color: #000000 !important;
+  box-shadow: 0 4px 12px rgba(255, 255, 255, 0.4) !important;
+}
+
+.google-signin-button:hover {
+  background: #f3f4f6 !important;
+  box-shadow: 0 6px 16px rgba(255, 255, 255, 0.5) !important;
 }
 
 @media (max-width: 900px) {
