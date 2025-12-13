@@ -27,6 +27,9 @@ function ManageGroupsPage() {
     loadAvailableUsers();
   }, []);
 
+  // Check if user can create groups (has account)
+  const canCreateGroups = user && (user.role === 'admin');
+
   const loadGroups = async (search = '') => {
     try {
       const params = search ? { search } : {};

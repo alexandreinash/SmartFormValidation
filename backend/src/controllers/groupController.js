@@ -24,7 +24,29 @@ async function createGroup(req, res, next) {
     const { name, description, member_ids } = req.body;
     
     // Determine account_id
-    const accountId = req.user.is_account_owner ? req.user.id : req.user.account_id;
+    let accountId = req.user.is_account_owner ? req.user.id : req.user.account_id;
+    
+    // If admin doesn't have an account, automatically set them up as an account owner
+    if (!accountId && req.user.role === 'admin') {
+      try {
+        const dbUser = await User.findByPk(req.user.id);
+        if (dbUser) {
+          dbUser.is_account_owner = true;
+          dbUser.account_id = req.user.id;
+          await dbUser.save();
+          accountId = req.user.id;
+          // Update req.user for subsequent operations in this request
+          req.user.is_account_owner = true;
+          req.user.account_id = req.user.id;
+        }
+      } catch (err) {
+        console.error('Error setting up account owner:', err);
+        return res.status(500).json({ 
+          success: false, 
+          message: 'Failed to set up account. Please try again.' 
+        });
+      }
+    }
     
     if (!accountId) {
       return res.status(400).json({ 
