@@ -3,6 +3,7 @@ import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../AuthContext';
 import api from '../api';
 import GoogleRoleSelectionModal from '../components/GoogleRoleSelectionModal';
+import camImage from '../picture/cam.jpg';
 
 const GOOGLE_CLIENT_ID = '593069010968-07lknp6t8a8vjcpv5n08hv81sf6v6iir.apps.googleusercontent.com';
 
@@ -349,6 +350,15 @@ function LoginPage() {
 
   return (
     <div className="auth-page">
+      {/* Background Picture with Blur */}
+      <div className="auth-background-picture">
+        <img 
+          src={camImage} 
+          alt="Background" 
+          className="auth-background-image"
+        />
+      </div>
+      
       <div className="auth-layout">
         <div className="auth-hero">
           <div className="auth-hero-banner-top">Smart Form Validator</div>

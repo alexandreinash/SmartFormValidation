@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import api from '../api';
 import '../css/auth.css';
+import camImage from '../picture/cam.jpg';
 
 function ResetPasswordPage() {
   const navigate = useNavigate();
@@ -83,6 +84,15 @@ function ResetPasswordPage() {
   if (isValidating) {
     return (
       <div className="auth-page">
+        {/* Background Picture with Blur */}
+        <div className="auth-background-picture">
+          <img 
+            src={camImage} 
+            alt="Background" 
+            className="auth-background-image"
+          />
+        </div>
+        
         <div className="auth-layout">
           <div className="auth-hero">
             <div className="auth-hero-banner-top">Smart Form Validator</div>
@@ -110,6 +120,15 @@ function ResetPasswordPage() {
   if (!isTokenValid) {
     return (
       <div className="auth-page">
+        {/* Background Picture with Blur */}
+        <div className="auth-background-picture">
+          <img 
+            src={camImage} 
+            alt="Background" 
+            className="auth-background-image"
+          />
+        </div>
+        
         <div className="auth-layout">
           <div className="auth-hero">
             <div className="auth-hero-banner-top">Smart Form Validator</div>
@@ -147,6 +166,15 @@ function ResetPasswordPage() {
 
   return (
     <div className="auth-page">
+      {/* Background Picture with Blur */}
+      <div className="auth-background-picture">
+        <img 
+          src={camImage} 
+          alt="Background" 
+          className="auth-background-image"
+        />
+      </div>
+      
       <div className="auth-layout">
         <div className="auth-hero">
           <div className="auth-hero-banner-top">Smart Form Validator</div>
