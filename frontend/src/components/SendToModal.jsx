@@ -86,10 +86,14 @@ function SendToModal({ formId, onClose, onSuccess }) {
 
       const res = await api.post(`/api/forms/${formId}/send`, payload);
       
-      setMessage(res.data.message || 'Form sent successfully');
-      
-      if (onSuccess) {
-        onSuccess(res.data.data);
+      if (res && res.data) {
+        setMessage(res.data.message || 'Form sent successfully');
+        
+        if (onSuccess && res.data.data) {
+          onSuccess(res.data.data);
+        }
+      } else {
+        setMessage('Form sent successfully');
       }
 
       setTimeout(() => {

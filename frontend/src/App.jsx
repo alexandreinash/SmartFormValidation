@@ -36,6 +36,10 @@ function AppShell() {
     location.pathname === '/number-form' ||
     location.pathname === '/quiz-form' ||
     location.pathname === '/user/forms' ||
+    location.pathname === '/user/textforms' ||
+    location.pathname === '/user/emailforms' ||
+    location.pathname === '/user/numberforms' ||
+    location.pathname === '/user/quizforms' ||
     location.pathname.includes('/admin/forms/') && (location.pathname.includes('/edit') || location.pathname.includes('/edit-quiz'));
 
   return (
@@ -54,6 +58,10 @@ function AppShell() {
           <Route path="/quiz-form" element={<QuizFormPage />} />
           <Route path="/forms" element={<Navigate to="/user/forms" replace />} />
           <Route path="/user/forms" element={<UserFormSelectionPage />} />
+          <Route path="/user/textforms" element={<UserFormSelectionPage defaultTab="text" />} />
+          <Route path="/user/emailforms" element={<UserFormSelectionPage defaultTab="email" />} />
+          <Route path="/user/numberforms" element={<UserFormSelectionPage defaultTab="number" />} />
+          <Route path="/user/quizforms" element={<UserFormSelectionPage defaultTab="quiz" />} />
           <Route path="/forms/:id" element={<FormFillPage />} />
           <Route
             path="/admin/forms/:id/edit"

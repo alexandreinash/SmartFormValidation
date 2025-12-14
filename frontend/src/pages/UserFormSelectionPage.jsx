@@ -1,19 +1,20 @@
-import React, { useEffect, useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import React, { useEffect, useState, useCallback } from 'react';
+import { Link, useNavigate, useLocation } from 'react-router-dom';
 import api from '../api';
 import { useAuth } from '../AuthContext';
 import '../css/UserFormSelectionPage.css';
 import '../css/components.css';
 
-function UserFormSelectionPage() {
+function UserFormSelectionPage({ defaultTab }) {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
+  const location = useLocation();
   const [forms, setForms] = useState([]);
   const [textForms, setTextForms] = useState([]);
   const [emailForms, setEmailForms] = useState([]);
   const [numberForms, setNumberForms] = useState([]);
   const [quizForms, setQuizForms] = useState([]);
-  const [activeTab, setActiveTab] = useState('text');
+  const [activeTab, setActiveTab] = useState(defaultTab || 'text');
   const [loading, setLoading] = useState(true);
   const [status, setStatus] = useState('');
   const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
@@ -58,71 +59,133 @@ function UserFormSelectionPage() {
     return 'text';
   };
 
-  useEffect(() => {
-    const load = async () => {
-      try {
-        const res = await api.get('/api/forms');
-        const formsData = res.data.data || [];
-        
-        // Fetch fields for each form
-        const formsWithFields = await Promise.all(
-          formsData.map(async (form) => {
-            try {
-              const formRes = await api.get(`/api/forms/${form.id}`);
-              return { ...form, fields: formRes.data.data?.fields || [] };
-            } catch {
-              return { ...form, fields: [] };
-            }
-          })
-        );
-        
-        setForms(formsWithFields);
-        
-        // Categorize forms
-        const text = [];
-        const email = [];
-        const number = [];
-        const quiz = [];
-        
-        formsWithFields.forEach(form => {
-          const category = categorizeForm(form);
-          if (category === 'text') {
-            text.push(form);
-          } else if (category === 'email') {
-            email.push(form);
-          } else if (category === 'number') {
-            number.push(form);
-          } else if (category === 'quiz') {
-            quiz.push(form);
+  // Load forms function - memoized to prevent unnecessary re-renders
+  const loadForms = useCallback(async (silent = false) => {
+    if (!silent) {
+      setLoading(true);
+    }
+    try {
+      const res = await api.get('/api/forms');
+      const formsData = res.data.data || [];
+      
+      // Fetch fields for each form
+      const formsWithFields = await Promise.all(
+        formsData.map(async (form) => {
+          try {
+            const formRes = await api.get(`/api/forms/${form.id}`);
+            return { ...form, fields: formRes.data.data?.fields || [] };
+          } catch {
+            return { ...form, fields: [] };
           }
-        });
-        
-        setTextForms(text);
-        setEmailForms(email);
-        setNumberForms(number);
-        setQuizForms(quiz);
-        
-        // Set active tab to first available category
-        if (text.length > 0) {
-          setActiveTab('text');
-        } else if (email.length > 0) {
-          setActiveTab('email');
-        } else if (number.length > 0) {
-          setActiveTab('number');
-        } else if (quiz.length > 0) {
-          setActiveTab('quiz');
+        })
+      );
+      
+      setForms(formsWithFields);
+      
+      // Categorize forms
+      const text = [];
+      const email = [];
+      const number = [];
+      const quiz = [];
+      
+      formsWithFields.forEach(form => {
+        const category = categorizeForm(form);
+        if (category === 'text') {
+          text.push(form);
+        } else if (category === 'email') {
+          email.push(form);
+        } else if (category === 'number') {
+          number.push(form);
+        } else if (category === 'quiz') {
+          quiz.push(form);
         }
-        
-        setStatus('');
-      } catch (err) {
-        console.error('Failed to load forms:', err);
-        const errorMessage = err.response?.data?.message || err.message || 'Failed to load forms.';
+      });
+      
+      setTextForms(text);
+      setEmailForms(email);
+      setNumberForms(number);
+      setQuizForms(quiz);
+      
+      // Set active tab: use defaultTab if provided, otherwise use first available category
+      if (defaultTab) {
+        setActiveTab(defaultTab);
+      } else if (text.length > 0) {
+        setActiveTab('text');
+      } else if (email.length > 0) {
+        setActiveTab('email');
+      } else if (number.length > 0) {
+        setActiveTab('number');
+      } else if (quiz.length > 0) {
+        setActiveTab('quiz');
+      }
+      
+      setStatus('');
+    } catch (err) {
+      console.error('Failed to load forms:', err);
+      const errorMessage = err.response?.data?.message || err.message || 'Failed to load forms.';
+      if (!silent) {
         setStatus(`Failed to load forms: ${errorMessage}`);
       }
+    }
+    if (!silent) {
       setLoading(false);
+    }
+  }, [defaultTab]);
+
+  useEffect(() => {
+    loadForms();
+  }, [location.pathname, defaultTab, loadForms]); // Reload when route or defaultTab changes
+
+  // Auto-refresh mechanism: check for new forms every 5 seconds when page is visible
+  useEffect(() => {
+    let intervalId;
+    
+    const handleVisibilityChange = () => {
+      // Clear any existing interval first
+      if (intervalId) {
+        clearInterval(intervalId);
+        intervalId = null;
+      }
+      
+      if (document.visibilityState === 'visible') {
+        // Page became visible, refresh immediately
+        loadForms(true); // Silent refresh
+        // Then set up interval
+        intervalId = setInterval(() => {
+          if (document.visibilityState === 'visible') {
+            loadForms(true); // Silent refresh every 5 seconds
+          }
+        }, 5000);
+      }
     };
-    load();
-  }, []);
+
+    // Set up initial interval if page is visible
+    if (document.visibilityState === 'visible') {
+      intervalId = setInterval(() => {
+        if (document.visibilityState === 'visible') {
+          loadForms(true); // Silent refresh every 5 seconds
+        }
+      }, 5000);
+    }
+
+    // Listen for visibility changes
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+
+    // Cleanup
+    return () => {
+      if (intervalId) {
+        clearInterval(intervalId);
+      }
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+    };
+  }, [loadForms]); // Re-run when loadForms changes
+
+  // Update activeTab when defaultTab prop changes
+  useEffect(() => {
+    if (defaultTab) {
+      setActiveTab(defaultTab);
+    }
+  }, [defaultTab]);
 
   if (loading) {
     return (
@@ -253,61 +316,7 @@ function UserFormSelectionPage() {
           <div>
             <h1 
               className="user-form-selection-title clickable-title"
-              onClick={() => {
-                setLoading(true);
-                const load = async () => {
-                  try {
-                    const res = await api.get('/api/forms');
-                    const formsData = res.data.data || [];
-                    
-                    // Fetch fields for each form
-                    const formsWithFields = await Promise.all(
-                      formsData.map(async (form) => {
-                        try {
-                          const formRes = await api.get(`/api/forms/${form.id}`);
-                          return { ...form, fields: formRes.data.data?.fields || [] };
-                        } catch {
-                          return { ...form, fields: [] };
-                        }
-                      })
-                    );
-                    
-                    setForms(formsWithFields);
-                    
-                    // Re-categorize forms
-                    const text = [];
-                    const email = [];
-                    const number = [];
-                    const quiz = [];
-                    
-                    formsWithFields.forEach(form => {
-                      const category = categorizeForm(form);
-                      if (category === 'text') {
-                        text.push(form);
-                      } else if (category === 'email') {
-                        email.push(form);
-                      } else if (category === 'number') {
-                        number.push(form);
-                      } else if (category === 'quiz') {
-                        quiz.push(form);
-                      }
-                    });
-                    
-                    setTextForms(text);
-                    setEmailForms(email);
-                    setNumberForms(number);
-                    setQuizForms(quiz);
-                    
-                    setStatus('');
-                  } catch (err) {
-                    console.error('Failed to load forms:', err);
-                    const errorMessage = err.response?.data?.message || err.message || 'Failed to load forms.';
-                    setStatus(`Failed to load forms: ${errorMessage}`);
-                  }
-                  setLoading(false);
-                };
-                load();
-              }}
+              onClick={loadForms}
               title="Click to refresh forms"
             >
               Available Forms
