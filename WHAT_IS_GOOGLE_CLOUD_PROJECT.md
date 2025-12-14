@@ -306,3 +306,4 @@ Project: "team-beta"
 
 **Think of it as:** Your "account" or "workspace" in Google Cloud Platform where you keep all your services and resources organized! 🎯
 
+

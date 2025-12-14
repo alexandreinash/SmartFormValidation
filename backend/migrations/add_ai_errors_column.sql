@@ -9,3 +9,4 @@ AFTER `ai_not_evaluated`;
 -- Note: Since ai_errors is TEXT/JSON, we can't create a standard index on it
 -- If needed, consider using generated columns or JSON indexes (MySQL 5.7+)
 
+
