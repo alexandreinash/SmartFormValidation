@@ -151,8 +151,14 @@ async function sendEmail({ to, subject, html, text }) {
         throw new Error('SMTP transporter not initialized');
       }
       
+      // For Gmail, use the authenticated user's email as the from address
+      // Gmail will override the from address to match the authenticated account
+      const fromAddress = emailService.provider === 'smtp' && process.env.SMTP_USER 
+        ? process.env.SMTP_USER 
+        : from;
+      
       const mailOptions = {
-        from: `"Smart Form Validator" <${from}>`,
+        from: `"Smart Form Validator" <${fromAddress}>`,
         to,
         subject,
         html,

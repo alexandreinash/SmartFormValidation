@@ -504,79 +504,121 @@ async function forgotPassword(req, res, next) {
 
     const { email } = req.body;
     
-    // Return success immediately for fast response (security best practice - prevents email enumeration)
-    res.json({
-      success: true,
-      message: 'Password reset link has been sent to your email.',
-    });
-    
-    // Process password reset in background (non-blocking)
-    (async () => {
-      try {
-        // Find user by email
-        const user = await User.findOne({ where: { email } });
-        
-        // Only send email if user exists
-        if (user) {
-          // Generate reset token
-          const token = crypto.randomBytes(32).toString('hex');
-          const expiresAt = new Date();
-          expiresAt.setHours(expiresAt.getHours() + 1); // Token expires in 1 hour
-          
-          // Invalidate any existing reset tokens for this user
-          await PasswordReset.update(
-            { used: true },
-            { where: { user_id: user.id, used: false } }
-          );
-          
-          // Create new reset token
-          await PasswordReset.create({
-            user_id: user.id,
-            token,
-            expires_at: expiresAt,
-            used: false,
-          });
-          
-          // Send password reset email (non-blocking)
-          const resetUrl = `${process.env.FRONTEND_URL || 'http://localhost:5174'}/reset-password?token=${token}`;
-          sendPasswordResetEmail(user.email, resetUrl).then((emailResult) => {
+    // Process password reset
+    try {
+      // Find user by email
+      const user = await User.findOne({ where: { email } });
+      
+      if (!user) {
+        // Return success even if user doesn't exist (security best practice - prevents email enumeration)
+        return res.json({
+          success: true,
+          message: 'Password reset link has been sent to your email.',
+        });
+      }
+      
+      // Generate reset token
+      const token = crypto.randomBytes(32).toString('hex');
+      const expiresAt = new Date();
+      expiresAt.setHours(expiresAt.getHours() + 1); // Token expires in 1 hour
+      
+      // Invalidate any existing reset tokens for this user
+      await PasswordReset.update(
+        { used: true },
+        { where: { user_id: user.id, used: false } }
+      );
+      
+      // Create new reset token
+      await PasswordReset.create({
+        user_id: user.id,
+        token,
+        expires_at: expiresAt,
+        used: false,
+      });
+      
+      // Build reset URL
+      const resetUrl = `${process.env.FRONTEND_URL || 'http://localhost:5174'}/reset-password?token=${token}`;
+      
+      // ALWAYS log the reset link to console (works even if email fails)
+      console.log('\n========================================');
+      console.log('🔑 PASSWORD RESET LINK');
+      console.log('========================================');
+      console.log(`Email: ${user.email}`);
+      console.log(`Reset URL: ${resetUrl}`);
+      console.log(`Token: ${token}`);
+      console.log('========================================');
+      console.log('⚠️  COPY THIS LINK TO RESET YOUR PASSWORD');
+      console.log('========================================\n');
+      
+      // Return the reset link in response (for development/testing)
+      res.json({
+        success: true,
+        message: 'Password reset link has been sent to your email.',
+        resetUrl: resetUrl, // Include reset URL in response for development
+        note: 'Check your backend console for the reset link if email is not configured.',
+      });
+      
+      // Try to send email (non-blocking, but don't wait for it)
+      sendPasswordResetEmail(user.email, resetUrl).then((emailResult) => {
             if (!emailResult.success) {
-              console.error('[Password Reset] ❌ Failed to send email to:', user.email);
-              console.error('[Password Reset] Error:', emailResult.message);
-              console.error('[Password Reset] Error Code:', emailResult.errorCode || 'N/A');
+              console.error('\n========================================');
+              console.error('[Password Reset] ❌ FAILED to send email');
+              console.error('========================================');
+              console.error('Recipient:', user.email);
+              console.error('Error:', emailResult.message);
+              console.error('Error Code:', emailResult.errorCode || 'N/A');
               
               // Log detailed error for debugging
               if (process.env.EMAIL_ENABLED !== 'true') {
-                console.error('[Password Reset] ⚠️  Email service is DISABLED.');
-                console.error('[Password Reset] Fix: Set EMAIL_ENABLED=true in your .env file');
+                console.error('\n⚠️  EMAIL SERVICE IS DISABLED');
+                console.error('Fix: Set EMAIL_ENABLED=true in your backend/.env file');
+                console.error('Location: backend/.env');
               }
               if (!process.env.SMTP_USER || !process.env.SMTP_PASS) {
-                console.error('[Password Reset] ⚠️  SMTP credentials NOT configured.');
-                console.error('[Password Reset] Fix: Set SMTP_USER and SMTP_PASS in your .env file');
-                console.error('[Password Reset] For Gmail: Use an App Password (not your regular password)');
-                console.error('[Password Reset] Get App Password: https://myaccount.google.com/apppasswords');
+                console.error('\n⚠️  SMTP CREDENTIALS NOT CONFIGURED');
+                console.error('Fix: Set SMTP_USER and SMTP_PASS in your backend/.env file');
+                console.error('For Gmail: Use an App Password (NOT your regular password)');
+                console.error('Steps:');
+                console.error('  1. Enable 2-Step Verification: https://myaccount.google.com/security');
+                console.error('  2. Generate App Password: https://myaccount.google.com/apppasswords');
+                console.error('  3. Copy the 16-character password (remove spaces)');
+                console.error('  4. Add to backend/.env:');
+                console.error('     SMTP_USER=your-email@gmail.com');
+                console.error('     SMTP_PASS=your-16-char-app-password');
               }
+              console.error('========================================\n');
             } else {
               console.log('[Password Reset] ✅ Email sent successfully to:', user.email);
             }
           }).catch((err) => {
-            console.error('[Password Reset] ❌ Error sending email:', err);
+            console.error('\n========================================');
+            console.error('[Password Reset] ❌ EXCEPTION sending email');
+            console.error('========================================');
+            console.error('Error:', err.message);
+            console.error('Stack:', err.stack);
+            console.error('========================================\n');
           });
-          
-          // Log audit asynchronously (non-blocking)
-          logAudit({
-            userId: user.id,
-            action: 'password_reset_requested',
-            entityType: 'user',
-            entityId: user.id,
-          }).catch((err) => {
-            console.error('Failed to log audit:', err);
-          });
-        }
-      } catch (err) {
-        console.error('[Password Reset] Background processing error:', err);
+      
+      // Log audit asynchronously (non-blocking)
+      logAudit({
+        userId: user.id,
+        action: 'password_reset_requested',
+        entityType: 'user',
+        entityId: user.id,
+      }).catch((err) => {
+        console.error('Failed to log audit:', err);
+      });
+      
+    } catch (err) {
+      console.error('[Password Reset] Error:', err);
+      // Still return success to prevent email enumeration
+      if (!res.headersSent) {
+        res.json({
+          success: true,
+          message: 'Password reset link has been sent to your email.',
+        });
       }
-    })();
+    }
   } catch (err) {
     console.error('Forgot password error:', err);
     next(err);
@@ -601,6 +643,13 @@ async function resetPassword(req, res, next) {
       return res.status(400).json({ 
         success: false, 
         message: 'Reset token is required' 
+      });
+    }
+    
+    if (!password) {
+      return res.status(400).json({ 
+        success: false, 
+        message: 'Password is required' 
       });
     }
     
@@ -629,7 +678,7 @@ async function resetPassword(req, res, next) {
       });
     }
     
-    // Hash new password
+    // Hash the new password
     const hashedPassword = await bcrypt.hash(password, 10);
     
     // Update user password
@@ -828,6 +877,38 @@ async function completeGoogleLogin(req, res, next) {
   }
 }
 
+// Test email configuration (admin only)
+async function testEmail(req, res, next) {
+  try {
+    const { sendPasswordResetEmail } = require('../services/emailService');
+    const testEmail = req.user.email; // Send test email to the admin making the request
+    
+    const testUrl = `${process.env.FRONTEND_URL || 'http://localhost:5174'}/reset-password?token=test-token-12345`;
+    const result = await sendPasswordResetEmail(testEmail, testUrl);
+    
+    if (result.success) {
+      res.json({
+        success: true,
+        message: `Test email sent successfully to ${testEmail}. Please check your inbox (and spam folder).`,
+      });
+    } else {
+      res.status(500).json({
+        success: false,
+        message: 'Failed to send test email',
+        error: result.message,
+        details: {
+          emailEnabled: process.env.EMAIL_ENABLED === 'true',
+          smtpUser: process.env.SMTP_USER ? 'configured' : 'not configured',
+          smtpPass: process.env.SMTP_PASS ? 'configured' : 'not configured',
+        },
+      });
+    }
+  } catch (err) {
+    console.error('Test email error:', err);
+    next(err);
+  }
+}
+
 module.exports = {
   validateRegister,
   validateLogin,
@@ -843,6 +924,7 @@ module.exports = {
   forgotPassword,
   resetPassword,
   validateResetToken,
+  testEmail,
 };
 
 
