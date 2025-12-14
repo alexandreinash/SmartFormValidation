@@ -70,9 +70,9 @@ async function getSystemAnalytics(req, res, next) {
     const aiStatsRaw = await SubmissionData.findAll({
       attributes: [
         [fn('COUNT', col('SubmissionData.id')), 'total'],
-        [fn('SUM', literal('CASE WHEN ai_sentiment_flag = 1 THEN 1 ELSE 0 END')), 'sentiment_flagged'],
-        [fn('SUM', literal('CASE WHEN ai_entity_flag = 1 THEN 1 ELSE 0 END')), 'entity_flagged'],
-        [fn('SUM', literal('CASE WHEN ai_not_evaluated = 1 THEN 1 ELSE 0 END')), 'not_evaluated'],
+        [fn('SUM', literal('CASE WHEN ai_sentiment_flag = 1 OR ai_sentiment_flag = TRUE THEN 1 ELSE 0 END')), 'sentiment_flagged'],
+        [fn('SUM', literal('CASE WHEN ai_entity_flag = 1 OR ai_entity_flag = TRUE THEN 1 ELSE 0 END')), 'entity_flagged'],
+        [fn('SUM', literal('CASE WHEN ai_not_evaluated = 1 OR ai_not_evaluated = TRUE THEN 1 ELSE 0 END')), 'not_evaluated'],
       ],
       include: [
         {
@@ -129,9 +129,9 @@ async function getSystemAnalytics(req, res, next) {
         topForms,
         aiValidation: {
           totalEvaluated: parseInt(aiStats.total) || 0,
-          sentimentFlagged: parseInt(aiStats.sentiment_flagged) || 0,
-          entityFlagged: parseInt(aiStats.entity_flagged) || 0,
-          notEvaluated: parseInt(aiStats.not_evaluated) || 0,
+          sentimentFlagged: aiStats.sentiment_flagged ? parseInt(aiStats.sentiment_flagged) : 0,
+          entityFlagged: aiStats.entity_flagged ? parseInt(aiStats.entity_flagged) : 0,
+          notEvaluated: aiStats.not_evaluated ? parseInt(aiStats.not_evaluated) : 0,
         },
         submissionsOverTime: submissionsOverTime.map((item) => ({
           date: item.date,
@@ -188,9 +188,9 @@ async function getFormAnalytics(req, res, next) {
     const aiStatsRaw = await SubmissionData.findAll({
       attributes: [
         [fn('COUNT', col('SubmissionData.id')), 'total'],
-        [fn('SUM', literal('CASE WHEN ai_sentiment_flag = 1 THEN 1 ELSE 0 END')), 'sentiment_flagged'],
-        [fn('SUM', literal('CASE WHEN ai_entity_flag = 1 THEN 1 ELSE 0 END')), 'entity_flagged'],
-        [fn('SUM', literal('CASE WHEN ai_not_evaluated = 1 THEN 1 ELSE 0 END')), 'not_evaluated'],
+        [fn('SUM', literal('CASE WHEN ai_sentiment_flag = 1 OR ai_sentiment_flag = TRUE THEN 1 ELSE 0 END')), 'sentiment_flagged'],
+        [fn('SUM', literal('CASE WHEN ai_entity_flag = 1 OR ai_entity_flag = TRUE THEN 1 ELSE 0 END')), 'entity_flagged'],
+        [fn('SUM', literal('CASE WHEN ai_not_evaluated = 1 OR ai_not_evaluated = TRUE THEN 1 ELSE 0 END')), 'not_evaluated'],
       ],
       include: [
         {
@@ -272,9 +272,9 @@ async function getFormAnalytics(req, res, next) {
         },
         aiValidation: {
           totalEvaluated: parseInt(aiStats.total) || 0,
-          sentimentFlagged: parseInt(aiStats.sentiment_flagged) || 0,
-          entityFlagged: parseInt(aiStats.entity_flagged) || 0,
-          notEvaluated: parseInt(aiStats.not_evaluated) || 0,
+          sentimentFlagged: aiStats.sentiment_flagged ? parseInt(aiStats.sentiment_flagged) : 0,
+          entityFlagged: aiStats.entity_flagged ? parseInt(aiStats.entity_flagged) : 0,
+          notEvaluated: aiStats.not_evaluated ? parseInt(aiStats.not_evaluated) : 0,
         },
         fieldStatistics: fieldStats,
         submissionsOverTime: submissionsOverTime.map((item) => ({

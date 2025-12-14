@@ -160,47 +160,50 @@ function AnalyticsPage() {
       <div className="analytics-content">
         {analytics && (
           <>
-            {/* KPI Cards Row */}
+            {/* KPI Cards Row - Only 3 cards */}
             <div className="analytics-kpi-grid">
               <div className="analytics-kpi-card">
-                <div className="analytics-kpi-label">Total Forms</div>
-                <div className="analytics-kpi-value">{analytics.overview.totalForms}</div>
-                <div className="analytics-kpi-icon">📝</div>
-              </div>
-              
-              <div className="analytics-kpi-card">
-                <div className="analytics-kpi-label">Total Submissions</div>
-                <div className="analytics-kpi-value">{analytics.overview.totalSubmissions}</div>
-                <div className="analytics-kpi-icon">📊</div>
-              </div>
-              
-              <div className="analytics-kpi-card">
-                <div className="analytics-kpi-label">Total Users</div>
-                <div className="analytics-kpi-value">{analytics.overview.totalUsers}</div>
-                <div className="analytics-kpi-icon">👥</div>
-              </div>
-
-              <div className="analytics-kpi-card">
-                <div className="analytics-kpi-label">Submissions per User</div>
-                <div className="analytics-kpi-value">{calculatedMetrics?.submissionsPerUser || '0'}</div>
-                <div className="analytics-kpi-icon">📈</div>
-              </div>
-
-              <div className="analytics-kpi-card">
-                <div className="analytics-kpi-label">Submissions per Form</div>
-                <div className="analytics-kpi-value">{calculatedMetrics?.submissionsPerForm || '0'}</div>
-                <div className="analytics-kpi-icon">📋</div>
-              </div>
-
-              {analytics.aiValidation && (
-                <div className="analytics-kpi-card analytics-kpi-card-warning">
-                  <div className="analytics-kpi-label">AI Flags</div>
-                  <div className="analytics-kpi-value analytics-kpi-value-danger">
-                    {(analytics.aiValidation.sentimentFlagged || 0) + (analytics.aiValidation.entityFlagged || 0)}
-                  </div>
-                  <div className="analytics-kpi-icon">⚠️</div>
+                <div className="analytics-kpi-label">SUBMISSIONS PER USER</div>
+                <div className="analytics-kpi-value">{calculatedMetrics?.submissionsPerUser || '0.0'}</div>
+                <div className="analytics-kpi-icon analytics-kpi-icon-linechart">
+                  <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <path d="M3 3V21H21" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                    <path d="M7 16L12 11L16 15L21 10" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                    <path d="M21 10H16V15" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                  </svg>
                 </div>
-              )}
+              </div>
+
+              <div className="analytics-kpi-card">
+                <div className="analytics-kpi-label">SUBMISSIONS PER FORM</div>
+                <div className="analytics-kpi-value">{calculatedMetrics?.submissionsPerForm || '0.0'}</div>
+                <div className="analytics-kpi-icon analytics-kpi-icon-document">
+                  <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <path d="M14 2H6C5.46957 2 4.96086 2.21071 4.58579 2.58579C4.21071 2.96086 4 3.46957 4 4V20C4 20.5304 4.21071 21.0391 4.58579 21.4142C4.96086 21.7893 5.46957 22 6 22H18C18.5304 22 19.0391 21.7893 19.4142 21.4142C19.7893 21.0391 20 20.5304 20 20V8L14 2Z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                    <path d="M14 2V8H20" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                    <path d="M16 13H8" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                    <path d="M16 17H8" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                    <path d="M10 9H9H8" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                  </svg>
+                </div>
+              </div>
+
+              <div className="analytics-kpi-card analytics-kpi-card-warning">
+                <div className="analytics-kpi-label">AI FLAGS</div>
+                <div className="analytics-kpi-value analytics-kpi-value-danger">
+                  {(() => {
+                    if (!analytics.aiValidation) return 0;
+                    const sentiment = parseInt(analytics.aiValidation.sentimentFlagged) || 0;
+                    const entity = parseInt(analytics.aiValidation.entityFlagged) || 0;
+                    return sentiment + entity;
+                  })()}
+                </div>
+                <div className="analytics-kpi-icon analytics-kpi-icon-warning">
+                  <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <path d="M12 9V13M12 17H12.01M21 12C21 16.9706 16.9706 21 12 21C7.02944 21 3 16.9706 3 12C3 7.02944 7.02944 3 12 3C16.9706 3 21 7.02944 21 12Z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                  </svg>
+                </div>
+              </div>
             </div>
 
             {/* Charts Row */}
@@ -278,8 +281,15 @@ function AnalyticsPage() {
                         })()}
                       </div>
                     </div>
-                    <div className="analytics-chart-total">
-                      {analytics.overview.totalSubmissions} Total Submissions
+                    <div className="analytics-chart-footer">
+                      {lineChartData && lineChartData.length > 0 && (
+                        <div className="analytics-chart-date">
+                          {new Date(lineChartData[lineChartData.length - 1].date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
+                        </div>
+                      )}
+                      <div className="analytics-chart-total">
+                        {analytics.overview.totalSubmissions} Total Submissions
+                      </div>
                     </div>
                   </div>
                 </div>

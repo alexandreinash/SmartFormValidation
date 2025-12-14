@@ -1,0 +1,303 @@
+/* Data Dashboard Styles - Matching the image design */
+
+.data-dashboard-container {
+  min-height: 100vh;
+  background: #f5f5f5;
+  padding: 2rem;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen', 'Ubuntu', 'Cantarell', sans-serif;
+}
+
+/* Header Section */
+.data-dashboard-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 2rem;
+  flex-wrap: wrap;
+  gap: 1rem;
+}
+
+.data-dashboard-title {
+  font-size: 2rem;
+  font-weight: 600;
+  color: #1e293b;
+  margin: 0;
+}
+
+.data-dashboard-filters {
+  display: flex;
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+
+.data-dashboard-filter-group {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.data-dashboard-filter-label {
+  font-size: 0.75rem;
+  color: #6b7280;
+  font-weight: 500;
+}
+
+.data-dashboard-filter {
+  padding: 0.5rem 1rem;
+  border: 1px solid #d1d5db;
+  border-radius: 6px;
+  background: #ffffff;
+  color: #374151;
+  font-size: 0.875rem;
+  cursor: pointer;
+  transition: border-color 0.2s, box-shadow 0.2s;
+  min-width: 150px;
+}
+
+.data-dashboard-filter:hover {
+  border-color: #9ca3af;
+}
+
+.data-dashboard-filter:focus {
+  outline: none;
+  border-color: #3b82f6;
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+}
+
+/* EBITDA Chart Card */
+.data-dashboard-ebitda-card {
+  background: #ffffff;
+  border-radius: 8px;
+  padding: 1.5rem;
+  margin-bottom: 2rem;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+.data-dashboard-chart-title {
+  font-size: 1.125rem;
+  font-weight: 600;
+  color: #1e293b;
+  margin: 0 0 1.5rem 0;
+}
+
+.data-dashboard-ebitda-chart {
+  width: 100%;
+  overflow-x: auto;
+  padding: 1rem 0;
+}
+
+.data-dashboard-ebitda-svg {
+  width: 100%;
+  height: auto;
+  min-width: 800px;
+}
+
+.data-dashboard-y-axis-label {
+  font-size: 0.75rem;
+  fill: #6b7280;
+  font-weight: 500;
+}
+
+.data-dashboard-x-axis-label {
+  font-size: 0.75rem;
+  fill: #6b7280;
+  font-weight: 500;
+}
+
+.data-dashboard-grid-line {
+  stroke: #e5e7eb;
+  stroke-width: 1;
+}
+
+.data-dashboard-area {
+  transition: opacity 0.3s ease;
+}
+
+.data-dashboard-red-line {
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+/* Metrics Cards Grid */
+.data-dashboard-metrics-row {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 1.5rem;
+  margin-bottom: 1.5rem;
+}
+
+@media (max-width: 1200px) {
+  .data-dashboard-metrics-row {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (max-width: 768px) {
+  .data-dashboard-metrics-row {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* Metric Card Base */
+.data-dashboard-metric-card {
+  background: #ffffff;
+  border-radius: 8px;
+  padding: 1.5rem;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  transition: box-shadow 0.2s, transform 0.2s;
+}
+
+.data-dashboard-metric-card:hover {
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  transform: translateY(-2px);
+}
+
+.data-dashboard-metric-title {
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: #6b7280;
+  margin: 0 0 1rem 0;
+  text-transform: none;
+}
+
+/* Chart Cards (Bar Charts) */
+.data-dashboard-chart-card {
+  min-height: 280px;
+  display: flex;
+  flex-direction: column;
+}
+
+.data-dashboard-bar-chart {
+  flex: 1;
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0.5rem 0;
+}
+
+.data-dashboard-bar-chart-svg {
+  width: 100%;
+  height: 100%;
+  max-height: 200px;
+}
+
+.data-dashboard-bar-y-label {
+  font-size: 0.75rem;
+  fill: #6b7280;
+  font-weight: 500;
+}
+
+.data-dashboard-bar {
+  transition: opacity 0.2s;
+}
+
+.data-dashboard-bar:hover {
+  opacity: 0.8;
+}
+
+/* KPI Cards (Key Metric Cards) */
+.data-dashboard-kpi-card {
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  min-height: 180px;
+}
+
+.data-dashboard-kpi-value {
+  font-size: 2.5rem;
+  font-weight: 700;
+  color: #1e293b;
+  margin: 0.5rem 0;
+  line-height: 1.2;
+}
+
+.data-dashboard-kpi-change {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+  font-size: 0.875rem;
+  font-weight: 600;
+  margin: 0.5rem 0;
+  color: #10b981;
+}
+
+.data-dashboard-kpi-change-positive {
+  color: #10b981;
+}
+
+.data-dashboard-kpi-change-negative {
+  color: #ef4444;
+}
+
+.data-dashboard-kpi-compare {
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: #6b7280;
+  margin: 0.5rem 0;
+}
+
+.data-dashboard-kpi-label {
+  font-size: 0.75rem;
+  color: #9ca3af;
+  margin-top: auto;
+}
+
+/* Responsive Design */
+@media (max-width: 1024px) {
+  .data-dashboard-container {
+    padding: 1.5rem;
+  }
+
+  .data-dashboard-title {
+    font-size: 1.75rem;
+  }
+
+  .data-dashboard-kpi-value {
+    font-size: 2rem;
+  }
+}
+
+@media (max-width: 768px) {
+  .data-dashboard-container {
+    padding: 1rem;
+  }
+
+  .data-dashboard-header {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .data-dashboard-filters {
+    width: 100%;
+  }
+
+  .data-dashboard-filter {
+    flex: 1;
+    min-width: 120px;
+  }
+
+  .data-dashboard-ebitda-chart {
+    overflow-x: scroll;
+  }
+
+  .data-dashboard-kpi-value {
+    font-size: 1.75rem;
+  }
+}
+
+/* Print Styles */
+@media print {
+  .data-dashboard-container {
+    background: #ffffff;
+    padding: 0;
+  }
+
+  .data-dashboard-metric-card,
+  .data-dashboard-ebitda-card {
+    box-shadow: none;
+    border: 1px solid #e5e7eb;
+    page-break-inside: avoid;
+  }
+}
+
