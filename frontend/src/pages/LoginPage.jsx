@@ -421,7 +421,7 @@ function LoginPage() {
                   className="status" 
                   style={{ 
                     marginTop: '1rem', 
-                    color: isSuccess ? '#10b981' : '#ef4444',
+                    color: isSuccess ? '#ffffff' : '#ef4444',
                     fontWeight: isSuccess ? '600' : '400'
                   }}
                 >
