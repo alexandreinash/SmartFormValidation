@@ -317,14 +317,18 @@ async function deleteUsers(req, res, next) {
 // Google OAuth Login
 async function googleLogin(req, res, next) {
   try {
+    console.log('[Google OAuth] Login request received');
     const { credential } = req.body;
     
     if (!credential) {
+      console.error('[Google OAuth] No credential provided in request');
       return res.status(400).json({ 
         success: false, 
         message: 'Google credential is required' 
       });
     }
+
+    console.log('[Google OAuth] Client status - googleClient:', googleClient ? 'initialized' : 'null', 'GOOGLE_CLIENT_ID:', process.env.GOOGLE_CLIENT_ID ? 'set (' + process.env.GOOGLE_CLIENT_ID.substring(0, 30) + '...)' : 'not set');
 
     if (!googleClient || !process.env.GOOGLE_CLIENT_ID) {
       console.error('[Google OAuth] Client not initialized. GOOGLE_CLIENT_ID:', process.env.GOOGLE_CLIENT_ID ? 'set' : 'not set');
@@ -338,10 +342,12 @@ async function googleLogin(req, res, next) {
     let ticket;
     try {
       // Try with the configured client ID first
+      console.log('[Google OAuth] Attempting token verification with client ID:', process.env.GOOGLE_CLIENT_ID.substring(0, 30) + '...');
       ticket = await googleClient.verifyIdToken({
         idToken: credential,
         audience: process.env.GOOGLE_CLIENT_ID,
       });
+      console.log('[Google OAuth] Token verified successfully with audience check');
     } catch (verifyErr) {
       console.error('[Google OAuth] Token verification failed:', verifyErr);
       console.error('[Google OAuth] Error details:', {
@@ -354,7 +360,9 @@ async function googleLogin(req, res, next) {
       if (verifyErr.message && (
           verifyErr.message.includes('Wrong recipient') || 
           verifyErr.message.includes('audience') ||
-          verifyErr.message.includes('Invalid token')
+          verifyErr.message.includes('Invalid token') ||
+          verifyErr.message.includes('Token used too early') ||
+          verifyErr.message.includes('expired')
         )) {
         console.warn('[Google OAuth] Attempting verification without strict audience check...');
         try {
@@ -365,14 +373,44 @@ async function googleLogin(req, res, next) {
           console.log('[Google OAuth] Token verified without strict audience check');
         } catch (retryErr) {
           console.error('[Google OAuth] Retry verification also failed:', retryErr);
-          throw verifyErr; // Throw original error
+          console.error('[Google OAuth] Retry error details:', {
+            message: retryErr.message,
+            code: retryErr.code,
+            name: retryErr.name
+          });
+          // Return a more specific error message
+          return res.status(401).json({
+            success: false,
+            message: `Google token verification failed: ${retryErr.message || verifyErr.message}. Please try signing in again.`
+          });
         }
       } else {
-        throw verifyErr; // Re-throw for other errors
+        // Return a more specific error message
+        return res.status(401).json({
+          success: false,
+          message: `Google token verification failed: ${verifyErr.message}. Please try signing in again.`
+        });
       }
     }
     
+    // Ensure ticket is defined before proceeding
+    if (!ticket) {
+      console.error('[Google OAuth] Ticket is undefined after verification attempts');
+      return res.status(500).json({
+        success: false,
+        message: 'Failed to verify Google token. Please try signing in again.'
+      });
+    }
+    
     const payload = ticket.getPayload();
+    if (!payload) {
+      console.error('[Google OAuth] Payload is null or undefined');
+      return res.status(500).json({
+        success: false,
+        message: 'Failed to extract user information from Google token. Please try again.'
+      });
+    }
+    
     const email = payload.email;
     const googleId = payload.sub;
     
@@ -384,22 +422,45 @@ async function googleLogin(req, res, next) {
     }
     
     // Check if user exists
-    let user = await User.findOne({ where: { email } });
+    let user;
+    try {
+      user = await User.findOne({ where: { email } });
+    } catch (dbErr) {
+      console.error('[Google OAuth] Database error when finding user:', dbErr);
+      if (dbErr.name === 'SequelizeConnectionError' || dbErr.name === 'SequelizeConnectionRefusedError') {
+        return res.status(500).json({
+          success: false,
+          message: 'Database connection error. Please check if the database server is running.'
+        });
+      }
+      // Re-throw other database errors to be caught by outer catch
+      throw dbErr;
+    }
+    
     const isNewUser = !user;
     
     if (!user) {
       // For new Google users, create a temporary session token with verified email
       // This avoids re-verifying the Google token (which causes audience mismatch)
-      const sessionToken = jwt.sign(
-        { 
-          email: email,
-          googleId: googleId,
-          type: 'google_role_selection',
-          verified: true
-        },
-        process.env.JWT_SECRET || 'dev_secret',
-        { expiresIn: '10m' } // 10 minute expiry for role selection
-      );
+      let sessionToken;
+      try {
+        sessionToken = jwt.sign(
+          { 
+            email: email,
+            googleId: googleId,
+            type: 'google_role_selection',
+            verified: true
+          },
+          process.env.JWT_SECRET || 'dev_secret',
+          { expiresIn: '10m' } // 10 minute expiry for role selection
+        );
+      } catch (jwtErr) {
+        console.error('[Google OAuth] Failed to create session token:', jwtErr);
+        return res.status(500).json({
+          success: false,
+          message: 'Failed to create authentication token. Please try again.'
+        });
+      }
       
       return res.json({
         success: true,
@@ -411,11 +472,20 @@ async function googleLogin(req, res, next) {
     }
     
     // Generate JWT token for existing users
-    const token = jwt.sign(
-      { id: user.id, role: user.role },
-      process.env.JWT_SECRET || 'dev_secret',
-      { expiresIn: '8h' }
-    );
+    let token;
+    try {
+      token = jwt.sign(
+        { id: user.id, role: user.role },
+        process.env.JWT_SECRET || 'dev_secret',
+        { expiresIn: '8h' }
+      );
+    } catch (jwtErr) {
+      console.error('[Google OAuth] Failed to create JWT token:', jwtErr);
+      return res.status(500).json({
+        success: false,
+        message: 'Failed to create authentication token. Please try again.'
+      });
+    }
     
     logAudit({
       userId: user.id,
@@ -483,10 +553,32 @@ async function googleLogin(req, res, next) {
       });
     }
     
-    return res.status(500).json({ 
-      success: false, 
-      message: err.message || 'Google login failed. Please try again.' 
-    });
+    // Log the full error for debugging (safely)
+    try {
+      console.error('[Google OAuth] Full error object:', {
+        name: err.name,
+        message: err.message,
+        code: err.code,
+        stack: err.stack ? err.stack.substring(0, 500) : 'No stack trace'
+      });
+    } catch (logErr) {
+      console.error('[Google OAuth] Error logging failed:', logErr.message);
+    }
+    
+    // Return a more helpful error message
+    const errorMessage = err.message || 'Google login failed. Please try again.';
+    
+    // Ensure response hasn't been sent already
+    if (!res.headersSent) {
+      return res.status(500).json({ 
+        success: false, 
+        message: errorMessage,
+        error: process.env.NODE_ENV === 'development' ? err.message : undefined
+      });
+    } else {
+      // If headers already sent, log the error but can't send response
+      console.error('[Google OAuth] Cannot send error response - headers already sent');
+    }
   }
 }
 

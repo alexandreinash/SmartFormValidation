@@ -5,7 +5,7 @@ import api from '../api';
 import GoogleRoleSelectionModal from '../components/GoogleRoleSelectionModal';
 import camImage from '../picture/cam.jpg';
 
-const GOOGLE_CLIENT_ID = '593069010968-07lknp6t8a8vjcpv5n08hv81sf6v6iir.apps.googleusercontent.com';
+const GOOGLE_CLIENT_ID = import.meta.env.VITE_GOOGLE_CLIENT_ID || '593069010968-07lknp6t8a8vjcpv5n08hv81sf6v6iir.apps.googleusercontent.com';
 
 function LoginPage() {
   const { login, syncUserFromStorage } = useAuth();
@@ -67,12 +67,17 @@ function LoginPage() {
     }
 
     try {
+      // Log the client ID being used for debugging
+      console.log('[Google Sign-In] Initializing with client ID:', GOOGLE_CLIENT_ID ? GOOGLE_CLIENT_ID.substring(0, 30) + '...' : 'NOT SET');
+      
       window.google.accounts.id.initialize({
         client_id: GOOGLE_CLIENT_ID,
         callback: handleGoogleCredentialResponse,
         auto_select: false,
         cancel_on_tap_outside: true,
       });
+      
+      console.log('[Google Sign-In] Initialized successfully');
 
       // Optionally render a button (hidden, we use our custom button)
       const buttonContainer = document.getElementById('google-signin-button-container');
@@ -102,9 +107,13 @@ function LoginPage() {
         throw new Error('No credential received from Google');
       }
       
+      console.log('[Google Sign-In] Received credential, sending to backend...');
+      
       const response = await api.post('/api/auth/google-login', {
         credential: credentialResponse.credential
       });
+      
+      console.log('[Google Sign-In] Backend response:', response.data);
       
       if (!response.data) {
         throw new Error('No response data from server');
@@ -160,17 +169,28 @@ function LoginPage() {
       setIsSuccess(false);
       console.error('Google login error:', err);
       console.error('Error response:', err.response?.data);
+      console.error('Error details:', {
+        message: err.message,
+        status: err.response?.status,
+        data: err.response?.data
+      });
       
       if (!err.response) {
         setStatus(
           'Cannot reach the API server. Make sure the backend is running on port 5000.'
         );
       } else {
-        const errorMessage = err.response.data?.message || 'Google login failed. Please try again.';
+        // Use the actual error message from the backend
+        const errorMessage = err.response.data?.message || err.message || 'Google login failed. Please try again.';
         setStatus(errorMessage);
         
+        // Log the full error for debugging
+        if (err.response.data?.error) {
+          console.error('Backend error details:', err.response.data.error);
+        }
+        
         // If it's a token error, suggest signing in again
-        if (errorMessage.includes('token') || errorMessage.includes('expired')) {
+        if (errorMessage.includes('token') || errorMessage.includes('expired') || errorMessage.includes('verification')) {
           setTimeout(() => {
             setStatus('Please try signing in with Google again.');
           }, 3000);
