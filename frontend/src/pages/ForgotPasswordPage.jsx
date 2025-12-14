@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import api from '../api';
 import '../css/auth.css';
+import camImage from '../picture/cam.jpg';
 
 function ForgotPasswordPage() {
   const navigate = useNavigate();
@@ -54,6 +55,15 @@ function ForgotPasswordPage() {
 
   return (
     <div className="auth-page">
+      {/* Background Picture with Blur */}
+      <div className="auth-background-picture">
+        <img 
+          src={camImage} 
+          alt="Background" 
+          className="auth-background-image"
+        />
+      </div>
+      
       <div className="auth-layout">
         <div className="auth-hero">
           <div className="auth-hero-banner-top">Smart Form Validator</div>
@@ -122,50 +132,6 @@ function ForgotPasswordPage() {
                       {status}
                     </p>
                   </div>
-                  {isSuccess && !resetUrl && (
-                    <div style={{ 
-                      marginTop: '1rem', 
-                      padding: '1rem', 
-                      background: 'linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 100%)',
-                      border: '2px solid #bae6fd', 
-                      borderRadius: '10px',
-                      fontSize: '0.85rem',
-                      color: '#0369a1',
-                      boxShadow: '0 2px 4px rgba(0, 0, 0, 0.05)'
-                    }}>
-                      <div style={{ 
-                        display: 'flex', 
-                        alignItems: 'center', 
-                        gap: '0.5rem',
-                        marginBottom: '0.75rem',
-                        fontWeight: '600'
-                      }}>
-                        <span style={{ fontSize: '1.1rem' }}>💡</span>
-                        <span>Tips:</span>
-                      </div>
-                      <ul style={{ 
-                        margin: '0.5rem 0 0 1.25rem', 
-                        padding: 0,
-                        listStyle: 'none',
-                        display: 'flex',
-                        flexDirection: 'column',
-                        gap: '0.5rem'
-                      }}>
-                        <li style={{ display: 'flex', alignItems: 'start', gap: '0.5rem' }}>
-                          <span style={{ color: '#0ea5e9' }}>•</span>
-                          <span>Check your spam/junk folder</span>
-                        </li>
-                        <li style={{ display: 'flex', alignItems: 'start', gap: '0.5rem' }}>
-                          <span style={{ color: '#0ea5e9' }}>•</span>
-                          <span>The email may take a few minutes to arrive</span>
-                        </li>
-                        <li style={{ display: 'flex', alignItems: 'start', gap: '0.5rem' }}>
-                          <span style={{ color: '#0ea5e9' }}>•</span>
-                          <span>Check your backend server console for the reset link</span>
-                        </li>
-                      </ul>
-                    </div>
-                  )}
                 </div>
               )}
             </form>

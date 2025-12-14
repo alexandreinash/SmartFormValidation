@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../AuthContext';
 import '../css/HomePage.css';
 import '../css/components.css';
+import camImage from '../picture/cam.jpg';
 
 function HomePage() {
   const { user, logout } = useAuth();
@@ -31,6 +32,15 @@ function HomePage() {
 
   return (
     <div className="homepage-container">
+      {/* Background Picture with Blur */}
+      <div className="homepage-background-picture">
+        <img 
+          src={camImage} 
+          alt="Background" 
+          className="homepage-background-image"
+        />
+      </div>
+      
       {/* Logout confirmation text in top right corner */}
       {showLogoutConfirm && (
         <div className="logout-confirmation-text">
@@ -61,6 +71,15 @@ function HomePage() {
 
       {/* Box on Right Side */}
       <div className="homepage-right-box">
+        {/* Picture Image - Full Box */}
+        <div className="homepage-picture-container">
+          <img 
+            src={camImage} 
+            alt="Form Validation" 
+            className="homepage-picture"
+          />
+        </div>
+        
         {/* Abstract Graphics on Right Side */}
         <div className="homepage-graphics">
           {/* Glowing Blue Card with Form Validation */}
