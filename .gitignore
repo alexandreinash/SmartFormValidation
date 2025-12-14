@@ -35,3 +35,11 @@ dummy
 *.sqlite
 *.db
 
+# Secrets and credentials
+backend/service-account.json
+*.json
+!package.json
+!package-lock.json
+!tsconfig.json
+!vite.config.js
+
