@@ -6,7 +6,38 @@ function getClient() {
     // Uses Google Cloud credentials from GOOGLE_APPLICATION_CREDENTIALS env var.
     // eslint-disable-next-line global-require
     const { LanguageServiceClient } = require('@google-cloud/language');
-    client = new LanguageServiceClient();
+    const path = require('path');
+    const fs = require('fs');
+    
+    // Ensure GOOGLE_APPLICATION_CREDENTIALS is set correctly
+    if (process.env.GOOGLE_APPLICATION_CREDENTIALS) {
+      const credPath = process.env.GOOGLE_APPLICATION_CREDENTIALS;
+      // Handle both absolute and relative paths
+      const fullPath = path.isAbsolute(credPath) 
+        ? credPath 
+        : path.resolve(__dirname, '..', '..', credPath);
+      
+      if (fs.existsSync(fullPath)) {
+        // Set the environment variable to the absolute path
+        // This ensures the Google Cloud library can find it
+        process.env.GOOGLE_APPLICATION_CREDENTIALS = fullPath;
+        console.log('✅ Google NLP credentials path set to:', fullPath);
+      } else {
+        console.error('❌ Google NLP credentials file not found:', fullPath);
+        throw new Error(`Credentials file not found: ${fullPath}`);
+      }
+    } else {
+      console.warn('⚠️ GOOGLE_APPLICATION_CREDENTIALS not set');
+    }
+    
+    // Create client - it will automatically use GOOGLE_APPLICATION_CREDENTIALS env var
+    try {
+      client = new LanguageServiceClient();
+      console.log('✅ Google NLP client initialized successfully');
+    } catch (err) {
+      console.error('❌ Failed to initialize Google NLP client:', err.message);
+      throw err;
+    }
   }
   return client;
 }
@@ -125,22 +156,31 @@ async function validateComprehensively(text, fieldLabel, fieldType, quizData = n
       const personEntities = entities.entities.filter(e => e.type === 'PERSON');
       const organizationEntities = entities.entities.filter(e => e.type === 'ORGANIZATION');
       
-      if (personEntities.length === 0 && /name/i.test(fieldLabel)) {
-        errors.push({
-          type: 'entity',
-          issue: 'This does not appear to be a valid name.',
-          correction: 'Please provide a proper name (e.g., "John Smith", "Maria Garcia").',
-          severity: 'error'
-        });
-      }
+      // Prioritize company/organization checks (check these FIRST)
+      // This prevents "Company Name" from being validated as a person name
+      const isCompanyField = /company|organization|business/i.test(fieldLabel);
+      const isNameField = /name/i.test(fieldLabel) && !isCompanyField;
       
-      if (organizationEntities.length === 0 && /company|organization|business/i.test(fieldLabel)) {
-        errors.push({
-          type: 'entity',
-          issue: 'This does not appear to be a valid company or organization name.',
-          correction: 'Please provide a proper company name (e.g., "Acme Corporation", "ABC Industries").',
-          severity: 'error'
-        });
+      if (isCompanyField) {
+        // This is a company/organization field
+        if (organizationEntities.length === 0) {
+          errors.push({
+            type: 'entity',
+            issue: 'This does not appear to be a valid company or organization name.',
+            correction: 'Please provide a proper company name (e.g., "Acme Corporation", "ABC Industries").',
+            severity: 'error'
+          });
+        }
+      } else if (isNameField) {
+        // This is a name field (and NOT a company field)
+        if (personEntities.length === 0) {
+          errors.push({
+            type: 'entity',
+            issue: 'This does not appear to be a valid name.',
+            correction: 'Please provide a proper name (e.g., "John Smith", "Maria Garcia").',
+            severity: 'error'
+          });
+        }
       }
     }
 

@@ -13,6 +13,9 @@ import FormFillPage from './pages/FormFillPage';
 import UserFormSelectionPage from './pages/UserFormSelectionPage';
 import FormSubmissionsPage from './pages/FormSubmissionsPage';
 import AdminFormsPage from './pages/AdminFormsPage';
+import ExampleFormsPage from './pages/ExampleFormsPage';
+import AllFormsPage from './pages/AllFormsPage';
+import ComplaintFormPage from './pages/ComplaintFormPage';
 import AnalyticsPage from './pages/AnalyticsPage';
 import DataDashboard from './pages/DataDashboard';
 import ManageGroupsPage from './pages/ManageGroupsPage';
@@ -65,7 +68,8 @@ function AppShell() {
           <Route path="/email-form" element={<EmailFormPage />} />
           <Route path="/number-form" element={<NumberFormPage />} />
           <Route path="/quiz-form" element={<QuizFormPage />} />
-          <Route path="/forms" element={<Navigate to="/user/forms" replace />} />
+          <Route path="/forms" element={<Navigate to="/all-forms" replace />} />
+          <Route path="/all-forms" element={<AllFormsPage />} />
           <Route path="/user/forms" element={<UserFormSelectionPage />} />
           <Route path="/user/textforms" element={<UserFormSelectionPage defaultTab="text" />} />
           <Route path="/user/emailforms" element={<UserFormSelectionPage defaultTab="email" />} />
@@ -91,6 +95,14 @@ function AppShell() {
           <Route
             path="/admin/forms/all"
             element={<AdminFormsPage />}
+          />
+          <Route
+            path="/admin/example-forms"
+            element={<ExampleFormsPage />}
+          />
+          <Route
+            path="/admin/complaint-form"
+            element={<ComplaintFormPage />}
           />
           <Route path="/admin/analytics" element={<AnalyticsPage />} />
           <Route path="/admin/data-dashboard" element={<DataDashboard />} />
