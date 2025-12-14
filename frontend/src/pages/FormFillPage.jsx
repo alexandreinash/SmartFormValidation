@@ -122,6 +122,7 @@ function FormFillPage() {
   const [errors, setErrors] = useState([]);
   const [basicErrors, setBasicErrors] = useState([]);
   const [aiErrors, setAiErrors] = useState([]);
+  const [allAiErrors, setAllAiErrors] = useState({}); // fieldId -> array of all errors with corrections
   const [status, setStatus] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [quizResults, setQuizResults] = useState(null);
@@ -354,6 +355,10 @@ function FormFillPage() {
       
       if (err.response?.data?.errors) {
         setErrors(err.response.data.errors);
+        // Store all AI errors with corrections if provided
+        if (err.response.data.allAiErrors) {
+          setAllAiErrors(err.response.data.allAiErrors);
+        }
         setStatus(err.response.data.message || 'Please correct the errors below.');
       } else if (err.response?.data?.message) {
         setStatus(err.response.data.message);
@@ -461,22 +466,55 @@ function FormFillPage() {
                 </div>
               )}
               
-              {aiErrors.length > 0 && (
+              {(aiErrors.length > 0 || Object.keys(allAiErrors).length > 0) && (
                 <div className="error-section ai-errors">
-                  <h4>AI-Powered Suggestions</h4>
+                  <h4>AI-Powered Validation - All Detected Issues</h4>
                   <p className="ai-explanation">
-                    Our AI has detected potential issues with context or tone:
+                    Our AI has comprehensively analyzed your answers and detected the following issues:
                   </p>
-                  <ul>
-                    {aiErrors.map((error, idx) => (
-                      <li key={`ai-${idx}`}>
+                  <ul className="ai-errors-list">
+                    {Object.entries(allAiErrors).map(([fieldId, errors]) => {
+                      if (!errors || errors.length === 0) return null;
+                      const field = form.fields.find(f => f.id === parseInt(fieldId));
+                      const fieldLabel = field ? field.label : `Field ${fieldId}`;
+                      
+                      return errors.map((error, idx) => (
+                        <li key={`ai-${fieldId}-${idx}`} className={`ai-error-item ai-error-${error.severity}`}>
+                          <div className="ai-error-header">
+                            <strong>{fieldLabel}</strong>
+                            <span className={`ai-error-type ai-error-type-${error.type}`}>
+                              {error.type.toUpperCase()}
+                            </span>
+                            <span className={`ai-error-severity ai-error-severity-${error.severity}`}>
+                              {error.severity === 'error' ? '❌ Error' : '⚠️ Warning'}
+                            </span>
+                          </div>
+                          <div className="ai-error-issue">
+                            <strong>Issue:</strong> {error.issue}
+                          </div>
+                          {error.correction && (
+                            <div className="ai-error-correction">
+                              <strong>💡 Correction:</strong> {error.correction}
+                            </div>
+                          )}
+                        </li>
+                      ));
+                    })}
+                    {/* Fallback for legacy error format */}
+                    {Object.keys(allAiErrors).length === 0 && aiErrors.map((error, idx) => (
+                      <li key={`ai-legacy-${idx}`}>
                         <strong>{error.fieldLabel || `Field ${error.fieldId}`}:</strong> {error.message}
+                        {error.correction && (
+                          <div className="ai-error-correction">
+                            <strong>💡 Correction:</strong> {error.correction}
+                          </div>
+                        )}
                       </li>
                     ))}
                   </ul>
                   <div className="ai-note">
                     <small>
-                      💡 AI suggestions are based on context analysis. You may choose to ignore them if your input is correct.
+                      💡 AI has comprehensively evaluated all aspects of your answers. Please review all issues and apply the suggested corrections.
                     </small>
                   </div>
                 </div>
@@ -644,6 +682,36 @@ function FormFillPage() {
                     <div className="field-error-message">
                       <span className="error-icon">⚠️</span>
                       {fieldError.message}
+                      {fieldError.correction && (
+                        <div className="field-error-correction" style={{ marginTop: '0.5rem', padding: '0.5rem', background: '#fef3c7', borderRadius: '4px', fontSize: '0.875rem' }}>
+                          <strong>💡 Suggested correction:</strong> {fieldError.correction}
+                        </div>
+                      )}
+                    </div>
+                  )}
+                  {/* Display all AI errors for this field */}
+                  {allAiErrors[field.id] && allAiErrors[field.id].length > 0 && (
+                    <div className="field-ai-errors" style={{ marginTop: '0.5rem' }}>
+                      {allAiErrors[field.id].map((error, idx) => (
+                        <div key={`field-ai-${field.id}-${idx}`} className={`field-ai-error field-ai-error-${error.severity}`} style={{ 
+                          marginBottom: '0.5rem', 
+                          padding: '0.75rem', 
+                          background: error.severity === 'error' ? '#fee2e2' : '#fef3c7',
+                          borderLeft: `3px solid ${error.severity === 'error' ? '#dc2626' : '#f59e0b'}`,
+                          borderRadius: '4px',
+                          fontSize: '0.875rem'
+                        }}>
+                          <div style={{ fontWeight: '600', marginBottom: '0.25rem' }}>
+                            <span style={{ marginRight: '0.5rem' }}>{error.severity === 'error' ? '❌' : '⚠️'}</span>
+                            [{error.type.toUpperCase()}] {error.issue}
+                          </div>
+                          {error.correction && (
+                            <div style={{ marginTop: '0.5rem', color: '#374151' }}>
+                              <strong>💡 Correction:</strong> {error.correction}
+                            </div>
+                          )}
+                        </div>
+                      ))}
                     </div>
                   )}
                   

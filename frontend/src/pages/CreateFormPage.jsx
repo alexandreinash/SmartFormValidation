@@ -199,7 +199,7 @@ function CreateFormPage() {
                   <button
                     type="button"
                     onClick={addField}
-                    className="add-field-button"
+                    className="add-field-button add-field-button-yellow"
                   >
                     + Add Field
                   </button>
@@ -218,11 +218,7 @@ function CreateFormPage() {
             <button
               type="button"
               onClick={handleSaveAndSend}
-              className="save-form-button"
-              style={{ 
-                background: '#3b82f6', 
-                color: 'white'
-              }}
+              className="save-form-button save-form-button-blue"
             >
               Save and Send
             </button>

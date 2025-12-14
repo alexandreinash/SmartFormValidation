@@ -233,17 +233,32 @@ function ManageUsersPage() {
           {selectedUsers.length > 0 && (
             <button
               type="button"
-              className="button"
               onClick={handleDeleteSelected}
               disabled={isDeleting}
               style={{
                 backgroundColor: '#ef4444',
+                background: 'linear-gradient(135deg, #dc2626, #b91c1c)',
                 color: 'white',
                 border: 'none',
                 padding: '0.5rem 1rem',
                 borderRadius: '4px',
                 cursor: isDeleting ? 'not-allowed' : 'pointer',
-                opacity: isDeleting ? 0.6 : 1
+                opacity: isDeleting ? 0.6 : 1,
+                fontWeight: 500,
+                boxShadow: '0 10px 30px rgba(220, 38, 38, 0.35)',
+                transition: 'transform 0.12s ease, box-shadow 0.12s ease'
+              }}
+              onMouseEnter={(e) => {
+                if (!isDeleting) {
+                  e.target.style.boxShadow = '0 12px 38px rgba(220, 38, 38, 0.45)';
+                  e.target.style.transform = 'translateY(-1px)';
+                }
+              }}
+              onMouseLeave={(e) => {
+                if (!isDeleting) {
+                  e.target.style.boxShadow = '0 10px 30px rgba(220, 38, 38, 0.35)';
+                  e.target.style.transform = 'translateY(0)';
+                }
               }}
             >
               {isDeleting ? 'Deleting...' : `Delete Selected (${selectedUsers.length})`}

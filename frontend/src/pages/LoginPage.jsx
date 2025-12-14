@@ -1,9 +1,10 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
-import { GoogleLogin } from '@react-oauth/google';
 import { useAuth } from '../AuthContext';
 import api from '../api';
 import GoogleRoleSelectionModal from '../components/GoogleRoleSelectionModal';
+
+const GOOGLE_CLIENT_ID = '593069010968-07lknp6t8a8vjcpv5n08hv81sf6v6iir.apps.googleusercontent.com';
 
 function LoginPage() {
   const { login, syncUserFromStorage } = useAuth();
@@ -16,6 +17,7 @@ function LoginPage() {
   const [isSuccess, setIsSuccess] = useState(false);
   const [showRoleSelection, setShowRoleSelection] = useState(false);
   const [pendingGoogleData, setPendingGoogleData] = useState(null);
+  const googleScriptLoaded = useRef(false);
 
   useEffect(() => {
     // Load remembered credentials if they exist
@@ -38,47 +40,59 @@ function LoginPage() {
     }
     // Clear logout flag if present (the logout notification already showed on the previous page)
     localStorage.removeItem('sfv_just_logged_out');
+
+    // Load Google Identity Services script
+    if (!googleScriptLoaded.current && !window.google) {
+      const script = document.createElement('script');
+      script.src = 'https://accounts.google.com/gsi/client';
+      script.async = true;
+      script.defer = true;
+      script.onload = () => {
+        googleScriptLoaded.current = true;
+        initializeGoogleSignIn();
+      };
+      script.onerror = () => {
+        console.error('Failed to load Google Sign-In script');
+      };
+      document.head.appendChild(script);
+    } else if (window.google) {
+      initializeGoogleSignIn();
+    }
   }, [location.state]);
 
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    setStatus('');
-    setIsSuccess(false);
+  const initializeGoogleSignIn = () => {
+    if (!window.google || !window.google.accounts) {
+      return;
+    }
+
     try {
-      const user = await login(email, password);
-      
-      // Handle remember me functionality
-      if (rememberMe) {
-        localStorage.setItem('sfv_remembered_email', email);
-      } else {
-        localStorage.removeItem('sfv_remembered_email');
+      window.google.accounts.id.initialize({
+        client_id: GOOGLE_CLIENT_ID,
+        callback: handleGoogleCredentialResponse,
+        auto_select: false,
+        cancel_on_tap_outside: true,
+      });
+
+      // Optionally render a button (hidden, we use our custom button)
+      const buttonContainer = document.getElementById('google-signin-button-container');
+      if (buttonContainer && buttonContainer.children.length === 0) {
+        window.google.accounts.id.renderButton(
+          buttonContainer,
+          {
+            theme: 'outline',
+            size: 'large',
+            text: 'signin_with',
+            width: '100%',
+            type: 'standard'
+          }
+        );
       }
-      
-      // Set flag to show regular login notification
-      localStorage.setItem('sfv_regular_just_logged_in', 'true');
-      
-      setIsSuccess(true);
-      setStatus('Login successful! Redirecting...');
-      // Wait 0.5 seconds before navigating
-      setTimeout(() => {
-        navigate('/', { state: { justLoggedIn: true } });
-      }, 500);
     } catch (err) {
-      setIsSuccess(false);
-      if (!err.response) {
-        setStatus(
-          'Cannot reach the API server. Make sure the backend is running on port 5000.'
-        );
-      } else {
-        setStatus(
-          err.response.data?.message ||
-            'Login failed. Please check your email and password.'
-        );
-      }
+      console.error('Error initializing Google Sign-In:', err);
     }
   };
 
-  const handleGoogleSuccess = async (credentialResponse) => {
+  const handleGoogleCredentialResponse = async (credentialResponse) => {
     try {
       setStatus('');
       setIsSuccess(false);
@@ -164,6 +178,99 @@ function LoginPage() {
     }
   };
 
+  const handleGoogleSignInClick = () => {
+    if (!window.google || !window.google.accounts) {
+      setStatus('Google Sign-In is not loaded. Please refresh the page.');
+      setIsSuccess(false);
+      return;
+    }
+
+    try {
+      // Try to render the button directly in a popup/modal approach
+      // Use the One Tap flow with a button click
+      const buttonContainer = document.getElementById('google-signin-button-container');
+      
+      if (buttonContainer) {
+        // Clear any existing button
+        buttonContainer.innerHTML = '';
+        
+        // Render Google Sign-In button
+        window.google.accounts.id.renderButton(
+          buttonContainer,
+          {
+            theme: 'outline',
+            size: 'large',
+            text: 'signin_with',
+            width: '100%',
+            type: 'standard'
+          }
+        );
+        
+        // Click the rendered button programmatically
+        setTimeout(() => {
+          const googleButton = buttonContainer.querySelector('div[role="button"]');
+          if (googleButton) {
+            googleButton.click();
+          } else {
+            // Fallback: use prompt
+            window.google.accounts.id.prompt();
+          }
+        }, 100);
+      } else {
+        // Fallback: use prompt
+        window.google.accounts.id.prompt();
+      }
+    } catch (err) {
+      console.error('Error triggering Google Sign-In:', err);
+      setStatus('Failed to start Google Sign-In. Please try again.');
+      setIsSuccess(false);
+    }
+  };
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    setStatus('');
+    setIsSuccess(false);
+    try {
+      const user = await login(email, password);
+      
+      // Handle remember me functionality
+      if (rememberMe) {
+        localStorage.setItem('sfv_remembered_email', email);
+      } else {
+        localStorage.removeItem('sfv_remembered_email');
+      }
+      
+      // Set flag to show regular login notification
+      localStorage.setItem('sfv_regular_just_logged_in', 'true');
+      
+      setIsSuccess(true);
+      setStatus('Login successful! Redirecting...');
+      // Wait 0.5 seconds before navigating
+      setTimeout(() => {
+        navigate('/', { state: { justLoggedIn: true } });
+      }, 500);
+    } catch (err) {
+      setIsSuccess(false);
+      if (!err.response) {
+        setStatus(
+          'Cannot reach the API server. Make sure the backend is running on port 5000.'
+        );
+      } else {
+        // Handle validation errors
+        if (err.response.data?.errors && Array.isArray(err.response.data.errors)) {
+          const errorMessages = err.response.data.errors.map(e => e.msg || e.message || 'Validation error').join('. ');
+          setStatus(errorMessages || err.response.data?.message || 'Login failed. Please check your email and password.');
+        } else {
+          setStatus(
+            err.response.data?.message ||
+              'Login failed. Please check your email and password.'
+          );
+        }
+      }
+    }
+  };
+
   const handleRoleSelection = async (role) => {
     try {
       setStatus('');
@@ -238,11 +345,6 @@ function LoginPage() {
         }
       }
     }
-  };
-
-  const handleGoogleError = () => {
-    setIsSuccess(false);
-    setStatus('Google login failed. Please try again.');
   };
 
   return (
@@ -338,33 +440,21 @@ function LoginPage() {
                 OR
               </span>
             </div>
-            <div style={{ display: 'none' }}>
-              <GoogleLogin
-                onSuccess={handleGoogleSuccess}
-                onError={handleGoogleError}
-                useOneTap={false}
-              />
+            <div id="google-signin-button-container" style={{ display: 'none' }}>
+              {/* Google will inject the button here */}
             </div>
             <button 
               type="button" 
               className="auth-button google-signin-button"
-              onClick={() => {
-                // Trigger the hidden Google button
-                const googleButton = document.querySelector('[role="button"][aria-labelledby]');
-                if (googleButton) {
-                  googleButton.click();
-                } else {
-                  // Fallback: manually initialize Google Sign-In
-                  window.google?.accounts.id.prompt();
-                }
-              }}
+              onClick={handleGoogleSignInClick}
               style={{
                 background: '#4285f4',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
                 gap: '0.75rem',
-                marginTop: '0'
+                marginTop: '0',
+                width: '100%'
               }}
             >
               <svg width="20" height="20" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -397,6 +487,3 @@ function LoginPage() {
 }
 
 export default LoginPage;
-
-
-

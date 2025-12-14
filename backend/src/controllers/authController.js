@@ -36,8 +36,8 @@ const validateRegister = [
 ];
 
 const validateLogin = [
-  body('email').isEmail(),
-  body('password').isLength({ min: 6 }),
+  body('email').isEmail().withMessage('Please provide a valid email address'),
+  body('password').notEmpty().withMessage('Password is required'),
 ];
 
 async function register(req, res, next) {
@@ -143,9 +143,10 @@ async function login(req, res, next) {
   try {
     const errors = validationResult(req);
     if (!errors.isEmpty()) {
+      const errorMessages = errors.array().map(err => err.msg || err.message || 'Validation error').join('. ');
       return res.status(400).json({ 
         success: false, 
-        message: 'Validation failed',
+        message: errorMessages || 'Validation failed',
         errors: errors.array() 
       });
     }
@@ -163,14 +164,14 @@ async function login(req, res, next) {
     if (!user) {
       return res
         .status(401)
-        .json({ success: false, message: 'Invalid credentials' });
+        .json({ success: false, message: 'Invalid email or password' });
     }
 
     const match = await bcrypt.compare(password, user.password);
     if (!match) {
       return res
         .status(401)
-        .json({ success: false, message: 'Invalid credentials' });
+        .json({ success: false, message: 'Invalid email or password' });
     }
 
     const token = jwt.sign(
