@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import api from '../api';
 import { useAuth } from '../AuthContext';
@@ -9,6 +9,11 @@ import '../css/components.css';
 function CreateFormPage() {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
+
+  // Automatically redirect to text form page
+  useEffect(() => {
+    navigate('/text-form', { replace: true });
+  }, [navigate]);
   const [title, setTitle] = useState('');
   const [fields, setFields] = useState([{ label: '', type: 'number', is_required: false, ai_validation_enabled: false }]);
   const [message, setMessage] = useState('');
@@ -123,113 +128,6 @@ function CreateFormPage() {
 
       {/* Main Content */}
       <div className="create-form-main">
-        <div className="create-form-header">
-          <div>
-            <h1 className="create-form-title">Create Number Form</h1>
-            <p className="create-form-subtitle">
-              Create a form with number fields only. Add custom labels and validation settings.
-            </p>
-          </div>
-        </div>
-
-        <form onSubmit={handleSubmit} className="create-form-form">
-          <div className="form-section">
-            <label className="form-label">Form Title</label>
-            <input
-              type="text"
-              value={title}
-              onChange={(e) => setTitle(e.target.value)}
-              placeholder="Enter form title"
-              required
-              className="form-input"
-            />
-          </div>
-
-          <div className="form-section">
-            <h3 className="form-section-title">Number Fields</h3>
-            
-            {fields.map((field, index) => (
-              <div key={index} className="field-card">
-                <div className="field-label-row">
-                  <label className="field-label-text">Field Label</label>
-                  <div className="field-input-row">
-                    <input
-                      type="text"
-                      placeholder="Enter field label"
-                      value={field.label}
-                      onChange={(e) => updateField(index, 'label', e.target.value)}
-                      required
-                      className="field-input field-input-yellow"
-                    />
-                    <button
-                      type="button"
-                      className="field-type-button field-type-button-yellow"
-                    >
-                      Number Field
-                    </button>
-                    {fields.length > 1 && (
-                      <button
-                        type="button"
-                        onClick={() => removeField(index)}
-                        className="remove-field-button"
-                        title="Remove this field"
-                      >
-                        ×
-                      </button>
-                    )}
-                  </div>
-                </div>
-                <div className="field-options-row">
-                  <label className="field-checkbox">
-                    <input
-                      type="checkbox"
-                      checked={field.is_required}
-                      onChange={(e) => updateField(index, 'is_required', e.target.checked)}
-                    />
-                    <span>Required</span>
-                  </label>
-                  <label className="field-checkbox">
-                    <input
-                      type="checkbox"
-                      checked={field.ai_validation_enabled}
-                      onChange={(e) => updateField(index, 'ai_validation_enabled', e.target.checked)}
-                    />
-                    <span>AI Validation</span>
-                  </label>
-                  <button
-                    type="button"
-                    onClick={addField}
-                    className="add-field-button add-field-button-yellow"
-                  >
-                    + Add Field
-                  </button>
-                </div>
-              </div>
-            ))}
-          </div>
-
-          <div style={{ display: 'flex', gap: '12px' }}>
-            <button
-              type="submit"
-              className="save-form-button save-form-button-yellow"
-            >
-              Save Form
-            </button>
-            <button
-              type="button"
-              onClick={handleSaveAndSend}
-              className="save-form-button save-form-button-blue"
-            >
-              Save and Send
-            </button>
-          </div>
-
-          {message && (
-            <div className={`message ${message.includes('successfully') ? 'message-success' : 'message-error'}`}>
-              {message}
-            </div>
-          )}
-        </form>
       </div>
 
       {/* Send To Modal */}
