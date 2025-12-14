@@ -46,6 +46,7 @@ function ResetPasswordPage() {
     setStatus('');
     setIsSuccess(false);
 
+    // Validate passwords
     if (password !== confirmPassword) {
       setStatus('Passwords do not match.');
       return;
@@ -61,12 +62,12 @@ function ResetPasswordPage() {
     try {
       const res = await api.post('/api/auth/reset-password', { token, password });
       setIsSuccess(true);
-      setStatus(res.data.message || 'Password has been reset successfully.');
+      setStatus(res.data.message || 'Password has been reset successfully. You can now log in.');
       
-      // Redirect to login after 2 seconds
+      // Redirect to login after 3 seconds
       setTimeout(() => {
         navigate('/login', { state: { passwordReset: true } });
-      }, 2000);
+      }, 3000);
     } catch (err) {
       setIsSuccess(false);
       if (!err.response) {
@@ -151,7 +152,7 @@ function ResetPasswordPage() {
           <div className="auth-hero-banner-top">Smart Form Validator</div>
           <div className="auth-hero-inner">
             <div className="auth-hero-text-block">
-              <h1 className="auth-hero-title">New Password</h1>
+              <h1 className="auth-hero-title">Reset Password</h1>
               <p className="auth-hero-subtitle">
                 Create a strong password to secure your account. Make sure it's at least 6 characters long.
               </p>
@@ -193,21 +194,63 @@ function ResetPasswordPage() {
                   />
                 </label>
               </div>
-              <button type="submit" className="auth-button" disabled={isLoading}>
+              <button 
+                type="submit" 
+                className="auth-button" 
+                disabled={isLoading || !isTokenValid}
+                style={{
+                  opacity: (isLoading || !isTokenValid) ? 0.6 : 1,
+                  cursor: (isLoading || !isTokenValid) ? 'not-allowed' : 'pointer'
+                }}
+              >
                 {isLoading ? 'Resetting...' : 'Reset Password'}
               </button>
               {status && (
-                <p 
-                  className="status" 
-                  style={{ 
-                    marginTop: '1rem', 
-                    color: isSuccess ? '#10b981' : '#ef4444',
-                    fontWeight: isSuccess ? '600' : '400',
-                    fontSize: '0.85rem'
-                  }}
-                >
-                  {status}
-                </p>
+                <div style={{ marginTop: '1rem' }}>
+                  <div style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '0.75rem',
+                    padding: '1rem',
+                    backgroundColor: isSuccess ? '#d1fae5' : '#fee2e2',
+                    border: `2px solid ${isSuccess ? '#10b981' : '#ef4444'}`,
+                    borderRadius: '10px',
+                    boxShadow: isSuccess 
+                      ? '0 4px 6px -1px rgba(16, 185, 129, 0.1)' 
+                      : '0 4px 6px -1px rgba(239, 68, 68, 0.1)',
+                    marginBottom: isSuccess ? '0.75rem' : '0'
+                  }}>
+                    <span style={{ 
+                      fontSize: '1.5rem',
+                      filter: isSuccess ? 'drop-shadow(0 2px 4px rgba(16, 185, 129, 0.3))' : 'none'
+                    }}>
+                      {isSuccess ? '✓' : '⚠️'}
+                    </span>
+                    <div style={{ flex: 1 }}>
+                      <p 
+                        style={{ 
+                          color: isSuccess ? '#065f46' : '#991b1b',
+                          fontWeight: '500',
+                          fontSize: '0.9rem',
+                          margin: 0,
+                          marginBottom: isSuccess ? '0.25rem' : '0'
+                        }}
+                      >
+                        {status}
+                      </p>
+                      {isSuccess && (
+                        <p style={{
+                          margin: 0,
+                          fontSize: '0.85rem',
+                          color: '#047857',
+                          fontStyle: 'italic'
+                        }}>
+                          Redirecting to login page...
+                        </p>
+                      )}
+                    </div>
+                  </div>
+                </div>
               )}
             </form>
             <div style={{ marginTop: '1.5rem', textAlign: 'center' }}>
