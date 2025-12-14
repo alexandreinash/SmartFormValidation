@@ -215,7 +215,7 @@ function EditQuizFormPage() {
           label: field.label,
           type: 'textarea',
           is_required: field.is_required,
-          ai_validation_enabled: true,
+          ai_validation_enabled: field.ai_validation_enabled, // Use the checkbox value
           expected_entity: 'quiz',
           expected_sentiment: 'any',
           options: quizData
@@ -520,7 +520,7 @@ function EditQuizFormPage() {
                   </div>
                 )}
 
-                {/* Points */}
+                {/* Points and Options */}
                 <div className="field-options-row" style={{ marginTop: '1rem' }}>
                   <label className="field-label-text" style={{ marginRight: '1rem' }}>
                     Points:
@@ -532,6 +532,22 @@ function EditQuizFormPage() {
                       className="field-input"
                       style={{ width: '80px', marginLeft: '0.5rem', padding: '0.5rem' }}
                     />
+                  </label>
+                  <label className="field-checkbox">
+                    <input
+                      type="checkbox"
+                      checked={field.is_required}
+                      onChange={(e) => updateField(index, 'is_required', e.target.checked)}
+                    />
+                    <span>Required</span>
+                  </label>
+                  <label className="field-checkbox">
+                    <input
+                      type="checkbox"
+                      checked={field.ai_validation_enabled}
+                      onChange={(e) => updateField(index, 'ai_validation_enabled', e.target.checked)}
+                    />
+                    <span>AI Validation</span>
                   </label>
                   <button
                     type="button"

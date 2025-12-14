@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../AuthContext';
 import api from '../api';
@@ -12,6 +12,26 @@ function AdminDashboard() {
   const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
   const [showRemoveAccountModal, setShowRemoveAccountModal] = useState(false);
   const [isRemovingAccount, setIsRemovingAccount] = useState(false);
+  const [complaintFormId, setComplaintFormId] = useState(null);
+
+  // Find Complaint Form ID on mount
+  useEffect(() => {
+    const findComplaintForm = async () => {
+      try {
+        const res = await api.get('/api/forms');
+        const forms = res.data.data || [];
+        const complaintForm = forms.find(form => 
+          form.title.toLowerCase().includes('complaint')
+        );
+        if (complaintForm) {
+          setComplaintFormId(complaintForm.id);
+        }
+      } catch (err) {
+        console.error('Failed to load forms:', err);
+      }
+    };
+    findComplaintForm();
+  }, []);
 
   const handleLogout = () => {
     setShowLogoutConfirm(true);
@@ -220,6 +240,60 @@ function AdminDashboard() {
               onClick={() => navigate('/admin/users')}
             >
               Manage Users
+            </button>
+          </div>
+
+          {/* Example Forms Card */}
+          <div className="admin-card">
+            <div className="admin-card-icon">🧪</div>
+            <h3 className="admin-card-title">Example Forms</h3>
+            <p className="admin-card-description">
+              View and test all example forms with Google NLP AI validation enabled.
+            </p>
+            <button
+              type="button"
+              className="admin-card-button"
+              onClick={() => navigate('/admin/example-forms')}
+            >
+              View Example Forms
+            </button>
+          </div>
+
+          {/* All Forms Card */}
+          <div className="admin-card">
+            <div className="admin-card-icon">📋</div>
+            <h3 className="admin-card-title">All Forms</h3>
+            <p className="admin-card-description">
+              View all available forms in a beautiful grid layout. Each form has its own page.
+            </p>
+            <button
+              type="button"
+              className="admin-card-button"
+              onClick={() => navigate('/all-forms')}
+            >
+              View All Forms
+            </button>
+          </div>
+
+          {/* Complaint Form Card */}
+          <div className="admin-card">
+            <div className="admin-card-icon">📝</div>
+            <h3 className="admin-card-title">Complaint Form</h3>
+            <p className="admin-card-description">
+              Access the dedicated Complaint Form page. Test AI validation with negative sentiment detection.
+            </p>
+            <button
+              type="button"
+              className="admin-card-button"
+              onClick={() => {
+                if (complaintFormId) {
+                  navigate(`/forms/${complaintFormId}`);
+                } else {
+                  navigate('/admin/complaint-form');
+                }
+              }}
+            >
+              {complaintFormId ? `Open Complaint Form` : 'Open Complaint Form'}
             </button>
           </div>
         </div>
