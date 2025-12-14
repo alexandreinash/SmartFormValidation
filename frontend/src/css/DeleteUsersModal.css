@@ -1,0 +1,301 @@
+/* Delete Users Modal Styles */
+.delete-users-modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0.6);
+  backdrop-filter: blur(4px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  animation: fadeIn 0.2s ease-out;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+.delete-users-modal-content {
+  background: white;
+  border-radius: 12px;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+  width: 90%;
+  max-width: 600px;
+  max-height: 85vh;
+  display: flex;
+  flex-direction: column;
+  animation: slideUp 0.3s ease-out;
+  overflow: hidden;
+}
+
+@keyframes slideUp {
+  from {
+    transform: translateY(20px);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+.delete-users-modal-header {
+  display: flex;
+  align-items: center;
+  padding: 1.5rem;
+  border-bottom: 1px solid #e5e7eb;
+  background: linear-gradient(135deg, #fef2f2 0%, #fee2e2 100%);
+}
+
+.delete-users-modal-icon {
+  width: 48px;
+  height: 48px;
+  border-radius: 12px;
+  background: white;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-right: 1rem;
+  box-shadow: 0 2px 8px rgba(239, 68, 68, 0.2);
+}
+
+.delete-users-modal-title {
+  flex: 1;
+  margin: 0;
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: #1f2937;
+}
+
+.delete-users-modal-close {
+  background: transparent;
+  border: none;
+  font-size: 2rem;
+  color: #6b7280;
+  cursor: pointer;
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 6px;
+  transition: all 0.2s;
+  line-height: 1;
+  padding: 0;
+}
+
+.delete-users-modal-close:hover:not(:disabled) {
+  background: rgba(0, 0, 0, 0.05);
+  color: #1f2937;
+}
+
+.delete-users-modal-close:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.delete-users-modal-body {
+  padding: 1.5rem;
+  overflow-y: auto;
+  flex: 1;
+}
+
+.delete-users-warning {
+  font-size: 1.1rem;
+  color: #374151;
+  margin: 0 0 1rem 0;
+  line-height: 1.6;
+}
+
+.delete-users-warning strong {
+  color: #ef4444;
+  font-weight: 700;
+}
+
+.delete-users-permanent {
+  background: #fef3c7;
+  border-left: 4px solid #f59e0b;
+  padding: 0.75rem 1rem;
+  border-radius: 6px;
+  color: #92400e;
+  font-weight: 600;
+  margin: 0 0 1.5rem 0;
+  font-size: 0.95rem;
+}
+
+.delete-users-list-container {
+  margin-bottom: 1.5rem;
+}
+
+.delete-users-list-label {
+  font-weight: 600;
+  color: #374151;
+  margin-bottom: 0.75rem;
+  font-size: 0.9rem;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.delete-users-list {
+  background: #f9fafb;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  padding: 0.75rem;
+  max-height: 200px;
+  overflow-y: auto;
+}
+
+.delete-users-list-item {
+  padding: 0.5rem 0.75rem;
+  border-bottom: 1px solid #e5e7eb;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.delete-users-list-item:last-child {
+  border-bottom: none;
+}
+
+.delete-users-list-email {
+  color: #1f2937;
+  font-weight: 500;
+  font-size: 0.95rem;
+}
+
+.delete-users-list-username {
+  color: #6b7280;
+  font-size: 0.85rem;
+}
+
+.delete-users-confirm-section {
+  margin-top: 1.5rem;
+}
+
+.delete-users-confirm-label {
+  display: block;
+  font-weight: 600;
+  color: #374151;
+  margin-bottom: 0.5rem;
+  font-size: 0.95rem;
+}
+
+.delete-users-confirm-label strong {
+  color: #ef4444;
+}
+
+.delete-users-confirm-input {
+  width: 100%;
+  padding: 0.75rem 1rem;
+  border: 2px solid #e5e7eb;
+  border-radius: 8px;
+  font-size: 1rem;
+  font-weight: 600;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  transition: all 0.2s;
+  box-sizing: border-box;
+}
+
+.delete-users-confirm-input:focus {
+  outline: none;
+  border-color: #ef4444;
+  box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.1);
+}
+
+.delete-users-confirm-input:disabled {
+  background: #f3f4f6;
+  cursor: not-allowed;
+}
+
+.delete-users-confirm-input::placeholder {
+  color: #9ca3af;
+  font-weight: 400;
+  letter-spacing: normal;
+}
+
+.delete-users-modal-actions {
+  display: flex;
+  gap: 0.75rem;
+  padding: 1.5rem;
+  border-top: 1px solid #e5e7eb;
+  background: #f9fafb;
+}
+
+.delete-users-btn-cancel,
+.delete-users-btn-delete {
+  flex: 1;
+  padding: 0.75rem 1.5rem;
+  border-radius: 8px;
+  font-size: 1rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+  border: none;
+}
+
+.delete-users-btn-cancel {
+  background: white;
+  color: #374151;
+  border: 2px solid #d1d5db;
+}
+
+.delete-users-btn-cancel:hover:not(:disabled) {
+  background: #f9fafb;
+  border-color: #9ca3af;
+}
+
+.delete-users-btn-cancel:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.delete-users-btn-delete {
+  background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
+  color: white;
+  box-shadow: 0 4px 12px rgba(239, 68, 68, 0.3);
+}
+
+.delete-users-btn-delete:hover:not(:disabled) {
+  background: linear-gradient(135deg, #dc2626 0%, #b91c1c 100%);
+  box-shadow: 0 6px 16px rgba(239, 68, 68, 0.4);
+  transform: translateY(-1px);
+}
+
+.delete-users-btn-delete:active:not(:disabled) {
+  transform: translateY(0);
+}
+
+.delete-users-btn-delete:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  transform: none;
+}
+
+/* Scrollbar styling for user list */
+.delete-users-list::-webkit-scrollbar {
+  width: 8px;
+}
+
+.delete-users-list::-webkit-scrollbar-track {
+  background: #f1f5f9;
+  border-radius: 4px;
+}
+
+.delete-users-list::-webkit-scrollbar-thumb {
+  background: #cbd5e1;
+  border-radius: 4px;
+}
+
+.delete-users-list::-webkit-scrollbar-thumb:hover {
+  background: #94a3b8;
+}
+

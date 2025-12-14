@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../AuthContext';
 import api from '../api';
+import RemoveAccountModal from '../components/RemoveAccountModal';
 import '../css/AdminDashboard.css';
 import '../css/components.css';
 
@@ -9,6 +10,8 @@ function AdminDashboard() {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
   const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
+  const [showRemoveAccountModal, setShowRemoveAccountModal] = useState(false);
+  const [isRemovingAccount, setIsRemovingAccount] = useState(false);
 
   const handleLogout = () => {
     setShowLogoutConfirm(true);
@@ -19,17 +22,16 @@ function AdminDashboard() {
     }, 800);
   };
 
-  const handleRemoveAccount = async () => {
-    const input = window.prompt("Type 'confirm' to remove this account (this cannot be undone)");
-    if (input !== 'confirm') {
-      window.alert('Account removal cancelled or confirmation text incorrect.');
-      return;
-    }
+  const handleRemoveAccountClick = () => {
+    setShowRemoveAccountModal(true);
+  };
 
+  const handleRemoveAccountConfirm = async () => {
+    setIsRemovingAccount(true);
     try {
-      const res = await api.delete('/api/accounts/remove', { data: { confirm: 'confirm' } });
+      const res = await api.delete('/api/accounts/remove', { data: { confirm: 'DELETE' } });
       if (res.data && res.data.success) {
-        window.alert(res.data.message || 'Account removed');
+        setShowRemoveAccountModal(false);
         // logout and navigate to login
         setShowLogoutConfirm(true);
         localStorage.setItem('sfv_just_logged_out', 'true');
@@ -39,10 +41,18 @@ function AdminDashboard() {
         }, 800);
       } else {
         window.alert('Failed to remove account');
+        setIsRemovingAccount(false);
       }
     } catch (err) {
       console.error(err);
-      window.alert('Error removing account');
+      window.alert(err.response?.data?.error?.message || 'Error removing account');
+      setIsRemovingAccount(false);
+    }
+  };
+
+  const handleRemoveAccountCancel = () => {
+    if (!isRemovingAccount) {
+      setShowRemoveAccountModal(false);
     }
   };
 
@@ -79,10 +89,20 @@ function AdminDashboard() {
       <button
         type="button"
         className="admin-remove-account-button"
-        onClick={handleRemoveAccount}
+        onClick={handleRemoveAccountClick}
       >
         Remove Account
       </button>
+
+      {/* Remove Account Modal */}
+      {showRemoveAccountModal && (
+        <RemoveAccountModal
+          user={user}
+          onConfirm={handleRemoveAccountConfirm}
+          onCancel={handleRemoveAccountCancel}
+          isRemoving={isRemovingAccount}
+        />
+      )}
 
       {/* Main Content */}
       <div className="admin-dashboard-content">
@@ -184,6 +204,22 @@ function AdminDashboard() {
               onClick={() => navigate('/admin/groups')}
             >
               Manage Groups
+            </button>
+          </div>
+
+          {/* Manage Users Card */}
+          <div className="admin-card">
+            <div className="admin-card-icon">👤</div>
+            <h3 className="admin-card-title">Manage Users</h3>
+            <p className="admin-card-description">
+              View and manage all registered users, including administrators and end-users.
+            </p>
+            <button
+              type="button"
+              className="admin-card-button"
+              onClick={() => navigate('/admin/users')}
+            >
+              Manage Users
             </button>
           </div>
         </div>
