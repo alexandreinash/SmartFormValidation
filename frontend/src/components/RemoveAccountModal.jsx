@@ -27,13 +27,13 @@ function RemoveAccountModal({ user, onConfirm, onCancel, isRemoving }) {
   }, [user]);
 
   const handleConfirm = () => {
-    if (confirmText === 'DELETE') {
+    if (confirmText === 'YES') {
       onConfirm();
     }
   };
 
   const handleKeyPress = (e) => {
-    if (e.key === 'Enter' && confirmText === 'DELETE') {
+    if (e.key === 'Enter' && confirmText === 'YES') {
       handleConfirm();
     }
   };
@@ -59,9 +59,9 @@ function RemoveAccountModal({ user, onConfirm, onCancel, isRemoving }) {
 
         <div className="delete-users-modal-body">
           <p className="delete-users-warning">
-            Are you sure you want to {isAccountOwner ? 'disband this account' : 'remove your account association'}?
+            Are you sure you want to {isAccountOwner ? 'delete this account and all its members' : 'delete your account'}?
             {isAccountOwner && userCount > 0 && (
-              <> This will affect <strong>{userCount} user{userCount !== 1 ? 's' : ''}</strong>.</>
+              <> This will permanently delete <strong>{userCount} user{userCount !== 1 ? 's' : ''}</strong> from the system.</>
             )}
           </p>
           
@@ -74,7 +74,7 @@ function RemoveAccountModal({ user, onConfirm, onCancel, isRemoving }) {
 
           {isAccountOwner && userCount > 0 && (
             <div className="delete-users-list-container">
-              <div className="delete-users-list-label">USERS TO BE AFFECTED:</div>
+              <div className="delete-users-list-label">USERS TO BE DELETED:</div>
               {loadingMembers ? (
                 <div className="delete-users-list" style={{ padding: '1rem', textAlign: 'center', color: '#6b7280' }}>
                   Loading users...
@@ -96,7 +96,7 @@ function RemoveAccountModal({ user, onConfirm, onCancel, isRemoving }) {
 
           <div className="delete-users-confirm-section">
             <label className="delete-users-confirm-label">
-              Type <strong>"DELETE"</strong> to confirm:
+              Type <strong>"YES"</strong> to confirm:
             </label>
             <input
               type="text"
@@ -104,7 +104,7 @@ function RemoveAccountModal({ user, onConfirm, onCancel, isRemoving }) {
               value={confirmText}
               onChange={(e) => setConfirmText(e.target.value.toUpperCase())}
               onKeyPress={handleKeyPress}
-              placeholder="DELETE"
+              placeholder="YES"
               disabled={isRemoving}
               autoFocus
             />
@@ -122,9 +122,9 @@ function RemoveAccountModal({ user, onConfirm, onCancel, isRemoving }) {
           <button
             className="delete-users-btn-delete"
             onClick={handleConfirm}
-            disabled={confirmText !== 'DELETE' || isRemoving}
+            disabled={confirmText !== 'YES' || isRemoving}
           >
-            {isRemoving ? 'Removing...' : (isAccountOwner ? 'Disband Account' : 'Remove Account')}
+            {isRemoving ? 'Deleting...' : (isAccountOwner ? 'Delete Account' : 'Delete Account')}
           </button>
         </div>
       </div>
