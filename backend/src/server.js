@@ -105,6 +105,26 @@ sequelize
   .authenticate()
   .then(() => {
     console.log('Database connection has been established successfully.');
+    
+    // Display email service status
+    console.log('\n=== Email Service Status ===');
+    if (process.env.EMAIL_ENABLED === 'true') {
+      console.log('✅ Email service: ENABLED');
+      if (process.env.SMTP_USER && process.env.SMTP_PASS) {
+        console.log(`✅ SMTP configured: ${process.env.SMTP_USER}`);
+        console.log('   (Connection will be verified automatically)');
+      } else {
+        console.log('❌ SMTP credentials: NOT CONFIGURED');
+        console.log('   Set SMTP_USER and SMTP_PASS in .env file');
+        console.log('   See EMAIL_SETUP_GUIDE.md for instructions');
+      }
+    } else {
+      console.log('❌ Email service: DISABLED');
+      console.log('   Set EMAIL_ENABLED=true in .env file to enable');
+      console.log('   Password reset emails will NOT be sent');
+    }
+    console.log('===========================\n');
+    
     return sequelize.sync();
   })
   .then(() => {
