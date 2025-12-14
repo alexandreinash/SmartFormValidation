@@ -4,7 +4,7 @@ const FormField = require('../models/FormField');
 const Submission = require('../models/Submission');
 const SubmissionData = require('../models/SubmissionData');
 const User = require('../models/User');
-const { analyzeSentiment, analyzeEntities } = require('../services/googleNlp');
+const { analyzeSentiment, analyzeEntities, validateComprehensively } = require('../services/googleNlp');
 const { logAudit } = require('../services/auditLogger');
 const {
   sendSubmissionNotificationEmail,
@@ -131,9 +131,10 @@ async function submitForm(req, res, next) {
         .json({ success: false, message: 'Form not found' });
     }
 
-    const aiSummaries = {}; // fieldId -> { status: 'correct' | 'needs_review' | 'not_evaluated', details }
+    const aiSummaries = {}; // fieldId -> { status: 'correct' | 'needs_review' | 'not_evaluated', details, errors: [] }
+    const allAiErrors = {}; // fieldId -> array of all detected errors with corrections
 
-    // AI validation (sentiment & entity, plus quiz answer validation)
+    // Comprehensive AI validation - detects ALL errors and provides corrections
     for (const field of form.fields) {
       const v = values[field.id];
       if (!field.ai_validation_enabled || !v) continue;
@@ -151,96 +152,51 @@ async function submitForm(req, res, next) {
           // Not a quiz field, continue with normal AI validation
         }
 
-        const sent = await analyzeSentiment(v);
-        const entities = await analyzeEntities(v);
+        // Use comprehensive validation that detects ALL errors
+        const detectedErrors = await validateComprehensively(
+          v,
+          field.label,
+          field.type,
+          quizData
+        );
 
-        let needsReview = false;
-        const reasons = [];
+        // Store all detected errors
+        allAiErrors[field.id] = detectedErrors;
 
-        // Quiz-specific AI validation: check semantic similarity to correct answer
-        if (quizData && quizData.questionType && quizData.correctAnswer) {
-          const userAnswer = v.trim().toLowerCase();
-          const correctAnswer = quizData.correctAnswer.trim().toLowerCase();
-          
-          // For fill_blank questions, use AI to check semantic similarity
-          if (quizData.questionType === 'fill_blank') {
-            // Check if answers are exactly the same (case-insensitive)
-            if (userAnswer === correctAnswer) {
-              reasons.push('✓ Your answer matches the correct answer perfectly!');
-            } else {
-              // Use entity analysis to check if the answer is semantically similar
-              const userEntities = await analyzeEntities(v);
-              const correctEntities = await analyzeEntities(quizData.correctAnswer);
-              
-              // Check for common entities or keywords
-              const userEntityNames = (userEntities.entities || []).map(e => e.name?.toLowerCase() || '').filter(Boolean);
-              const correctEntityNames = (correctEntities.entities || []).map(e => e.name?.toLowerCase() || '').filter(Boolean);
-              
-              const hasCommonEntities = userEntityNames.some(name => 
-                correctEntityNames.some(correctName => 
-                  name.includes(correctName) || correctName.includes(name)
-                )
-              );
-              
-              if (hasCommonEntities || userAnswer.includes(correctAnswer) || correctAnswer.includes(userAnswer)) {
-                reasons.push('⚠️ Your answer is close but may not be exactly correct. Please review.');
-                needsReview = true;
-              } else {
-                reasons.push('✗ Your answer does not appear to match the expected answer. Please try again.');
-                needsReview = true;
-                validationErrors.push({
-                  fieldId: field.id,
-                  type: 'ai_quiz',
-                  message: 'Your answer does not match the expected answer. Please review and try again.',
-                });
-              }
-            }
+        // Add all errors to validationErrors array for API response
+        detectedErrors.forEach((error) => {
+          if (error.severity === 'error') {
+            validationErrors.push({
+              fieldId: field.id,
+              type: `ai_${error.type}`,
+              message: error.issue,
+              correction: error.correction,
+            });
           }
-        }
+        });
 
-        // General sentiment validation
-        if (sent.score < -0.6) {
-          needsReview = true;
-          reasons.push(
-            'The tone of your answer is very negative. Please consider rephrasing.'
-          );
-          validationErrors.push({
-            fieldId: field.id,
-            type: 'ai_sentiment',
-            message:
-              'The tone of your input is very negative. Please consider rephrasing.',
-          });
-        }
-
-        // Entity validation for name/company fields
-        if (
-          entities.entities &&
-          entities.entities.length === 0 &&
-          /name|company/i.test(field.label) &&
-          !quizData // Skip this for quiz fields
-        ) {
-          needsReview = true;
-          reasons.push("This doesn't look like a typical name or company.");
-          validationErrors.push({
-            fieldId: field.id,
-            type: 'ai_entity',
-            message:
-              "This doesn't look like a typical name or company. Please check your input.",
-          });
-        }
+        // Build summary with all errors
+        const needsReview = detectedErrors.length > 0;
+        const errorDetails = detectedErrors.map((err, idx) => {
+          return `${idx + 1}. [${err.type.toUpperCase()}] ${err.issue} ${err.correction ? `Correction: ${err.correction}` : ''}`;
+        }).join('\n');
 
         aiSummaries[field.id] = {
           status: needsReview ? 'needs_review' : 'correct',
-          details:
-            reasons.join(' ') ||
-            'Your answer looks appropriate according to AI analysis.',
+          details: errorDetails || 'Your answer looks appropriate according to AI analysis.',
+          errors: detectedErrors, // Include all errors in the summary
         };
+
+        // Legacy flags will be calculated when creating dataRows
+
       } catch (e) {
         console.error('AI validation failed, falling back to basic only', e);
+        allAiErrors[field.id] = [];
         aiSummaries[field.id] = {
           status: 'not_evaluated',
           details:
             'AI validation is temporarily unavailable. Basic validation was applied only.',
+          errors: [],
         };
         await logAudit({
           userId: null,
@@ -258,6 +214,7 @@ async function submitForm(req, res, next) {
         message: 'Some answers need review based on validation and AI checking.',
         errors: validationErrors,
         aiSummaries,
+        allAiErrors, // Include all errors with corrections in response
       });
     }
 
@@ -270,13 +227,31 @@ async function submitForm(req, res, next) {
     for (const field of form.fields) {
       const v = values[field.id] || '';
       const summary = aiSummaries[field.id];
+      const errors = allAiErrors[field.id] || [];
+      
+      // Store all AI errors as JSON (clean array without internal properties)
+      const errorsJson = errors.map(err => ({
+        type: err.type,
+        issue: err.issue,
+        correction: err.correction,
+        severity: err.severity
+      }));
+      
+      // Calculate legacy flags for backward compatibility
+      const hasErrorSeverity = errors.some(e => e.severity === 'error');
+      const hasSentimentError = errors.some(e => e.type === 'sentiment');
+      const hasEntityError = errors.some(e => e.type === 'entity');
+      
       dataRows.push({
         submission_id: submission.id,
         field_id: field.id,
         value: v,
-        ai_sentiment_flag: summary?.status === 'needs_review' ? true : false,
-        ai_entity_flag: summary?.status === 'needs_review' ? true : false,
+        // Legacy flags for backward compatibility
+        ai_sentiment_flag: hasSentimentError || false,
+        ai_entity_flag: hasEntityError || false,
         ai_not_evaluated: summary?.status === 'not_evaluated' ? true : false,
+        // New: Store all errors with corrections as JSON
+        ai_errors: errorsJson.length > 0 ? JSON.stringify(errorsJson) : null,
       });
     }
     await SubmissionData.bulkCreate(dataRows);
@@ -289,10 +264,15 @@ async function submitForm(req, res, next) {
       metadata: { submissionId: submission.id },
     });
 
-    // Check if submission has AI flags
-    const hasAiFlags = dataRows.some(
-      (row) => row.ai_sentiment_flag || row.ai_entity_flag
-    );
+    // Check if submission has AI flags (errors with severity 'error')
+    const hasAiFlags = dataRows.some((row) => {
+      try {
+        const errors = row.ai_errors ? JSON.parse(row.ai_errors) : [];
+        return errors.some(e => e.severity === 'error') || row.ai_sentiment_flag || row.ai_entity_flag;
+      } catch {
+        return row.ai_sentiment_flag || row.ai_entity_flag;
+      }
+    });
 
     // Send email notifications (non-blocking)
     // Notify admin if form creator exists
@@ -408,6 +388,14 @@ async function getFormSubmissions(req, res, next) {
       },
     });
   } catch (err) {
+    console.error('Error in getFormSubmissions:', err);
+    // If error is related to missing column, provide helpful message
+    if (err.message && (err.message.includes('ai_errors') || err.message.includes('Unknown column'))) {
+      return res.status(500).json({
+        success: false,
+        message: 'Database schema needs update. Please run: node add-ai-errors-column.js in the backend directory.',
+      });
+    }
     next(err);
   }
 }
@@ -457,6 +445,14 @@ async function getAllSubmissions(req, res, next) {
       },
     });
   } catch (err) {
+    console.error('Error in getAllSubmissions:', err);
+    // If error is related to missing column, provide helpful message
+    if (err.message && (err.message.includes('ai_errors') || err.message.includes('Unknown column'))) {
+      return res.status(500).json({
+        success: false,
+        message: 'Database schema needs update. Please run: node add-ai-errors-column.js in the backend directory.',
+      });
+    }
     next(err);
   }
 }

@@ -41,6 +41,25 @@ function DataDashboard() {
     { blue: 5, red: 2 }
   ];
 
+  // Market Share Comparison Data - 100% accurate from image
+  const marketShareData = useMemo(() => [
+    { product: 'Product 1', share: 1, color: '#87CEEB' },   // Light blue
+    { product: 'Product 2', share: 2, color: '#00CED1' },   // Teal/Cyan
+    { product: 'Product 3', share: 7, color: '#4169E1' },   // Blue
+    { product: 'Product 4', share: 12, color: '#FFD700' },  // Yellow
+    { product: 'Product 5', share: 15, color: '#FF8C00' },  // Orange
+    { product: 'Product 6', share: 28, color: '#8B0000' },  // Dark red/Maroon
+    { product: 'Product 7', share: 24, color: '#DC143C' }, // Red
+    { product: 'Product 8', share: 9, color: '#228B22' },  // Green
+    { product: 'Product 9', share: 8, color: '#9370DB' },   // Purple/Blue
+    { product: 'Product 10', share: 4, color: '#FF69B4' }   // Pink
+  ], []);
+
+  // Market share chart dimensions
+  const marketShareChartHeight = 250;
+  const marketShareChartWidth = 1000;
+  const maxMarketShare = 30; // Max value on Y-axis
+
   // Calculate chart dimensions and scales
   const chartHeight = 200;
   const chartWidth = 800;
@@ -185,6 +204,84 @@ function DataDashboard() {
                 >
                   {d.day}
                 </text>
+              );
+            })}
+          </svg>
+        </div>
+      </div>
+
+      {/* Market Share Comparison Chart */}
+      <div className="data-dashboard-ebitda-card">
+        <h2 className="data-dashboard-chart-title">
+          Market Share Comparison of Smartphone Brands
+        </h2>
+        <div className="data-dashboard-ebitda-chart">
+          <svg viewBox={`0 0 ${marketShareChartWidth} ${marketShareChartHeight + 80}`} className="data-dashboard-ebitda-svg">
+            {/* Y-axis labels */}
+            {[5, 10, 20, 30].map((value) => (
+              <g key={value}>
+                <text
+                  x="10"
+                  y={marketShareChartHeight - (value / maxMarketShare) * marketShareChartHeight * 0.85 + 5}
+                  className="data-dashboard-y-axis-label"
+                  textAnchor="end"
+                >
+                  {value}
+                </text>
+                <line
+                  x1="40"
+                  y1={marketShareChartHeight - (value / maxMarketShare) * marketShareChartHeight * 0.85}
+                  x2={marketShareChartWidth - 40}
+                  y2={marketShareChartHeight - (value / maxMarketShare) * marketShareChartHeight * 0.85}
+                  className="data-dashboard-grid-line"
+                />
+              </g>
+            ))}
+
+
+            {/* Bars */}
+            {marketShareData.map((item, i) => {
+              const barWidth = 70;
+              const barSpacing = (marketShareChartWidth - 80) / marketShareData.length;
+              const barX = 40 + i * barSpacing + (barSpacing - barWidth) / 2;
+              const barHeight = (item.share / maxMarketShare) * marketShareChartHeight * 0.85;
+              const barY = marketShareChartHeight - barHeight;
+              
+              return (
+                <g key={item.product}>
+                  {/* Bar */}
+                  <rect
+                    x={barX}
+                    y={barY}
+                    width={barWidth}
+                    height={barHeight}
+                    fill={item.color}
+                    className="data-dashboard-bar"
+                  />
+                  
+                  {/* Percentage label on top of bar */}
+                  <text
+                    x={barX + barWidth / 2}
+                    y={barY - 5}
+                    className="data-dashboard-y-axis-label"
+                    textAnchor="middle"
+                    fontSize="12"
+                    fontWeight="600"
+                    fill="#1e293b"
+                  >
+                    {item.share}%
+                  </text>
+                  
+                  {/* X-axis label */}
+                  <text
+                    x={barX + barWidth / 2}
+                    y={marketShareChartHeight + 25}
+                    className="data-dashboard-x-axis-label"
+                    textAnchor="middle"
+                  >
+                    {item.product}
+                  </text>
+                </g>
               );
             })}
           </svg>

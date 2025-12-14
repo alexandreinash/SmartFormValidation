@@ -171,13 +171,13 @@ function ManageGroupsPage() {
     <div className="manage-groups-container">
       {/* Header */}
       <div className="groups-header">
+        <button onClick={() => navigate('/admin')} className="btn-back">
+          ← Back to Dashboard
+        </button>
         <div>
           <h1>Manage Groups</h1>
           <p>Create and manage groups of end-users for efficient form sharing</p>
         </div>
-        <button onClick={() => navigate('/admin')} className="btn-back">
-          ← Back to Dashboard
-        </button>
       </div>
 
       {/* Search and Create */}

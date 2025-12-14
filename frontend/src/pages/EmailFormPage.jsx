@@ -255,7 +255,7 @@ function EmailFormPage() {
                   <button
                     type="button"
                     onClick={addField}
-                    className="add-field-button"
+                    className="add-field-button add-field-button-yellow"
                   >
                     + Add Field
                   </button>

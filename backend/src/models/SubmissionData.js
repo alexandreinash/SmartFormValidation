@@ -14,6 +14,8 @@ const SubmissionData = sequelize.define(
     ai_entity_flag: { type: DataTypes.BOOLEAN, defaultValue: false },
     // True when AI validation could not be performed (e.g., Google NLP failure)
     ai_not_evaluated: { type: DataTypes.BOOLEAN, defaultValue: false },
+    // JSON array storing all AI-detected errors with corrections: [{type: string, issue: string, correction: string, severity: string}]
+    ai_errors: { type: DataTypes.TEXT, allowNull: true },
   },
   {
     tableName: 'submission_data',

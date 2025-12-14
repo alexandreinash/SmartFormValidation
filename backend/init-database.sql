@@ -84,6 +84,7 @@ CREATE TABLE `submission_data` (
   `ai_sentiment_flag` BOOLEAN DEFAULT FALSE,
   `ai_entity_flag` BOOLEAN DEFAULT FALSE,
   `ai_not_evaluated` BOOLEAN DEFAULT FALSE,
+  `ai_errors` TEXT NULL,
   FOREIGN KEY (`submission_id`) REFERENCES `submissions`(`id`) ON DELETE CASCADE,
   FOREIGN KEY (`field_id`) REFERENCES `form_fields`(`id`) ON DELETE CASCADE,
   INDEX `idx_submission_id` (`submission_id`),

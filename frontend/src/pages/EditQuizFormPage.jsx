@@ -389,8 +389,7 @@ function EditQuizFormPage() {
                     <select
                       value={field.type}
                       onChange={(e) => updateField(index, 'type', e.target.value)}
-                      className="field-type-button"
-                      style={{ padding: '0.625rem 1.25rem', background: '#e0f2fe', border: '1px solid #bae6fd', borderRadius: '8px' }}
+                      className="field-type-button field-type-button-yellow"
                     >
                       <option value="multiple_choice">Multiple Choice</option>
                       <option value="fill_blank">Fill in the Blank</option>
@@ -449,7 +448,7 @@ function EditQuizFormPage() {
                       <button
                         type="button"
                         onClick={() => addOption(index)}
-                        className="add-field-button"
+                        className="add-field-button add-field-button-yellow"
                         style={{ marginTop: '0.5rem' }}
                       >
                         + Add Option
@@ -537,7 +536,7 @@ function EditQuizFormPage() {
                   <button
                     type="button"
                     onClick={addField}
-                    className="add-field-button"
+                    className="add-field-button add-field-button-yellow"
                   >
                     + Add Question
                   </button>

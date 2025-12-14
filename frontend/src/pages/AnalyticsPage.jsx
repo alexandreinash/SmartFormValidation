@@ -55,17 +55,6 @@ function AnalyticsPage() {
     };
   }, [analytics]);
 
-  // Prepare data for line chart
-  const lineChartData = useMemo(() => {
-    if (!analytics?.submissionsOverTime || analytics.submissionsOverTime.length === 0) return null;
-    
-    const maxCount = Math.max(...analytics.submissionsOverTime.map(i => i.count), 1);
-    return analytics.submissionsOverTime.map(item => ({
-      ...item,
-      normalizedValue: (item.count / maxCount) * 100,
-    }));
-  }, [analytics]);
-
   // Prepare data for donut chart
   const donutChartData = useMemo(() => {
     if (!analytics?.topForms || analytics.topForms.length === 0) return null;
@@ -90,11 +79,45 @@ function AnalyticsPage() {
     });
   }, [analytics]);
 
+  // Vertical Bar Chart Data - Top Forms by Submissions (using same colors as donut chart)
+  const verticalBarChartData = useMemo(() => {
+    if (!donutChartData || donutChartData.length === 0) return [];
+    
+    // Use the same forms and colors as the donut chart
+    const total = donutChartData.reduce((sum, form) => sum + form.submissionCount, 0);
+    if (total === 0) return [];
+
+    return donutChartData.map((form) => {
+      const percent = (form.submissionCount / total) * 100;
+      return {
+        formTitle: form.formTitle,
+        submissionCount: form.submissionCount,
+        percent: Math.round(percent * 10) / 10, // Round to 1 decimal
+        color: form.color, // Use the same color from donut chart
+        formId: form.formId,
+      };
+    });
+  }, [donutChartData]);
+
+  // Vertical bar chart dimensions - optimized to fit container
+  const verticalChartHeight = 250;
+  const verticalChartWidth = 500;
+  const maxPercent = 30; // Max percentage value on Y-axis (like the image)
+  const topMargin = 35;
+  const bottomMargin = 50;
+  const leftMargin = 45;
+  const rightMargin = 20;
+  
+  // Calculate bar dimensions (always 5 bars from donut chart)
+  const numBars = 5;
+  const availableWidth = verticalChartWidth - leftMargin - rightMargin;
+  const barWidth = Math.min(45, Math.floor(availableWidth / numBars - 8));
+  const barSpacing = Math.floor(availableWidth / numBars);
+
   if (loading) {
     return (
       <div className="analytics-dashboard-container">
         <div className="analytics-header">
-          <div className="analytics-logo">Smart Form Validator</div>
           <button
             type="button"
             className="analytics-back-button"
@@ -102,6 +125,9 @@ function AnalyticsPage() {
           >
             Back to Dashboard
           </button>
+          <div className="analytics-header-center">
+            <div className="analytics-header-title">Data Analytics Dashboard</div>
+          </div>
         </div>
         <div className="analytics-content">
           <div className="analytics-loading">Loading Analytics...</div>
@@ -114,7 +140,6 @@ function AnalyticsPage() {
     return (
       <div className="analytics-dashboard-container">
         <div className="analytics-header">
-          <div className="analytics-logo">Smart Form Validator</div>
           <button
             type="button"
             className="analytics-back-button"
@@ -122,6 +147,9 @@ function AnalyticsPage() {
           >
             Back to Dashboard
           </button>
+          <div className="analytics-header-center">
+            <div className="analytics-header-title">Data Analytics Dashboard</div>
+          </div>
         </div>
         <div className="analytics-content">
           <div className="analytics-error">{error}</div>
@@ -130,24 +158,9 @@ function AnalyticsPage() {
     );
   }
 
-  const currentDate = new Date();
-  const monthYear = currentDate.toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
-
   return (
     <div className="analytics-dashboard-container">
       <div className="analytics-header">
-        <div className="analytics-logo">
-          <div className="analytics-logo-icon">
-            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-              <path d="M9 19C9 19.5304 9.21071 20.0391 9.58579 20.4142C9.96086 20.7893 10.4696 21 11 21H13C13.5304 21 14.0391 20.7893 14.4142 20.4142C14.7893 20.0391 15 19.5304 15 19V17H9V19ZM12 3C10.34 3 9 4.34 9 6V7H15V6C15 4.34 13.66 3 12 3Z" fill="#ef4444"/>
-            </svg>
-          </div>
-          <span>Smart Form Validator</span>
-        </div>
-        <div className="analytics-header-right">
-          <div className="analytics-header-title">Web Analytics Dashboard</div>
-          <div className="analytics-header-date">{monthYear}</div>
-        </div>
         <button
           type="button"
           className="analytics-back-button"
@@ -155,6 +168,9 @@ function AnalyticsPage() {
         >
           Back to Dashboard
         </button>
+        <div className="analytics-header-center">
+          <div className="analytics-header-title">Data Analytics Dashboard</div>
+        </div>
       </div>
 
       <div className="analytics-content">
@@ -166,7 +182,7 @@ function AnalyticsPage() {
                 <div className="analytics-kpi-label">SUBMISSIONS PER USER</div>
                 <div className="analytics-kpi-value">{calculatedMetrics?.submissionsPerUser || '0.0'}</div>
                 <div className="analytics-kpi-icon analytics-kpi-icon-linechart">
-                  <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
                     <path d="M3 3V21H21" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
                     <path d="M7 16L12 11L16 15L21 10" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
                     <path d="M21 10H16V15" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
@@ -178,7 +194,7 @@ function AnalyticsPage() {
                 <div className="analytics-kpi-label">SUBMISSIONS PER FORM</div>
                 <div className="analytics-kpi-value">{calculatedMetrics?.submissionsPerForm || '0.0'}</div>
                 <div className="analytics-kpi-icon analytics-kpi-icon-document">
-                  <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
                     <path d="M14 2H6C5.46957 2 4.96086 2.21071 4.58579 2.58579C4.21071 2.96086 4 3.46957 4 4V20C4 20.5304 4.21071 21.0391 4.58579 21.4142C4.96086 21.7893 5.46957 22 6 22H18C18.5304 22 19.0391 21.7893 19.4142 21.4142C19.7893 21.0391 20 20.5304 20 20V8L14 2Z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
                     <path d="M14 2V8H20" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
                     <path d="M16 13H8" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
@@ -199,7 +215,7 @@ function AnalyticsPage() {
                   })()}
                 </div>
                 <div className="analytics-kpi-icon analytics-kpi-icon-warning">
-                  <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
                     <path d="M12 9V13M12 17H12.01M21 12C21 16.9706 16.9706 21 12 21C7.02944 21 3 16.9706 3 12C3 7.02944 7.02944 3 12 3C16.9706 3 21 7.02944 21 12Z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
                   </svg>
                 </div>
@@ -208,89 +224,114 @@ function AnalyticsPage() {
 
             {/* Charts Row */}
             <div className="analytics-charts-grid">
-              {/* Line Chart - Submissions Over Time */}
-              {lineChartData && lineChartData.length > 0 && (
+              {/* Vertical Bar Chart - Top Forms by Submissions */}
+              {verticalBarChartData && verticalBarChartData.length > 0 && (
                 <div className="analytics-chart-card">
                   <div className="analytics-chart-header">
-                    <h3 className="analytics-chart-title">Submissions</h3>
-                    <div className="analytics-chart-subtitle">Last 30 Days</div>
+                    <h3 className="analytics-chart-title">Form Submission Comparison</h3>
+                    <div className="analytics-chart-subtitle">Submission Share Analysis</div>
                   </div>
-                  <div className="analytics-line-chart-container">
-                    <div className="analytics-line-chart">
-                      <svg className="analytics-line-chart-svg" viewBox="0 0 800 200" preserveAspectRatio="none">
-                        <defs>
-                          <linearGradient id="lineGradient" x1="0%" y1="0%" x2="0%" y2="100%">
-                            <stop offset="0%" stopColor="#3b82f6" stopOpacity="0.3" />
-                            <stop offset="100%" stopColor="#3b82f6" stopOpacity="0" />
-                          </linearGradient>
-                        </defs>
-                        {(() => {
-                          const points = lineChartData.map((item, index) => {
-                            const x = lineChartData.length > 1 
-                              ? (index / (lineChartData.length - 1)) * 800 
-                              : 400;
-                            const y = 200 - Math.max(item.normalizedValue * 1.8, 5);
-                            return { x, y };
-                          });
-                          
-                          // Create area path
-                          const areaPath = points.length > 0 
-                            ? `M ${points[0].x},200 L ${points.map(p => `${p.x},${p.y}`).join(' L ')} L ${points[points.length - 1].x},200 Z`
-                            : '';
-                          
-                          // Create line path
-                          const linePath = points.length > 0
-                            ? `M ${points.map(p => `${p.x},${p.y}`).join(' L ')}`
-                            : '';
-                          
-                          return (
-                            <>
-                              <path
-                                className="analytics-line-chart-area"
-                                d={areaPath}
-                                fill="url(#lineGradient)"
-                              />
-                              <path
-                                className="analytics-line-chart-line"
-                                d={linePath}
-                                fill="none"
-                              />
-                              {points.map((point, index) => (
-                                <circle
-                                  key={index}
-                                  className="analytics-line-chart-dot"
-                                  cx={point.x}
-                                  cy={point.y}
-                                  r="4"
-                                />
-                              ))}
-                            </>
-                          );
-                        })()}
-                      </svg>
-                      <div className="analytics-line-chart-x-axis">
-                        {lineChartData.length > 0 && (() => {
-                          const step = Math.max(1, Math.floor(lineChartData.length / 5));
-                          return lineChartData
-                            .filter((_, i) => i % step === 0 || i === lineChartData.length - 1)
-                            .map((item, index) => (
-                              <div key={index} className="analytics-line-chart-x-label">
-                                {new Date(item.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
-                              </div>
-                            ));
-                        })()}
-                      </div>
-                    </div>
-                    <div className="analytics-chart-footer">
-                      {lineChartData && lineChartData.length > 0 && (
-                        <div className="analytics-chart-date">
-                          {new Date(lineChartData[lineChartData.length - 1].date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
-                        </div>
-                      )}
-                      <div className="analytics-chart-total">
-                        {analytics.overview.totalSubmissions} Total Submissions
-                      </div>
-                    </div>
+                  <div className="analytics-line-chart-container" style={{ padding: '0.5rem 0', overflow: 'visible' }}>
+                    <svg viewBox={`0 0 ${verticalChartWidth} ${verticalChartHeight + 60}`} className="analytics-line-chart-svg" style={{ width: '100%', height: 'auto', maxWidth: '100%' }}>
+                      {/* Y-axis labels and grid lines */}
+                      {[5, 10, 20, 30].map((value) => {
+                        const chartAreaHeight = verticalChartHeight - topMargin - bottomMargin;
+                        const yPos = topMargin + chartAreaHeight - (value / maxPercent) * chartAreaHeight;
+                        return (
+                          <g key={value}>
+                            <text
+                              x={leftMargin - 8}
+                              y={yPos + 4}
+                              className="analytics-line-chart-x-label"
+                              textAnchor="end"
+                              fill="#6b7280"
+                              fontSize="11"
+                              fontWeight="500"
+                            >
+                              {value}
+                            </text>
+                            <line
+                              x1={leftMargin}
+                              y1={yPos}
+                              x2={verticalChartWidth - rightMargin}
+                              y2={yPos}
+                              stroke="#e5e7eb"
+                              strokeWidth="1"
+                            />
+                          </g>
+                        );
+                      })}
+
+                      {/* Y-axis label */}
+                      <text
+                        x="18"
+                        y={verticalChartHeight / 2 + 30}
+                        className="analytics-line-chart-x-label"
+                        textAnchor="middle"
+                        fill="#6b7280"
+                        fontSize="10"
+                        fontWeight="500"
+                        transform={`rotate(-90, 18, ${verticalChartHeight / 2 + 30})`}
+                      >
+                        Submission Share (%)
+                      </text>
+
+                      {/* Vertical Bars */}
+                      {verticalBarChartData.map((form, index) => {
+                        const chartAreaWidth = verticalChartWidth - leftMargin - rightMargin;
+                        const chartAreaHeight = verticalChartHeight - topMargin - bottomMargin;
+                        const barX = leftMargin + index * barSpacing + (barSpacing - barWidth) / 2;
+                        const barHeight = (form.percent / maxPercent) * chartAreaHeight;
+                        const barY = topMargin + chartAreaHeight - barHeight;
+                        
+                        // Truncate form name if too long - adjust based on available space
+                        const maxNameLength = Math.floor(barSpacing / 6);
+                        const displayName = form.formTitle.length > maxNameLength 
+                          ? form.formTitle.substring(0, Math.max(6, maxNameLength - 3)) + '...' 
+                          : form.formTitle;
+                        
+                        return (
+                          <g key={form.formId || form.formTitle}>
+                            {/* Bar */}
+                            <rect
+                              x={barX}
+                              y={barY}
+                              width={barWidth}
+                              height={barHeight}
+                              fill={form.color}
+                              style={{ transition: 'opacity 0.2s' }}
+                              className="analytics-chart-bar"
+                            />
+                            
+                            {/* Percentage label on top of bar */}
+                            <text
+                              x={barX + barWidth / 2}
+                              y={barY - 3}
+                              className="analytics-line-chart-x-label"
+                              textAnchor="middle"
+                              fill="#1e293b"
+                              fontSize="11"
+                              fontWeight="600"
+                            >
+                              {form.percent}%
+                            </text>
+                            
+                            {/* X-axis label (Form name) */}
+                            <text
+                              x={barX + barWidth / 2}
+                              y={verticalChartHeight + 20}
+                              className="analytics-line-chart-x-label"
+                              textAnchor="middle"
+                              fill="#6b7280"
+                              fontSize="10"
+                              fontWeight="500"
+                            >
+                              {displayName}
+                            </text>
+                          </g>
+                        );
+                      })}
+                    </svg>
                   </div>
                 </div>
               )}

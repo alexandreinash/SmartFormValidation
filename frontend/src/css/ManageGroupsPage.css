@@ -9,7 +9,14 @@
   display: flex;
   justify-content: space-between;
   align-items: flex-start;
+  gap: 1.5rem;
   margin-bottom: 2rem;
+}
+
+.groups-header > div {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
 }
 
 .groups-header h1 {
@@ -24,18 +31,24 @@
 }
 
 .btn-back {
-  padding: 0.625rem 1.25rem;
-  background: #6b7280;
-  color: white;
-  border: none;
+  padding: 0.5625rem 1.125rem;
+  background: #ffffff !important;
+  color: #1f2937 !important;
+  border: 1px solid #e5e7eb;
   border-radius: 8px;
   cursor: pointer;
-  font-size: 0.95rem;
-  transition: background 0.2s;
+  font-size: 0.875rem;
+  font-weight: 600;
+  transition: all 0.2s ease;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  flex-shrink: 0;
 }
 
 .btn-back:hover {
-  background: #4b5563;
+  background: #f9fafb !important;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
+  border-color: #d1d5db;
 }
 
 .groups-actions {
@@ -60,18 +73,21 @@
 
 .btn-create {
   padding: 0.75rem 1.5rem;
-  background: #3b82f6;
+  background: linear-gradient(135deg, #fbbf24, #f59e0b);
   color: white;
   border: none;
   border-radius: 8px;
   cursor: pointer;
   font-size: 1rem;
   font-weight: 500;
-  transition: background 0.2s;
+  transition: all 0.2s ease;
+  box-shadow: 0 4px 12px rgba(251, 191, 36, 0.4);
 }
 
 .btn-create:hover {
-  background: #2563eb;
+  background: linear-gradient(135deg, #f59e0b, #d97706);
+  box-shadow: 0 6px 16px rgba(251, 191, 36, 0.5);
+  transform: translateY(-1px);
 }
 
 .message {
@@ -301,18 +317,21 @@
 
 .btn-add-members {
   padding: 0.625rem 1.25rem;
-  background: #3b82f6;
+  background: linear-gradient(135deg, #fbbf24, #f59e0b);
   color: white;
   border: none;
   border-radius: 6px;
   cursor: pointer;
   font-size: 0.9rem;
   font-weight: 500;
-  transition: background 0.2s;
+  transition: all 0.2s ease;
+  box-shadow: 0 4px 12px rgba(251, 191, 36, 0.4);
 }
 
 .btn-add-members:hover {
-  background: #2563eb;
+  background: linear-gradient(135deg, #f59e0b, #d97706);
+  box-shadow: 0 6px 16px rgba(251, 191, 36, 0.5);
+  transform: translateY(-1px);
 }
 
 /* Modal Styles */
@@ -398,23 +417,27 @@
 
 .btn-submit {
   padding: 0.75rem 1.5rem;
-  background: #3b82f6;
+  background: linear-gradient(135deg, #fbbf24, #f59e0b);
   color: white;
   border: none;
   border-radius: 6px;
   cursor: pointer;
   font-size: 1rem;
   font-weight: 500;
-  transition: background 0.2s;
+  transition: all 0.2s ease;
+  box-shadow: 0 4px 12px rgba(251, 191, 36, 0.4);
 }
 
 .btn-submit:hover:not(:disabled) {
-  background: #2563eb;
+  background: linear-gradient(135deg, #f59e0b, #d97706);
+  box-shadow: 0 6px 16px rgba(251, 191, 36, 0.5);
+  transform: translateY(-1px);
 }
 
 .btn-submit:disabled {
   background: #9ca3af;
   cursor: not-allowed;
+  box-shadow: none;
 }
 
 .loading {
