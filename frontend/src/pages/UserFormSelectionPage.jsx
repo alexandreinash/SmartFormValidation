@@ -514,7 +514,7 @@ function UserFormSelectionPage({ defaultTab }) {
           onConfirm={async () => {
             setIsRemovingAccount(true);
             try {
-              const res = await api.delete('/api/accounts/remove', { data: { confirm: 'DELETE' } });
+              const res = await api.delete('/api/accounts/remove', { data: { confirm: 'YES' } });
               if (res.data && res.data.success) {
                 setShowRemoveAccountModal(false);
                 setShowLogoutConfirm(true);

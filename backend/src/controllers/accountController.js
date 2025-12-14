@@ -40,9 +40,9 @@ async function getAccountMembers(req, res, next) {
   }
 }
 
-// Remove or leave account
-// - If account owner: disband account (clear account_id on users and forms)
-// - If regular user: leave account (clear their account_id)
+// Remove or delete account
+// - If account owner: delete all account members including the owner
+// - If regular user: delete the user account
 async function removeAccount(req, res, next) {
   try {
     const tokenUser = req.user;
@@ -53,39 +53,54 @@ async function removeAccount(req, res, next) {
     if (!user) return res.status(401).json({ success: false, error: { message: 'User not found' } });
 
     const { confirm } = req.body || {};
-    // Accept both 'confirm' and 'DELETE' for backward compatibility
-    if (confirm !== 'confirm' && confirm !== 'DELETE') {
+    // Accept 'YES', 'confirm', and 'DELETE' for backward compatibility
+    if (confirm !== 'YES' && confirm !== 'confirm' && confirm !== 'DELETE') {
       return res.status(400).json({ success: false, error: { message: 'Confirmation text not provided or incorrect' } });
     }
 
-    if (user.is_account_owner) {
-      // Disband the account owned by this user
-      await sequelize.transaction(async (tx) => {
-        // Clear account_id and is_account_owner for all members of this account
-        await User.update(
-          { account_id: null, is_account_owner: false },
-          { where: { account_id: user.id }, transaction: tx }
-        );
+    const { Op } = require('sequelize');
 
-        // Clear account_id for forms belonging to this account
+    if (user.is_account_owner) {
+      // Get all members of this account (including the owner)
+      const allMembers = await User.findAll({
+        where: {
+          [Op.or]: [
+            { account_id: user.id },  // Regular members
+            { id: user.id }            // The owner
+          ]
+        },
+        attributes: ['id']
+      });
+
+      const userIdsToDelete = allMembers.map(m => m.id);
+
+      // Delete all account members including the owner
+      await sequelize.transaction(async (tx) => {
+        // Clear account_id for forms belonging to this account before deleting users
         await Form.update(
           { account_id: null },
           { where: { account_id: user.id }, transaction: tx }
         );
 
-        // Finally clear owner itself
+        // Clear account_id for other users in this account (if any)
         await User.update(
           { account_id: null, is_account_owner: false },
-          { where: { id: user.id }, transaction: tx }
+          { where: { account_id: user.id, id: { [Op.ne]: user.id } }, transaction: tx }
         );
+
+        // Delete all users in this account (cascade will handle related records)
+        await User.destroy({
+          where: { id: { [Op.in]: userIdsToDelete } },
+          transaction: tx
+        });
       });
 
-      return res.json({ success: true, message: 'Account disbanded and associations removed' });
+      return res.json({ success: true, message: 'Account and all members deleted successfully' });
     }
 
-    // Regular user: just leave the account
-    await User.update({ account_id: null }, { where: { id: user.id } });
-    return res.json({ success: true, message: 'Left account successfully' });
+    // Regular user: delete the user account
+    await User.destroy({ where: { id: user.id } });
+    return res.json({ success: true, message: 'Account deleted successfully' });
   } catch (err) {
     next(err);
   }
