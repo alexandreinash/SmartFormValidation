@@ -5,10 +5,12 @@ const {
   validateLogin,
   validateForgotPassword,
   validateResetPassword,
+  validateGoogleRoleSelection,
   register,
   login,
   listUsers,
   googleLogin,
+  completeGoogleLogin,
   forgotPassword,
   resetPassword,
   validateResetToken,
@@ -20,6 +22,7 @@ const router = express.Router();
 router.post('/register', validateRegister, register);
 router.post('/login', validateLogin, login);
 router.post('/google-login', googleLogin);
+router.post('/google-login/complete', validateGoogleRoleSelection, completeGoogleLogin);
 router.post('/forgot-password', validateForgotPassword, forgotPassword);
 router.post('/reset-password', validateResetPassword, resetPassword);
 router.get('/validate-reset-token/:token', validateResetToken);

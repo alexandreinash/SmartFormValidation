@@ -1,0 +1,120 @@
+.role-selection-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.75);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 2000;
+  padding: 1rem;
+}
+
+.role-selection-modal {
+  background: rgba(15, 23, 42, 0.98);
+  border-radius: 16px;
+  padding: 2.5rem;
+  max-width: 500px;
+  width: 100%;
+  border: 1px solid rgba(148, 163, 184, 0.2);
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
+  color: #ffffff;
+}
+
+.role-selection-header {
+  margin-bottom: 2rem;
+  text-align: center;
+}
+
+.role-selection-header h2 {
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: #ffffff;
+  margin-bottom: 0.5rem;
+}
+
+.role-selection-subtitle {
+  font-size: 0.95rem;
+  color: #d1d5db;
+  margin-bottom: 0.5rem;
+}
+
+.role-selection-subtitle strong {
+  color: #fbbf24;
+}
+
+.role-selection-note {
+  font-size: 0.8rem;
+  color: #9ca3af;
+  margin-top: 0.75rem;
+  font-style: italic;
+}
+
+.role-selection-options {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  margin-bottom: 2rem;
+}
+
+.role-option {
+  display: flex;
+  align-items: flex-start;
+  gap: 1rem;
+  padding: 1.25rem;
+  border: 2px solid rgba(148, 163, 184, 0.2);
+  border-radius: 12px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  background: rgba(30, 41, 59, 0.5);
+}
+
+.role-option:hover {
+  border-color: rgba(251, 191, 36, 0.5);
+  background: rgba(30, 41, 59, 0.7);
+}
+
+.role-option.selected {
+  border-color: #fbbf24;
+  background: rgba(251, 191, 36, 0.1);
+  box-shadow: 0 0 0 3px rgba(251, 191, 36, 0.1);
+}
+
+.role-option input[type="radio"] {
+  margin-top: 0.25rem;
+  width: 20px;
+  height: 20px;
+  cursor: pointer;
+  accent-color: #fbbf24;
+  flex-shrink: 0;
+}
+
+.role-option-content {
+  flex: 1;
+}
+
+.role-option-title {
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: #ffffff;
+  margin-bottom: 0.5rem;
+}
+
+.role-option-description {
+  font-size: 0.85rem;
+  color: #d1d5db;
+  line-height: 1.5;
+}
+
+.role-selection-actions {
+  display: flex;
+  gap: 1rem;
+}
+
+.role-selection-actions .auth-button {
+  width: 100%;
+  margin-top: 0;
+}
+

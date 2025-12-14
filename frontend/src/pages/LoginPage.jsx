@@ -3,6 +3,7 @@ import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { GoogleLogin } from '@react-oauth/google';
 import { useAuth } from '../AuthContext';
 import api from '../api';
+import GoogleRoleSelectionModal from '../components/GoogleRoleSelectionModal';
 
 function LoginPage() {
   const { login, syncUserFromStorage } = useAuth();
@@ -13,6 +14,8 @@ function LoginPage() {
   const [rememberMe, setRememberMe] = useState(false);
   const [status, setStatus] = useState('');
   const [isSuccess, setIsSuccess] = useState(false);
+  const [showRoleSelection, setShowRoleSelection] = useState(false);
+  const [pendingGoogleData, setPendingGoogleData] = useState(null);
 
   useEffect(() => {
     // Load remembered credentials if they exist
@@ -80,9 +83,108 @@ function LoginPage() {
       setStatus('');
       setIsSuccess(false);
       
+      if (!credentialResponse?.credential) {
+        throw new Error('No credential received from Google');
+      }
+      
       const response = await api.post('/api/auth/google-login', {
         credential: credentialResponse.credential
       });
+      
+      if (!response.data) {
+        throw new Error('No response data from server');
+      }
+      
+      if (response.data.success) {
+        // Check if role selection is needed
+        if (response.data.needsRoleSelection) {
+          if (!response.data.sessionToken || !response.data.email) {
+            throw new Error('Missing session token or email in response');
+          }
+          // Store session token and email for role selection
+          setPendingGoogleData({
+            sessionToken: response.data.sessionToken,
+            email: response.data.email
+          });
+          setShowRoleSelection(true);
+          return;
+        }
+        
+        // Existing user - proceed with login
+        if (response.data.data && response.data.data.token && response.data.data.user) {
+          const { token, user } = response.data.data;
+          
+          // Store token and user data
+          localStorage.setItem('sfv_token', token);
+          localStorage.setItem('sfv_user', JSON.stringify(user));
+          
+          // Set flag to show Google sign-in notification
+          localStorage.setItem('sfv_google_just_logged_in', 'true');
+          
+          // Update auth context
+          if (syncUserFromStorage && typeof syncUserFromStorage === 'function') {
+            syncUserFromStorage();
+          }
+          
+          setIsSuccess(true);
+          setStatus('Google login successful! Redirecting...');
+          
+          // Wait 0.5 seconds before navigating
+          setTimeout(() => {
+            navigate('/', { state: { justLoggedIn: true } });
+            // Reload to ensure AuthContext picks up the new token
+            window.location.reload();
+          }, 500);
+        } else {
+          throw new Error('Invalid response from server');
+        }
+      } else {
+        throw new Error('Invalid response from server');
+      }
+    } catch (err) {
+      setIsSuccess(false);
+      console.error('Google login error:', err);
+      console.error('Error response:', err.response?.data);
+      
+      if (!err.response) {
+        setStatus(
+          'Cannot reach the API server. Make sure the backend is running on port 5000.'
+        );
+      } else {
+        const errorMessage = err.response.data?.message || 'Google login failed. Please try again.';
+        setStatus(errorMessage);
+        
+        // If it's a token error, suggest signing in again
+        if (errorMessage.includes('token') || errorMessage.includes('expired')) {
+          setTimeout(() => {
+            setStatus('Please try signing in with Google again.');
+          }, 3000);
+        }
+      }
+    }
+  };
+
+  const handleRoleSelection = async (role) => {
+    try {
+      setStatus('');
+      setIsSuccess(false);
+      
+      if (!pendingGoogleData?.sessionToken || !pendingGoogleData?.email) {
+        setStatus('Session expired. Please sign in with Google again.');
+        setShowRoleSelection(false);
+        setPendingGoogleData(null);
+        return;
+      }
+      
+      const response = await api.post('/api/auth/google-login/complete', {
+        email: pendingGoogleData.email,
+        role: role,
+        sessionToken: pendingGoogleData.sessionToken
+      });
+      
+      if (!response.data) {
+        throw new Error('No response data from server');
+      }
       
       if (response.data.success && response.data.data) {
         const { token, user } = response.data.data;
@@ -99,8 +201,10 @@ function LoginPage() {
           syncUserFromStorage();
         }
         
+        setShowRoleSelection(false);
+        setPendingGoogleData(null);
         setIsSuccess(true);
-        setStatus('Google login successful! Redirecting...');
+        setStatus('Registration successful! Redirecting...');
         
         // Wait 0.5 seconds before navigating
         setTimeout(() => {
@@ -113,15 +217,25 @@ function LoginPage() {
       }
     } catch (err) {
       setIsSuccess(false);
-      console.error('Google login error:', err);
+      console.error('Role selection error:', err);
+      console.error('Error response:', err.response?.data);
+      
       if (!err.response) {
         setStatus(
           'Cannot reach the API server. Make sure the backend is running on port 5000.'
         );
       } else {
-        setStatus(
-          err.response.data?.message || 'Google login failed. Please try again.'
-        );
+        const errorMessage = err.response.data?.message || 'Failed to complete registration. Please try again.';
+        setStatus(errorMessage);
+        
+        // If session expired, close modal and suggest re-signing in
+        if (errorMessage.includes('session') || errorMessage.includes('expired') || errorMessage.includes('token')) {
+          setTimeout(() => {
+            setShowRoleSelection(false);
+            setPendingGoogleData(null);
+            setStatus('Session expired. Please sign in with Google again.');
+          }, 2000);
+        }
       }
     }
   };
@@ -267,6 +381,17 @@ function LoginPage() {
           </div>
         </div>
       </div>
+      {showRoleSelection && pendingGoogleData && (
+        <GoogleRoleSelectionModal
+          email={pendingGoogleData.email}
+          onSelectRole={handleRoleSelection}
+          onClose={() => {
+            setShowRoleSelection(false);
+            setPendingGoogleData(null);
+            setStatus('Registration cancelled. Please try again.');
+          }}
+        />
+      )}
     </div>
   );
 }
