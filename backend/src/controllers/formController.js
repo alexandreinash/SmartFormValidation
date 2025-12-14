@@ -2,6 +2,7 @@ const { body, validationResult } = require('express-validator');
 const Form = require('../models/Form');
 const FormField = require('../models/FormField');
 const Submission = require('../models/Submission');
+const SubmissionData = require('../models/SubmissionData');
 const AuditLog = require('../models/AuditLog');
 const FormPermission = require('../models/FormPermission');
 const User = require('../models/User');
@@ -28,7 +29,32 @@ async function createForm(req, res, next) {
     // Determine account_id: if user is an account owner, use their id; otherwise use their account_id
     let accountId = null;
     if (req.user.role === 'admin') {
-      accountId = req.user.is_account_owner ? req.user.id : req.user.account_id;
+      // First, get the latest user data from database to ensure we have correct account info
+      try {
+        const dbUser = await User.findByPk(req.user.id);
+        if (dbUser) {
+          // If admin is account owner, use their id as account_id
+          if (dbUser.is_account_owner) {
+            accountId = dbUser.id;
+          } else if (dbUser.account_id) {
+            // Admin is not owner but has an account_id
+            accountId = dbUser.account_id;
+          } else {
+            // Admin has no account, automatically set them up as an account owner
+            dbUser.is_account_owner = true;
+            dbUser.account_id = dbUser.id;
+            await dbUser.save();
+            accountId = dbUser.id;
+            // Update req.user for subsequent operations in this request
+            req.user.is_account_owner = true;
+            req.user.account_id = dbUser.id;
+          }
+        }
+      } catch (err) {
+        console.error('Error determining account_id:', err);
+        // Fallback to req.user data
+        accountId = req.user.is_account_owner ? req.user.id : req.user.account_id;
+      }
     }
 
     const form = await Form.create({
@@ -95,10 +121,14 @@ async function getForm(req, res, next) {
 
 // Helper function to check if a user has access to a form
 async function checkFormAccess(form, user) {
-  // If form has no account_id
+  // If no user (anonymous), only public forms are accessible
+  if (!user) {
+    return !form.account_id;
+  }
+
+  // Public forms (account_id is null) are accessible to everyone
   if (!form.account_id) {
-    // Only users with no account_id can access it
-    return !user.account_id;
+    return true;
   }
 
   // If user is an admin in the same account, they have access
@@ -112,6 +142,19 @@ async function checkFormAccess(form, user) {
   // If user is a regular member of the same account, they have access
   if (user.role === 'user' && user.account_id && user.account_id === form.account_id) {
     return true;
+  }
+
+  // If user has no account_id, allow access to forms created by admins
+  // This ensures users can access forms even if they're not assigned to an account yet
+  if (user.role === 'user' && !user.account_id) {
+    try {
+      const creator = await User.findByPk(form.created_by);
+      if (creator && creator.role === 'admin') {
+        return true;
+      }
+    } catch (err) {
+      console.error('Error checking form creator:', err);
+    }
   }
 
   // Check for explicit form permissions (only user-specific permissions)
@@ -166,7 +209,7 @@ async function listForms(req, res, next) {
         });
       }
     } else {
-      // Regular users see forms from their account and forms explicitly shared with them
+      // Regular users see forms from their account, public forms, and forms explicitly shared with them
       let sharedForms = [];
       try {
         sharedForms = await FormPermission.findAll({
@@ -184,36 +227,72 @@ async function listForms(req, res, next) {
 
       const whereConditions = [];
       
+      // Always include public forms (account_id is null) - these are available to everyone
+      whereConditions.push({ account_id: null });
+      
       // Include forms from user's account if they have one
       if (req.user.account_id) {
+        // Include forms with matching account_id (forms from their account)
         whereConditions.push({ account_id: req.user.account_id });
+        
+        // Also include forms created by the account owner (catches edge cases)
+        try {
+          const accountOwner = await User.findOne({
+            where: {
+              id: req.user.account_id,
+              is_account_owner: true
+            },
+            attributes: ['id']
+          });
+          
+          if (accountOwner) {
+            whereConditions.push({ created_by: accountOwner.id });
+          }
+        } catch (ownerErr) {
+          console.error('Error finding account owner:', ownerErr);
+        }
+      } else {
+        // If user has no account_id, also show forms created by any admin
+        // This ensures users can see forms even if they're not assigned to an account yet
+        try {
+          const admins = await User.findAll({
+            where: { role: 'admin' },
+            attributes: ['id']
+          });
+          const adminIds = admins.map(admin => admin.id);
+          if (adminIds.length > 0) {
+            whereConditions.push({ created_by: { [Op.in]: adminIds } });
+          }
+        } catch (adminErr) {
+          console.error('Error finding admins:', adminErr);
+        }
       }
       
-      // Include explicitly shared forms
+      // Include explicitly shared forms (even if they're from a different account)
       if (sharedFormIds.length > 0) {
         whereConditions.push({ id: { [Op.in]: sharedFormIds } });
       }
-      
-      // If user has no account, include unassigned forms
-      if (!req.user.account_id) {
-        whereConditions.push({ account_id: null });
-      }
 
+      // Query forms with all conditions
       try {
         forms = await Form.findAll({
-          where: whereConditions.length > 0 ? {
+          where: {
             [Op.or]: whereConditions
-          } : { id: 0 }, // No results if no conditions
+          },
           include: [{
             model: User,
             as: 'creator',
             attributes: ['id', 'email'],
             required: false
           }],
-          order: [['created_at', 'DESC']]
+          order: [['created_at', 'DESC']],
+          distinct: true
         });
+        console.log(`Found ${forms.length} forms for user ${req.user.id} (account_id: ${req.user.account_id || 'null'})`);
       } catch (queryErr) {
         console.error('Error querying forms:', queryErr);
+        console.error('Query conditions:', JSON.stringify(whereConditions, null, 2));
+        console.error('User info:', { id: req.user.id, account_id: req.user.account_id, role: req.user.role });
         // Return empty array if query fails
         forms = [];
       }
@@ -874,14 +953,28 @@ async function sendFormTo(req, res, next) {
     // Handle group sharing
     if (groupIds && Array.isArray(groupIds) && groupIds.length > 0) {
       for (const groupId of groupIds) {
-        const result = await shareFormWithGroup(
-          { params: { formId }, body: { groupId, permissionType: 'view' }, user: req.user },
-          { json: (data) => data },
-          () => {}
-        );
-        if (result.success) {
-          results.groups += result.data?.shared_count || 0;
-          totalShared += result.data?.shared_count || 0;
+        let result;
+        const mockRes = {
+          json: (data) => { result = data; return data; },
+          status: (code) => ({
+            json: (data) => { result = data; return data; }
+          })
+        };
+        
+        try {
+          await shareFormWithGroup(
+            { params: { formId }, body: { groupId, permissionType: 'view' }, user: req.user },
+            mockRes,
+            () => {}
+          );
+          
+          if (result && result.success) {
+            results.groups += result.data?.shared_count || 0;
+            totalShared += result.data?.shared_count || 0;
+          }
+        } catch (err) {
+          console.error('Error sharing form with group:', err);
+          // Continue with other groups even if one fails
         }
       }
     }
@@ -904,12 +997,25 @@ async function sendFormTo(req, res, next) {
 
     // Handle admin replication
     if (adminUserId) {
-      const replicateResult = await replicateFormToAdmin(
-        { params: { formId }, body: { adminUserId }, user: req.user },
-        { json: (data) => data, status: () => ({ json: (data) => data }) },
-        () => {}
-      );
-      results.admin = replicateResult.success;
+      let replicateResult;
+      const mockRes = {
+        json: (data) => { replicateResult = data; return data; },
+        status: (code) => ({
+          json: (data) => { replicateResult = data; return data; }
+        })
+      };
+      
+      try {
+        await replicateFormToAdmin(
+          { params: { formId }, body: { adminUserId }, user: req.user },
+          mockRes,
+          () => {}
+        );
+        results.admin = replicateResult && replicateResult.success;
+      } catch (err) {
+        console.error('Error replicating form to admin:', err);
+        results.admin = false;
+      }
     }
 
     await logAudit({
@@ -932,16 +1038,36 @@ async function sendFormTo(req, res, next) {
 
 // Admin-only: delete all forms and reset AUTO_INCREMENT
 async function deleteAllForms(req, res, next) {
+  const transaction = await sequelize.transaction();
   try {
-    const count = await Form.count();
+    const count = await Form.count({ transaction });
     
-    // Delete all form fields first (cascade should handle this, but being explicit)
-    await FormField.destroy({ where: {} });
-    // Delete all forms
-    await Form.destroy({ where: {} });
+    // Delete in correct order to respect foreign key constraints:
+    // 1. Delete submission_data (references submissions and form_fields)
+    await SubmissionData.destroy({ where: {}, transaction });
     
-    // Reset AUTO_INCREMENT counter to 1
-    await sequelize.query('ALTER TABLE `forms` AUTO_INCREMENT = 1');
+    // 2. Delete submissions (references forms)
+    await Submission.destroy({ where: {}, transaction });
+    
+    // 3. Delete form_permissions (references forms)
+    await FormPermission.destroy({ where: {}, transaction });
+    
+    // 4. Delete form_fields (references forms)
+    await FormField.destroy({ where: {}, transaction });
+    
+    // 5. Delete all forms
+    await Form.destroy({ where: {}, transaction });
+    
+    await transaction.commit();
+
+    // Reset AUTO_INCREMENT counter to 1 (must be done outside transaction)
+    // ALTER TABLE doesn't work well in transactions in MySQL
+    try {
+      await sequelize.query('ALTER TABLE `forms` AUTO_INCREMENT = 1');
+    } catch (alterErr) {
+      console.error('Warning: Could not reset AUTO_INCREMENT:', alterErr);
+      // Don't fail the request if AUTO_INCREMENT reset fails
+    }
 
     await logAudit({
       userId: req.user?.id || null,
@@ -956,6 +1082,8 @@ async function deleteAllForms(req, res, next) {
       message: `All ${count} form(s) deleted successfully. Form ID counter has been reset.` 
     });
   } catch (err) {
+    await transaction.rollback();
+    console.error('Error deleting all forms:', err);
     next(err);
   }
 }
