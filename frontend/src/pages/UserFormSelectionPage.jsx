@@ -2,6 +2,7 @@ import React, { useEffect, useState, useCallback } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import api from '../api';
 import { useAuth } from '../AuthContext';
+import RemoveAccountModal from '../components/RemoveAccountModal';
 import '../css/UserFormSelectionPage.css';
 import '../css/components.css';
 
@@ -18,6 +19,8 @@ function UserFormSelectionPage({ defaultTab }) {
   const [loading, setLoading] = useState(true);
   const [status, setStatus] = useState('');
   const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
+  const [showRemoveAccountModal, setShowRemoveAccountModal] = useState(false);
+  const [isRemovingAccount, setIsRemovingAccount] = useState(false);
 
   // Helper function to categorize form based on field types
   const categorizeForm = (form) => {
@@ -277,30 +280,7 @@ function UserFormSelectionPage({ defaultTab }) {
             </button>
               <button
                 type="button"
-                onClick={async () => {
-                  const input = window.prompt("Type 'confirm' to remove your account association (this cannot be undone)");
-                  if (input !== 'confirm') {
-                    window.alert('Cancelled or incorrect confirmation text.');
-                    return;
-                  }
-                  try {
-                    const res = await api.delete('/api/accounts/remove', { data: { confirm: 'confirm' } });
-                    if (res.data && res.data.success) {
-                      window.alert(res.data.message || 'Account association removed');
-                      setShowLogoutConfirm(true);
-                      localStorage.setItem('sfv_just_logged_out', 'true');
-                      logout();
-                      setTimeout(() => {
-                        navigate('/login');
-                      }, 800);
-                    } else {
-                      window.alert('Failed to remove account association');
-                    }
-                  } catch (err) {
-                    console.error(err);
-                    window.alert('Error removing account');
-                  }
-                }}
+                onClick={() => setShowRemoveAccountModal(true)}
                 className="sidebar-nav-item sidebar-remove-account-button"
               >
                 <span className="sidebar-icon">🗑️</span>
@@ -526,6 +506,41 @@ function UserFormSelectionPage({ defaultTab }) {
           </>
         )}
       </div>
+
+      {/* Remove Account Modal */}
+      {showRemoveAccountModal && (
+        <RemoveAccountModal
+          user={user}
+          onConfirm={async () => {
+            setIsRemovingAccount(true);
+            try {
+              const res = await api.delete('/api/accounts/remove', { data: { confirm: 'DELETE' } });
+              if (res.data && res.data.success) {
+                setShowRemoveAccountModal(false);
+                setShowLogoutConfirm(true);
+                localStorage.setItem('sfv_just_logged_out', 'true');
+                logout();
+                setTimeout(() => {
+                  navigate('/login');
+                }, 800);
+              } else {
+                window.alert('Failed to remove account association');
+                setIsRemovingAccount(false);
+              }
+            } catch (err) {
+              console.error(err);
+              window.alert(err.response?.data?.error?.message || 'Error removing account');
+              setIsRemovingAccount(false);
+            }
+          }}
+          onCancel={() => {
+            if (!isRemovingAccount) {
+              setShowRemoveAccountModal(false);
+            }
+          }}
+          isRemoving={isRemovingAccount}
+        />
+      )}
     </div>
   );
 }

@@ -128,10 +128,10 @@ async function getSystemAnalytics(req, res, next) {
         },
         topForms,
         aiValidation: {
-          totalEvaluated: parseInt(aiStats[0]?.total) || 0,
-          sentimentFlagged: parseInt(aiStats[0]?.sentiment_flagged) || 0,
-          entityFlagged: parseInt(aiStats[0]?.entity_flagged) || 0,
-          notEvaluated: parseInt(aiStats[0]?.not_evaluated) || 0,
+          totalEvaluated: parseInt(aiStats.total) || 0,
+          sentimentFlagged: parseInt(aiStats.sentiment_flagged) || 0,
+          entityFlagged: parseInt(aiStats.entity_flagged) || 0,
+          notEvaluated: parseInt(aiStats.not_evaluated) || 0,
         },
         submissionsOverTime: submissionsOverTime.map((item) => ({
           date: item.date,

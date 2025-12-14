@@ -1,7 +1,8 @@
-import React, { useEffect, useState, useRef } from 'react';
+import React, { useEffect, useState, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import api from '../api';
 import { useAuth } from '../AuthContext';
+import '../css/AdminDashboard.css';
 
 function AnalyticsPage() {
   const { user } = useAuth();
@@ -9,10 +10,6 @@ function AnalyticsPage() {
   const [analytics, setAnalytics] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
-  const [selectedFormId, setSelectedFormId] = useState(null);
-  const [formAnalytics, setFormAnalytics] = useState(null);
-  const formAnalyticsRef = useRef(null);
-  const [openSubmissionId, setOpenSubmissionId] = useState(null);
 
   useEffect(() => {
     if (!user || user.role !== 'admin') {
@@ -37,53 +34,77 @@ function AnalyticsPage() {
     }
   };
 
-  const loadFormAnalytics = async (formId) => {
-    try {
-      setSelectedFormId(formId);
-      const res = await api.get(`/api/analytics/forms/${formId}`);
-      setFormAnalytics(res.data.data);
-    } catch (err) {
-      console.error('Failed to load form analytics:', err);
-    }
-  };
+  // Calculate additional metrics
+  const calculatedMetrics = useMemo(() => {
+    if (!analytics) return null;
 
-  // Smooth scroll helper — 400ms with ease-in-out-like curve
-  const smoothScrollTo = (targetY, duration = 400) => {
-    const startY = window.pageYOffset;
-    const diff = targetY - startY;
-    let startTime = null;
+    const totalSubmissions = analytics.overview.totalSubmissions || 0;
+    const totalUsers = analytics.overview.totalUsers || 0;
+    const totalForms = analytics.overview.totalForms || 0;
+    const aiFlags = analytics.aiValidation 
+      ? (analytics.aiValidation.sentimentFlagged || 0) + (analytics.aiValidation.entityFlagged || 0)
+      : 0;
 
-    const step = (timestamp) => {
-      if (!startTime) startTime = timestamp;
-      const time = timestamp - startTime;
-      const progress = Math.min(time / duration, 1);
-      // easeInOutCubic
-      const eased = progress < 0.5 ? 4 * progress * progress * progress : 1 - Math.pow(-2 * progress + 2, 3) / 2;
-      window.scrollTo(0, Math.round(startY + diff * eased));
-      if (time < duration) {
-        window.requestAnimationFrame(step);
-      }
+    return {
+      submissionsPerUser: totalUsers > 0 ? (totalSubmissions / totalUsers).toFixed(1) : '0',
+      submissionsPerForm: totalForms > 0 ? (totalSubmissions / totalForms).toFixed(1) : '0',
+      aiFlagRate: totalSubmissions > 0 ? ((aiFlags / totalSubmissions) * 100).toFixed(2) : '0',
+      avgSubmissionsPerDay: analytics.submissionsOverTime?.length > 0
+        ? (totalSubmissions / analytics.submissionsOverTime.length).toFixed(1)
+        : '0',
     };
+  }, [analytics]);
 
-    window.requestAnimationFrame(step);
-  };
+  // Prepare data for line chart
+  const lineChartData = useMemo(() => {
+    if (!analytics?.submissionsOverTime || analytics.submissionsOverTime.length === 0) return null;
+    
+    const maxCount = Math.max(...analytics.submissionsOverTime.map(i => i.count), 1);
+    return analytics.submissionsOverTime.map(item => ({
+      ...item,
+      normalizedValue: (item.count / maxCount) * 100,
+    }));
+  }, [analytics]);
 
-  // When formAnalytics is set, scroll to the analytics panel smoothly
-  useEffect(() => {
-    if (formAnalytics && formAnalyticsRef.current) {
-      // compute target position (slightly above element)
-      const rect = formAnalyticsRef.current.getBoundingClientRect();
-      const headerOffset = 24; // small offset so panel isn't flush to top
-      const targetY = window.pageYOffset + rect.top - headerOffset;
-      smoothScrollTo(targetY, 400);
-    }
-  }, [formAnalytics]);
+  // Prepare data for donut chart
+  const donutChartData = useMemo(() => {
+    if (!analytics?.topForms || analytics.topForms.length === 0) return null;
+    
+    const top5Forms = analytics.topForms.slice(0, 5);
+    const total = top5Forms.reduce((sum, form) => sum + form.submissionCount, 0);
+    if (total === 0) return null;
+
+    let cumulativePercent = 0;
+    return top5Forms.map((form, index) => {
+      const percent = (form.submissionCount / total) * 100;
+      const startPercent = cumulativePercent;
+      cumulativePercent += percent;
+      
+      return {
+        ...form,
+        percent: percent.toFixed(1),
+        startPercent,
+        endPercent: cumulativePercent,
+        color: ['#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6'][index % 5],
+      };
+    });
+  }, [analytics]);
 
   if (loading) {
     return (
-      <div className="page-heading">
-        <div className="card">
-          <p>Loading analytics...</p>
+      <div className="analytics-dashboard-container">
+        <div className="analytics-header">
+          <div className="analytics-logo">Smart Form Validator</div>
+          <button
+            type="button"
+            className="analytics-back-button"
+            onClick={() => navigate('/admin')}
+          >
+            Back to Dashboard
+          </button>
+        </div>
+        <div className="analytics-content">
+          <div className="analytics-loading">Loading Analytics...</div>
         </div>
       </div>
     );
@@ -91,300 +112,303 @@ function AnalyticsPage() {
 
   if (error) {
     return (
-      <div className="page-heading">
-        <div className="card">
-          <p className="status" style={{ color: '#ef4444' }}>{error}</p>
+      <div className="analytics-dashboard-container">
+        <div className="analytics-header">
+          <div className="analytics-logo">Smart Form Validator</div>
+          <button
+            type="button"
+            className="analytics-back-button"
+            onClick={() => navigate('/admin')}
+          >
+            Back to Dashboard
+          </button>
+        </div>
+        <div className="analytics-content">
+          <div className="analytics-error">{error}</div>
         </div>
       </div>
     );
   }
 
+  const currentDate = new Date();
+  const monthYear = currentDate.toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
+
   return (
-    <div className="page-heading">
-      <div className="page-header">
-        <div>
-          <button
-            type="button"
-            className="button button-secondary"
-            style={{ marginBottom: '0.75rem' }}
-            onClick={() => navigate(-1)}
-          >
-            ← Back
-          </button>
-          <div className="page-kicker">Analytics Dashboard</div>
-          <h2 className="page-title">System Analytics</h2>
+    <div className="analytics-dashboard-container">
+      <div className="analytics-header">
+        <div className="analytics-logo">
+          <div className="analytics-logo-icon">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <path d="M9 19C9 19.5304 9.21071 20.0391 9.58579 20.4142C9.96086 20.7893 10.4696 21 11 21H13C13.5304 21 14.0391 20.7893 14.4142 20.4142C14.7893 20.0391 15 19.5304 15 19V17H9V19ZM12 3C10.34 3 9 4.34 9 6V7H15V6C15 4.34 13.66 3 12 3Z" fill="#ef4444"/>
+            </svg>
+          </div>
+          <span>Smart Form Validator</span>
         </div>
+        <div className="analytics-header-right">
+          <div className="analytics-header-title">Web Analytics Dashboard</div>
+          <div className="analytics-header-date">{monthYear}</div>
+        </div>
+        <button
+          type="button"
+          className="analytics-back-button"
+          onClick={() => navigate('/admin')}
+        >
+          Back to Dashboard
+        </button>
       </div>
 
-      {analytics && (
-        <>
-          {/* Overview Cards */}
-          <div className="card" style={{ marginBottom: '2rem' }}>
-            <h3 style={{ marginBottom: '1.5rem' }}>Overview</h3>
-            <div className="summary-grid">
-              <div className="summary-card">
-                <div className="summary-label">Total Forms</div>
-                <div className="summary-value">{analytics.overview.totalForms}</div>
+      <div className="analytics-content">
+        {analytics && (
+          <>
+            {/* KPI Cards Row */}
+            <div className="analytics-kpi-grid">
+              <div className="analytics-kpi-card">
+                <div className="analytics-kpi-label">Total Forms</div>
+                <div className="analytics-kpi-value">{analytics.overview.totalForms}</div>
+                <div className="analytics-kpi-icon">📝</div>
               </div>
-              <div className="summary-card">
-                <div className="summary-label">Total Submissions</div>
-                <div className="summary-value">{analytics.overview.totalSubmissions}</div>
+              
+              <div className="analytics-kpi-card">
+                <div className="analytics-kpi-label">Total Submissions</div>
+                <div className="analytics-kpi-value">{analytics.overview.totalSubmissions}</div>
+                <div className="analytics-kpi-icon">📊</div>
               </div>
-              <div className="summary-card">
-                <div className="summary-label">Total Users</div>
-                <div className="summary-value">{analytics.overview.totalUsers}</div>
+              
+              <div className="analytics-kpi-card">
+                <div className="analytics-kpi-label">Total Users</div>
+                <div className="analytics-kpi-value">{analytics.overview.totalUsers}</div>
+                <div className="analytics-kpi-icon">👥</div>
               </div>
-            </div>
-          </div>
 
-          {/* AI Validation Stats (show 'Not tracked' when backend doesn't provide these values) */}
-          <div className="card" style={{ marginBottom: '2rem' }}>
-            <h3 style={{ marginBottom: '1.5rem' }}>AI Validation Statistics</h3>
-            <div className="summary-grid">
-              {analytics.aiValidation && (typeof analytics.aiValidation.totalEvaluated === 'number') ? (
-                <>
-                  <div className="summary-card">
-                    <div className="summary-label">Total Evaluated</div>
-                    <div className="summary-value">{analytics.aiValidation.totalEvaluated}</div>
+              <div className="analytics-kpi-card">
+                <div className="analytics-kpi-label">Submissions per User</div>
+                <div className="analytics-kpi-value">{calculatedMetrics?.submissionsPerUser || '0'}</div>
+                <div className="analytics-kpi-icon">📈</div>
+              </div>
+
+              <div className="analytics-kpi-card">
+                <div className="analytics-kpi-label">Submissions per Form</div>
+                <div className="analytics-kpi-value">{calculatedMetrics?.submissionsPerForm || '0'}</div>
+                <div className="analytics-kpi-icon">📋</div>
+              </div>
+
+              {analytics.aiValidation && (
+                <div className="analytics-kpi-card analytics-kpi-card-warning">
+                  <div className="analytics-kpi-label">AI Flags</div>
+                  <div className="analytics-kpi-value analytics-kpi-value-danger">
+                    {(analytics.aiValidation.sentimentFlagged || 0) + (analytics.aiValidation.entityFlagged || 0)}
                   </div>
-                  <div className="summary-card">
-                    <div className="summary-label">Sentiment Flagged</div>
-                    <div className="summary-value highlight-danger">
-                      {analytics.aiValidation.sentimentFlagged}
-                    </div>
-                  </div>
-                  <div className="summary-card">
-                    <div className="summary-label">Entity Flagged</div>
-                    <div className="summary-value highlight-danger">
-                      {analytics.aiValidation.entityFlagged}
-                    </div>
-                  </div>
-                  <div className="summary-card">
-                    <div className="summary-label">Not Evaluated</div>
-                    <div className="summary-value highlight-muted">
-                      {analytics.aiValidation.notEvaluated}
-                    </div>
-                  </div>
-                </>
-              ) : (
-                <>
-                  <div className="summary-card">
-                    <div className="summary-label">Total Evaluated</div>
-                    <div className="summary-value">Not tracked</div>
-                  </div>
-                  <div className="summary-card">
-                    <div className="summary-label">Sentiment Flagged</div>
-                    <div className="summary-value">Not tracked</div>
-                  </div>
-                  <div className="summary-card">
-                    <div className="summary-label">Entity Flagged</div>
-                    <div className="summary-value">Not tracked</div>
-                  </div>
-                  <div className="summary-card">
-                    <div className="summary-label">Not Evaluated</div>
-                    <div className="summary-value">Not tracked</div>
-                  </div>
-                </>
+                  <div className="analytics-kpi-icon">⚠️</div>
+                </div>
               )}
             </div>
-          </div>
 
-          {/* Top Forms */}
-          <div className="card" style={{ marginBottom: '2rem' }}>
-            <h3 style={{ marginBottom: '1.5rem' }}>Top Forms by Submissions</h3>
-            {analytics.topForms.length > 0 ? (
-              <table style={{ width: '100%', borderCollapse: 'collapse' }}>
-                <thead>
-                  <tr style={{ borderBottom: '1px solid #eee' }}>
-                    <th style={{ textAlign: 'left', padding: '0.75rem' }}>Form Title</th>
-                    <th style={{ textAlign: 'left', padding: '0.75rem' }}>Submissions</th>
-                    <th style={{ textAlign: 'left', padding: '0.75rem' }}>Actions</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {analytics.topForms.map((form) => (
-                    <tr key={form.formId} style={{ borderBottom: '1px solid #f5f5f5' }}>
-                      <td style={{ padding: '0.75rem' }}>{form.formTitle}</td>
-                      <td style={{ padding: '0.75rem' }}>{form.submissionCount}</td>
-                      <td style={{ padding: '0.75rem' }}>
-                        <button
-                          type="button"
-                          className="button button-secondary"
-                          onClick={() => loadFormAnalytics(form.formId)}
-                        >
-                          View Details
-                        </button>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            ) : (
-              <p>No forms with submissions yet.</p>
-            )}
-          </div>
-
-          {/* Recent Activity */}
-          <div className="card" style={{ marginBottom: '2rem' }}>
-            <h3 style={{ marginBottom: '1.5rem' }}>Recent Activity</h3>
-            {analytics.recentActivity.length > 0 ? (
-              <ul style={{ listStyle: 'none', padding: 0 }}>
-                {analytics.recentActivity.map((activity) => (
-                  <li
-                    key={activity.id}
-                    style={{
-                      padding: '0.75rem',
-                      borderBottom: '1px solid #f5f5f5',
-                      display: 'flex',
-                      justifyContent: 'space-between',
-                    }}
-                  >
-                    <div>
-                      <strong>Submission #{activity.id}</strong> - {activity.formTitle}
+            {/* Charts Row */}
+            <div className="analytics-charts-grid">
+              {/* Line Chart - Submissions Over Time */}
+              {lineChartData && lineChartData.length > 0 && (
+                <div className="analytics-chart-card">
+                  <div className="analytics-chart-header">
+                    <h3 className="analytics-chart-title">Submissions</h3>
+                    <div className="analytics-chart-subtitle">Last 30 Days</div>
+                  </div>
+                  <div className="analytics-line-chart-container">
+                    <div className="analytics-line-chart">
+                      <svg className="analytics-line-chart-svg" viewBox="0 0 800 200" preserveAspectRatio="none">
+                        <defs>
+                          <linearGradient id="lineGradient" x1="0%" y1="0%" x2="0%" y2="100%">
+                            <stop offset="0%" stopColor="#3b82f6" stopOpacity="0.3" />
+                            <stop offset="100%" stopColor="#3b82f6" stopOpacity="0" />
+                          </linearGradient>
+                        </defs>
+                        {(() => {
+                          const points = lineChartData.map((item, index) => {
+                            const x = lineChartData.length > 1 
+                              ? (index / (lineChartData.length - 1)) * 800 
+                              : 400;
+                            const y = 200 - Math.max(item.normalizedValue * 1.8, 5);
+                            return { x, y };
+                          });
+                          
+                          // Create area path
+                          const areaPath = points.length > 0 
+                            ? `M ${points[0].x},200 L ${points.map(p => `${p.x},${p.y}`).join(' L ')} L ${points[points.length - 1].x},200 Z`
+                            : '';
+                          
+                          // Create line path
+                          const linePath = points.length > 0
+                            ? `M ${points.map(p => `${p.x},${p.y}`).join(' L ')}`
+                            : '';
+                          
+                          return (
+                            <>
+                              <path
+                                className="analytics-line-chart-area"
+                                d={areaPath}
+                                fill="url(#lineGradient)"
+                              />
+                              <path
+                                className="analytics-line-chart-line"
+                                d={linePath}
+                                fill="none"
+                              />
+                              {points.map((point, index) => (
+                                <circle
+                                  key={index}
+                                  className="analytics-line-chart-dot"
+                                  cx={point.x}
+                                  cy={point.y}
+                                  r="4"
+                                />
+                              ))}
+                            </>
+                          );
+                        })()}
+                      </svg>
+                      <div className="analytics-line-chart-x-axis">
+                        {lineChartData.length > 0 && (() => {
+                          const step = Math.max(1, Math.floor(lineChartData.length / 5));
+                          return lineChartData
+                            .filter((_, i) => i % step === 0 || i === lineChartData.length - 1)
+                            .map((item, index) => (
+                              <div key={index} className="analytics-line-chart-x-label">
+                                {new Date(item.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
+                              </div>
+                            ));
+                        })()}
+                      </div>
                     </div>
-                    <div style={{ color: '#999' }}>
-                      {new Date(activity.submittedAt).toLocaleString()}
+                    <div className="analytics-chart-total">
+                      {analytics.overview.totalSubmissions} Total Submissions
                     </div>
-                  </li>
-                ))}
-              </ul>
-            ) : (
-              <p>No recent activity.</p>
-            )}
-          </div>
-
-          {/* Form-specific Analytics */}
-          {formAnalytics && (
-            <div ref={formAnalyticsRef} className="card" style={{ marginBottom: '2rem' }}>
-              <h3 style={{ marginBottom: '1.5rem' }}>
-                Analytics for: {formAnalytics.form.title}
-              </h3>
-              {/* 'Back to System Analytics' button removed to simplify UI */}
-
-              <div className="summary-grid" style={{ marginBottom: '1.5rem' }}>
-                <div className="summary-card">
-                  <div className="summary-label">Total Submissions</div>
-                  <div className="summary-value">{formAnalytics.overview.totalSubmissions}</div>
-                </div>
-                <div className="summary-card">
-                  <div className="summary-label">Sentiment Flagged</div>
-                  <div className="summary-value highlight-danger">
-                    {formAnalytics.aiValidation && typeof formAnalytics.aiValidation.sentimentFlagged === 'number' ? formAnalytics.aiValidation.sentimentFlagged : 'Not tracked'}
                   </div>
                 </div>
-                <div className="summary-card">
-                  <div className="summary-label">Entity Flagged</div>
-                  <div className="summary-value highlight-danger">
-                    {formAnalytics.aiValidation && typeof formAnalytics.aiValidation.entityFlagged === 'number' ? formAnalytics.aiValidation.entityFlagged : 'Not tracked'}
-                  </div>
-                </div>
-              </div>
+              )}
 
-              {formAnalytics.fieldStatistics.length > 0 && (
-                <div>
-                  <h4 style={{ marginBottom: '1rem' }}>Field Statistics</h4>
-                  <table style={{ width: '100%', borderCollapse: 'collapse' }}>
-                    <thead>
-                      <tr style={{ borderBottom: '1px solid #eee' }}>
-                        <th style={{ textAlign: 'left', padding: '0.75rem' }}>Field</th>
-                        <th style={{ textAlign: 'left', padding: '0.75rem' }}>Type</th>
-                        <th style={{ textAlign: 'left', padding: '0.75rem' }}>Responses</th>
-                        <th style={{ textAlign: 'left', padding: '0.75rem' }}>Flagged</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {formAnalytics.fieldStatistics.map((field) => (
-                        <tr key={field.fieldId} style={{ borderBottom: '1px solid #f5f5f5' }}>
-                          <td style={{ padding: '0.75rem' }}>{field.fieldLabel}</td>
-                          <td style={{ padding: '0.75rem' }}>{field.fieldType}</td>
-                          <td style={{ padding: '0.75rem' }}>{field.totalResponses}</td>
-                          <td style={{ padding: '0.75rem' }}>
-                            {field.flaggedCount > 0 ? (
-                              <span className="flag">{field.flaggedCount}</span>
-                            ) : (
-                              '0'
-                            )}
-                          </td>
-                        </tr>
+              {/* Donut Chart - Form Distribution */}
+              {donutChartData && donutChartData.length > 0 && (
+                <div className="analytics-chart-card">
+                  <div className="analytics-chart-header">
+                    <h3 className="analytics-chart-title">Form Distribution</h3>
+                    <div className="analytics-chart-subtitle">Top Forms by Submissions</div>
+                  </div>
+                  <div className="analytics-donut-chart-container">
+                    <div className="analytics-donut-chart">
+                      <svg viewBox="0 0 200 200" className="analytics-donut-svg">
+                        {donutChartData.map((form, index) => {
+                          const radius = 70;
+                          const circumference = 2 * Math.PI * radius;
+                          const percent = parseFloat(form.percent);
+                          const strokeDasharray = circumference;
+                          // Calculate offset: start from where previous segment ended
+                          const strokeDashoffset = circumference - (percent / 100) * circumference;
+                          // Rotate to start at the correct position
+                          const rotation = form.startPercent * 3.6 - 90;
+                          
+                          return (
+                            <circle
+                              key={form.formId}
+                              className="analytics-donut-segment"
+                              cx="100"
+                              cy="100"
+                              r={radius}
+                              fill="none"
+                              stroke={form.color}
+                              strokeWidth="40"
+                              strokeDasharray={strokeDasharray}
+                              strokeDashoffset={strokeDashoffset}
+                              transform={`rotate(${rotation} 100 100)`}
+                              style={{ transition: 'all 0.3s ease' }}
+                            />
+                          );
+                        })}
+                      </svg>
+                      <div className="analytics-donut-center">
+                        <div className="analytics-donut-center-value">
+                          {analytics.topForms.slice(0, 5).reduce((sum, f) => sum + f.submissionCount, 0)}
+                        </div>
+                        <div className="analytics-donut-center-label">Submissions</div>
+                      </div>
+                    </div>
+                    <div className="analytics-donut-legend">
+                      {donutChartData.map((form, index) => (
+                        <div key={form.formId} className="analytics-donut-legend-item">
+                          <div 
+                            className="analytics-donut-legend-color" 
+                            style={{ backgroundColor: form.color }}
+                          />
+                          <div className="analytics-donut-legend-text">
+                            <div className="analytics-donut-legend-name">{form.formTitle}</div>
+                            <div className="analytics-donut-legend-value">
+                              {form.submissionCount} ({form.percent}%)
+                            </div>
+                          </div>
+                        </div>
                       ))}
-                    </tbody>
-                  </table>
-                </div>
-              )}
-
-              {/* Submissions List */}
-              {formAnalytics.submissions && formAnalytics.submissions.length > 0 && (
-                <div style={{ marginTop: '1.5rem' }}>
-                  <h4 style={{ marginBottom: '1rem' }}>Recent Submissions</h4>
-                  <table style={{ width: '100%', borderCollapse: 'collapse' }}>
-                    <thead>
-                      <tr style={{ borderBottom: '1px solid #eee' }}>
-                        <th style={{ textAlign: 'left', padding: '0.75rem' }}>Submission ID</th>
-                        <th style={{ textAlign: 'left', padding: '0.75rem' }}>Submitted At</th>
-                        <th style={{ textAlign: 'left', padding: '0.75rem' }}>Answers</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {formAnalytics.submissions.map((sub) => (
-                        <React.Fragment key={sub.id}>
-                          <tr style={{ borderBottom: '1px solid #f5f5f5' }}>
-                            <td style={{ padding: '0.75rem' }}>{sub.id}</td>
-                            <td style={{ padding: '0.75rem' }}>{new Date(sub.submittedAt).toLocaleString()}</td>
-                            <td style={{ padding: '0.75rem' }}>
-                              <button
-                                type="button"
-                                className="button button-secondary"
-                                onClick={() => setOpenSubmissionId(openSubmissionId === sub.id ? null : sub.id)}
-                              >
-                                {openSubmissionId === sub.id ? 'Hide Answers' : 'View Answers'}
-                              </button>
-                            </td>
-                          </tr>
-
-                          {openSubmissionId === sub.id && (
-                            <tr>
-                              <td colSpan={3} style={{ padding: '0.75rem', background: '#fafafa' }}>
-                                <table style={{ width: '100%' }}>
-                                  <thead>
-                                    <tr>
-                                      <th style={{ textAlign: 'left', padding: '0.5rem' }}>Field</th>
-                                      <th style={{ textAlign: 'left', padding: '0.5rem' }}>Value</th>
-                                      <th style={{ textAlign: 'left', padding: '0.5rem' }}>AI Flags</th>
-                                    </tr>
-                                  </thead>
-                                  <tbody>
-                                    {sub.answers.map((a, idx) => (
-                                      <tr key={idx} style={{ borderBottom: '1px solid #f5f5f5' }}>
-                                        <td style={{ padding: '0.5rem' }}>{a.fieldLabel || a.fieldId}</td>
-                                        <td style={{ padding: '0.5rem', whiteSpace: 'pre-wrap' }}>{a.value}</td>
-                                        <td style={{ padding: '0.5rem' }}>
-                                          {a.aiNotEvaluated ? (
-                                            <span style={{ color: '#999' }}>Not evaluated</span>
-                                          ) : (
-                                            <>
-                                              {a.aiSentimentFlag ? <span style={{ color: '#ef4444' }}>Sentiment</span> : null}
-                                              {a.aiEntityFlag ? <span style={{ color: '#ef4444', marginLeft: '0.5rem' }}>Entity</span> : null}
-                                              {!a.aiSentimentFlag && !a.aiEntityFlag ? <span style={{ color: '#16a34a' }}>OK</span> : null}
-                                            </>
-                                          )}
-                                        </td>
-                                      </tr>
-                                    ))}
-                                  </tbody>
-                                </table>
-                              </td>
-                            </tr>
-                          )}
-                        </React.Fragment>
-                      ))}
-                    </tbody>
-                  </table>
+                    </div>
+                  </div>
                 </div>
               )}
             </div>
-          )}
-        </>
-      )}
+
+            {/* Bottom Row - Top Forms and Recent Activity */}
+            <div className="analytics-bottom-grid">
+              {/* Top Forms List */}
+              {analytics.topForms && analytics.topForms.length > 0 && (
+                <div className="analytics-chart-card">
+                  <div className="analytics-chart-header">
+                    <h3 className="analytics-chart-title">Top Forms by Submissions</h3>
+                    <div className="analytics-chart-subtitle">Most Active Forms</div>
+                  </div>
+                  <div className="analytics-top-forms-list">
+                    {analytics.topForms.slice(0, 5).map((form, index) => (
+                      <div key={form.formId} className="analytics-top-form-item">
+                        <div className="analytics-top-form-rank">#{index + 1}</div>
+                        <div className="analytics-top-form-info">
+                          <div className="analytics-top-form-title">{form.formTitle}</div>
+                          <div className="analytics-top-form-count">{form.submissionCount} submissions</div>
+                        </div>
+                        <div className="analytics-top-form-bar">
+                          <div 
+                            className="analytics-top-form-bar-fill"
+                            style={{ 
+                              width: `${(form.submissionCount / analytics.topForms[0].submissionCount) * 100}%`,
+                              backgroundColor: donutChartData?.[index]?.color || '#3b82f6'
+                            }}
+                          />
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Recent Activity */}
+              {analytics.recentActivity && analytics.recentActivity.length > 0 && (
+                <div className="analytics-chart-card">
+                  <div className="analytics-chart-header">
+                    <h3 className="analytics-chart-title">Recent Activity</h3>
+                    <div className="analytics-chart-subtitle">Latest Submissions</div>
+                  </div>
+                  <div className="analytics-recent-activity-list">
+                    {analytics.recentActivity.slice(0, 5).map((activity) => (
+                      <div key={activity.id} className="analytics-activity-item">
+                        <div className="analytics-activity-icon">📋</div>
+                        <div className="analytics-activity-content">
+                          <div className="analytics-activity-form">{activity.formTitle}</div>
+                          <div className="analytics-activity-meta">
+                            Submission #{activity.id} • {new Date(activity.submittedAt).toLocaleString()}
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+          </>
+        )}
+      </div>
     </div>
   );
 }

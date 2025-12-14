@@ -3,7 +3,10 @@ const jwt = require('jsonwebtoken');
 const bcrypt = require('bcryptjs');
 const crypto = require('crypto');
 const { OAuth2Client } = require('google-auth-library');
+const { Op } = require('sequelize');
+const { sequelize } = require('../sequelize');
 const User = require('../models/User');
+const Form = require('../models/Form');
 const PasswordReset = require('../models/PasswordReset');
 const { logAudit } = require('../services/auditLogger');
 const { sendRegistrationEmail, sendPasswordResetEmail } = require('../services/emailService');
@@ -27,9 +30,9 @@ if (process.env.GOOGLE_CLIENT_ID) {
 // Validation chains used by the routes
 const validateRegister = [
   body('username').trim().notEmpty().withMessage('Username is required'),
-  body('email').isEmail(),
-  body('password').isLength({ min: 6 }),
-  body('role').isIn(['admin', 'user']),
+  body('email').isEmail().withMessage('Email must be a valid email address'),
+  body('password').isLength({ min: 6 }).withMessage('Password must be at least 6 characters long'),
+  body('role').isIn(['admin', 'user']).withMessage('Role must be either admin or user'),
 ];
 
 const validateLogin = [
@@ -41,7 +44,23 @@ async function register(req, res, next) {
   try {
     const errors = validationResult(req);
     if (!errors.isEmpty()) {
-      return res.status(400).json({ success: false, errors: errors.array() });
+      const errorMessages = errors.array().map(err => {
+        // Use the custom message if available, otherwise create a default one
+        if (err.msg) {
+          const fieldName = err.param ? err.param.charAt(0).toUpperCase() + err.param.slice(1) : '';
+          return fieldName ? `${fieldName}: ${err.msg}` : err.msg;
+        }
+        return `${err.param || 'Field'}: Invalid value`;
+      });
+      
+      console.log('[Register] Validation errors:', errors.array());
+      console.log('[Register] Error message:', errorMessages.join('. '));
+      
+      return res.status(400).json({ 
+        success: false, 
+        message: errorMessages.join('. '),
+        errors: errors.array() 
+      });
     }
 
     const { username, email, password, role } = req.body;
@@ -53,14 +72,46 @@ async function register(req, res, next) {
     }
 
     const hashed = await bcrypt.hash(password, 10);
-    const user = await User.create({ username, email, password: hashed, role });
+    
+    let user;
+    try {
+      user = await User.create({ username, email, password: hashed, role });
+    } catch (dbErr) {
+      console.error('[Register] Database error:', dbErr);
+      
+      // Check if it's a column error (missing username column)
+      if (dbErr.name === 'SequelizeDatabaseError' && 
+          (dbErr.message && dbErr.message.includes('Unknown column') || 
+           dbErr.message && dbErr.message.includes('username'))) {
+        return res.status(500).json({
+          success: false,
+          message: 'Database schema error: username column is missing. Please run the migration script: add-username-column.sql'
+        });
+      }
+      
+      // Check if it's a duplicate entry error
+      if (dbErr.name === 'SequelizeUniqueConstraintError') {
+        return res.status(400).json({
+          success: false,
+          message: 'Email already registered'
+        });
+      }
+      
+      // Re-throw for other errors
+      throw dbErr;
+    }
 
-    await logAudit({
-      userId: user.id,
-      action: 'user_registered',
-      entityType: 'user',
-      entityId: user.id,
-    });
+    try {
+      await logAudit({
+        userId: user.id,
+        action: 'user_registered',
+        entityType: 'user',
+        entityId: user.id,
+      });
+    } catch (auditErr) {
+      // Don't fail registration if audit logging fails
+      console.error('Failed to log audit:', auditErr);
+    }
 
     // Send registration email (non-blocking)
     sendRegistrationEmail(user.email, user.role).catch((err) => {
@@ -83,6 +134,7 @@ async function register(req, res, next) {
       message: 'Registration successful',
     });
   } catch (err) {
+    console.error('[Register] Unexpected error:', err);
     next(err);
   }
 }
@@ -167,12 +219,96 @@ async function listUsers(req, res, next) {
     
     const users = await User.findAll({
       where: whereClause,
-      attributes: ['id', 'email', 'role', 'created_at'],
+      attributes: ['id', 'username', 'email', 'role', 'account_id', 'is_account_owner', 'created_at'],
       order: [['email', 'ASC']],
     });
 
     res.json({ success: true, data: users });
   } catch (err) {
+    next(err);
+  }
+}
+
+// Delete users (admin only)
+async function deleteUsers(req, res, next) {
+  try {
+    const { user_ids } = req.body;
+    
+    if (!user_ids || !Array.isArray(user_ids) || user_ids.length === 0) {
+      return res.status(400).json({ 
+        success: false, 
+        message: 'user_ids array is required' 
+      });
+    }
+
+    // Prevent deleting yourself
+    if (user_ids.includes(req.user.id)) {
+      return res.status(400).json({
+        success: false,
+        message: 'You cannot delete your own account'
+      });
+    }
+
+    // Load users to be deleted
+    const usersToDelete = await User.findAll({
+      where: { id: { [Op.in]: user_ids } }
+    });
+
+    if (usersToDelete.length === 0) {
+      return res.status(404).json({
+        success: false,
+        message: 'No users found to delete'
+      });
+    }
+
+    // Check if any are account owners
+    const accountOwners = usersToDelete.filter(u => u.is_account_owner);
+    if (accountOwners.length > 0) {
+      // Handle account owners - clear account associations
+      await sequelize.transaction(async (tx) => {
+        for (const owner of accountOwners) {
+          // Clear account_id for users in this account
+          await User.update(
+            { account_id: null, is_account_owner: false },
+            { where: { account_id: owner.id }, transaction: tx }
+          );
+
+          // Clear account_id for forms in this account
+          await Form.update(
+            { account_id: null },
+            { where: { account_id: owner.id }, transaction: tx }
+          );
+        }
+
+        // Delete the users
+        await User.destroy({
+          where: { id: { [Op.in]: user_ids } },
+          transaction: tx
+        });
+      });
+    } else {
+      // Regular deletion (cascade will handle related records)
+      await User.destroy({
+        where: { id: { [Op.in]: user_ids } }
+      });
+    }
+
+    // Log audit
+    const { logAudit } = require('../services/auditLogger');
+    await logAudit({
+      userId: req.user.id,
+      action: 'users_deleted',
+      entityType: 'user',
+      metadata: { deleted_count: usersToDelete.length, deleted_ids: user_ids }
+    }).catch(err => console.error('Failed to log audit:', err));
+
+    res.json({
+      success: true,
+      message: `Successfully deleted ${usersToDelete.length} user(s)`,
+      data: { deleted: usersToDelete.length }
+    });
+  } catch (err) {
+    console.error('Delete users error:', err);
     next(err);
   }
 }
@@ -700,6 +836,7 @@ module.exports = {
   register,
   login,
   listUsers,
+  deleteUsers,
   googleLogin,
   completeGoogleLogin,
   forgotPassword,

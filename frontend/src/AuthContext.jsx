@@ -43,16 +43,38 @@ export function AuthProvider({ children }) {
   };
 
   const register = async (username, email, password, role) => {
-    const res = await api.post('/api/auth/register', { username, email, password, role });
-    const { token, user } = res.data.data;
-    
-    // Auto-login: save token and user data
-    localStorage.setItem('sfv_token', token);
-    localStorage.setItem('sfv_user', JSON.stringify(user));
-    setToken(token);
-    setUser(user);
-    
-    return user;
+    try {
+      const res = await api.post('/api/auth/register', { username, email, password, role });
+      
+      if (res.data && res.data.success && res.data.data) {
+        const { token, user } = res.data.data;
+        
+        // Auto-login: save token and user data
+        localStorage.setItem('sfv_token', token);
+        localStorage.setItem('sfv_user', JSON.stringify(user));
+        setToken(token);
+        setUser(user);
+        
+        return user;
+      } else {
+        // Create an error object that matches axios error format
+        const error = new Error(res.data?.message || 'Registration failed');
+        error.response = {
+          status: 400,
+          data: res.data || { message: 'Registration failed' }
+        };
+        throw error;
+      }
+    } catch (error) {
+      // Re-throw with proper error structure so RegisterPage can handle it
+      if (error.response) {
+        throw error;
+      }
+      // If it's a network error, create a proper error structure
+      const networkError = new Error('Network error: Could not reach the server');
+      networkError.response = null;
+      throw networkError;
+    }
   };
 
   const logout = () => {
