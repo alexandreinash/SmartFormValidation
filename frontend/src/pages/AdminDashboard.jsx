@@ -121,7 +121,7 @@ function AdminDashboard() {
             <button
               type="button"
               className="admin-card-button"
-              onClick={() => navigate('/admin/create-form')}
+              onClick={() => navigate('/text-form')}
             >
               Create New Form
             </button>
