@@ -51,22 +51,75 @@
   width: 100%;
   margin-top: 0.5rem;
   padding: 0.6rem 0.8rem;
-  background: #10b981;
-  color: #ffffff;
+  background: #fbbf24;
+  color: #000000;
   border: none;
   border-radius: 8px;
   font-size: 0.95rem;
   font-weight: 700;
   cursor: pointer;
-  transition: all 0.2s;
-  box-shadow: 0 4px 12px rgba(16, 185, 129, 0.4);
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  box-shadow: 0 4px 12px rgba(251, 191, 36, 0.4);
   text-align: center;
+  position: relative;
+  overflow: hidden;
 }
 
-.auth-button:hover {
-  background: #059669;
-  box-shadow: 0 6px 16px rgba(16, 185, 129, 0.5);
+.auth-button * {
+  transition: none !important;
+}
+
+.auth-button:disabled {
+  opacity: 0.9;
+  cursor: not-allowed;
+  transition: background 0.05s, box-shadow 0.05s, transform 0.05s;
+}
+
+.auth-button:hover:not(:disabled) {
+  background: #f59e0b;
+  box-shadow: 0 6px 16px rgba(251, 191, 36, 0.5);
   transform: translateY(-1px);
+}
+
+/* Sending animation - 0.3 seconds */
+.auth-button.sending-animation {
+  animation: sendingPulse 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  background: #f59e0b;
+  box-shadow: 0 6px 20px rgba(251, 191, 36, 0.6);
+}
+
+@keyframes sendingPulse {
+  0% {
+    transform: scale(1);
+    box-shadow: 0 4px 12px rgba(251, 191, 36, 0.4);
+  }
+  50% {
+    transform: scale(1.02);
+    box-shadow: 0 8px 24px rgba(251, 191, 36, 0.7);
+  }
+  100% {
+    transform: scale(1);
+    box-shadow: 0 6px 20px rgba(251, 191, 36, 0.6);
+  }
+}
+
+/* Success animation - stays yellow */
+.auth-button.success-animation {
+  background: #fbbf24;
+  box-shadow: 0 4px 12px rgba(251, 191, 36, 0.4);
+  animation: successBounce 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+@keyframes successBounce {
+  0% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.05);
+  }
+  100% {
+    transform: scale(1);
+  }
 }
 
 /* Split auth layout like reference */
@@ -96,8 +149,8 @@
   top: 2rem;
   left: 2.5rem;
   padding: 0.6rem 1.2rem;
-  background: #fbbf24;
-  color: #000000;
+  background: #fbbf24 !important;
+  color: #000000 !important;
   font-size: 0.75rem;
   font-weight: 700;
   border-radius: 4px;
@@ -148,10 +201,10 @@
 
 .auth-card {
   width: 100%;
-  max-width: 340px;
-  min-height: 20px;
+  max-width: 480px;
+  min-height: 480px;
   border-radius: 16px;
-  padding: 0.35rem;
+  padding: 2.5rem;
   background: rgba(15, 23, 42, 0.95);
   box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
   border: 1px solid rgba(148, 163, 184, 0.2);
@@ -199,13 +252,14 @@
 .auth-card select,
 .auth-card textarea {
   width: 100%;
-  padding: 0.4rem 0.6rem;
+  padding: 0.9rem 1rem;
   background: #ffffff;
   border: 1px solid #e5e7eb;
   border-radius: 8px;
   color: #0f172a;
-  font-size: 0.85rem;
+  font-size: 1rem;
   margin-top: 0.15rem;
+  min-height: 48px;
 }
 
 .auth-card input:not([type='checkbox']):focus,

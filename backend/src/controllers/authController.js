@@ -1,10 +1,12 @@
 const { body, validationResult } = require('express-validator');
 const jwt = require('jsonwebtoken');
 const bcrypt = require('bcryptjs');
+const crypto = require('crypto');
 const { OAuth2Client } = require('google-auth-library');
 const User = require('../models/User');
+const PasswordReset = require('../models/PasswordReset');
 const { logAudit } = require('../services/auditLogger');
-const { sendRegistrationEmail } = require('../services/emailService');
+const { sendRegistrationEmail, sendPasswordResetEmail } = require('../services/emailService');
 
 const googleClient = process.env.GOOGLE_CLIENT_ID 
   ? new OAuth2Client(process.env.GOOGLE_CLIENT_ID)
@@ -276,13 +278,242 @@ async function googleLogin(req, res, next) {
   }
 }
 
+// Forgot password - request password reset
+async function forgotPassword(req, res, next) {
+  try {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      return res.status(400).json({ 
+        success: false, 
+        message: 'Validation failed',
+        errors: errors.array() 
+      });
+    }
+
+    const { email } = req.body;
+    
+    // Return success immediately for fast response (security best practice - prevents email enumeration)
+    res.json({
+      success: true,
+      message: 'Password reset link has been sent to your email.',
+    });
+    
+    // Process password reset in background (non-blocking)
+    (async () => {
+      try {
+        // Find user by email
+        const user = await User.findOne({ where: { email } });
+        
+        // Only send email if user exists
+        if (user) {
+          // Generate reset token
+          const token = crypto.randomBytes(32).toString('hex');
+          const expiresAt = new Date();
+          expiresAt.setHours(expiresAt.getHours() + 1); // Token expires in 1 hour
+          
+          // Invalidate any existing reset tokens for this user
+          await PasswordReset.update(
+            { used: true },
+            { where: { user_id: user.id, used: false } }
+          );
+          
+          // Create new reset token
+          await PasswordReset.create({
+            user_id: user.id,
+            token,
+            expires_at: expiresAt,
+            used: false,
+          });
+          
+          // Send password reset email (non-blocking)
+          const resetUrl = `${process.env.FRONTEND_URL || 'http://localhost:5174'}/reset-password?token=${token}`;
+          sendPasswordResetEmail(user.email, resetUrl).then((emailResult) => {
+            if (!emailResult.success) {
+              console.error('[Password Reset] ❌ Failed to send email to:', user.email);
+              console.error('[Password Reset] Error:', emailResult.message);
+              console.error('[Password Reset] Error Code:', emailResult.errorCode || 'N/A');
+              
+              // Log detailed error for debugging
+              if (process.env.EMAIL_ENABLED !== 'true') {
+                console.error('[Password Reset] ⚠️  Email service is DISABLED.');
+                console.error('[Password Reset] Fix: Set EMAIL_ENABLED=true in your .env file');
+              }
+              if (!process.env.SMTP_USER || !process.env.SMTP_PASS) {
+                console.error('[Password Reset] ⚠️  SMTP credentials NOT configured.');
+                console.error('[Password Reset] Fix: Set SMTP_USER and SMTP_PASS in your .env file');
+                console.error('[Password Reset] For Gmail: Use an App Password (not your regular password)');
+                console.error('[Password Reset] Get App Password: https://myaccount.google.com/apppasswords');
+              }
+            } else {
+              console.log('[Password Reset] ✅ Email sent successfully to:', user.email);
+            }
+          }).catch((err) => {
+            console.error('[Password Reset] ❌ Error sending email:', err);
+          });
+          
+          // Log audit asynchronously (non-blocking)
+          logAudit({
+            userId: user.id,
+            action: 'password_reset_requested',
+            entityType: 'user',
+            entityId: user.id,
+          }).catch((err) => {
+            console.error('Failed to log audit:', err);
+          });
+        }
+      } catch (err) {
+        console.error('[Password Reset] Background processing error:', err);
+      }
+    })();
+  } catch (err) {
+    console.error('Forgot password error:', err);
+    next(err);
+  }
+}
+
+// Reset password - with token
+async function resetPassword(req, res, next) {
+  try {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      return res.status(400).json({ 
+        success: false, 
+        message: 'Validation failed',
+        errors: errors.array() 
+      });
+    }
+
+    const { token, password } = req.body;
+    
+    if (!token) {
+      return res.status(400).json({ 
+        success: false, 
+        message: 'Reset token is required' 
+      });
+    }
+    
+    // Find valid reset token
+    const resetRecord = await PasswordReset.findOne({
+      where: {
+        token,
+        used: false,
+      },
+      include: [{ model: User, as: 'user' }],
+    });
+    
+    if (!resetRecord) {
+      return res.status(400).json({ 
+        success: false, 
+        message: 'Invalid or expired reset token' 
+      });
+    }
+    
+    // Check if token has expired
+    if (new Date() > new Date(resetRecord.expires_at)) {
+      await resetRecord.update({ used: true });
+      return res.status(400).json({ 
+        success: false, 
+        message: 'Reset token has expired. Please request a new one.' 
+      });
+    }
+    
+    // Hash new password
+    const hashedPassword = await bcrypt.hash(password, 10);
+    
+    // Update user password
+    await User.update(
+      { password: hashedPassword },
+      { where: { id: resetRecord.user_id } }
+    );
+    
+    // Mark token as used
+    await resetRecord.update({ used: true });
+    
+    await logAudit({
+      userId: resetRecord.user_id,
+      action: 'password_reset_completed',
+      entityType: 'user',
+      entityId: resetRecord.user_id,
+    });
+    
+    res.json({
+      success: true,
+      message: 'Password has been reset successfully. You can now log in with your new password.',
+    });
+  } catch (err) {
+    console.error('Reset password error:', err);
+    next(err);
+  }
+}
+
+// Validate reset token (for frontend to check if token is valid)
+async function validateResetToken(req, res, next) {
+  try {
+    const { token } = req.params;
+    
+    if (!token) {
+      return res.status(400).json({ 
+        success: false, 
+        message: 'Token is required' 
+      });
+    }
+    
+    const resetRecord = await PasswordReset.findOne({
+      where: {
+        token,
+        used: false,
+      },
+    });
+    
+    if (!resetRecord) {
+      return res.status(400).json({ 
+        success: false, 
+        message: 'Invalid or expired token',
+        valid: false
+      });
+    }
+    
+    // Check if token has expired
+    if (new Date() > new Date(resetRecord.expires_at)) {
+      return res.status(400).json({ 
+        success: false, 
+        message: 'Token has expired',
+        valid: false
+      });
+    }
+    
+    res.json({
+      success: true,
+      message: 'Token is valid',
+      valid: true
+    });
+  } catch (err) {
+    console.error('Validate token error:', err);
+    next(err);
+  }
+}
+
+const validateForgotPassword = [
+  body('email').isEmail().withMessage('Valid email is required'),
+];
+
+const validateResetPassword = [
+  body('token').notEmpty().withMessage('Reset token is required'),
+  body('password').isLength({ min: 6 }).withMessage('Password must be at least 6 characters'),
+];
+
 module.exports = {
   validateRegister,
   validateLogin,
+  validateForgotPassword,
+  validateResetPassword,
   register,
   login,
   listUsers,
   googleLogin,
+  forgotPassword,
+  resetPassword,
+  validateResetToken,
 };
 
 

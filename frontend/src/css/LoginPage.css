@@ -58,9 +58,19 @@
   font-size: 1rem;
   font-weight: 700;
   cursor: pointer;
-  transition: all 0.2s;
+  transition: background 0.05s, box-shadow 0.05s, transform 0.05s;
   box-shadow: 0 4px 12px rgba(251, 191, 36, 0.4);
   text-align: center;
+}
+
+.auth-button * {
+  transition: none !important;
+}
+
+.auth-button:disabled {
+  opacity: 0.9;
+  cursor: not-allowed;
+  transition: background 0.05s, box-shadow 0.05s, transform 0.05s;
 }
 
 .auth-button:hover {
@@ -93,14 +103,14 @@
 
 .auth-hero-banner-top {
   position: absolute;
-  top: 0;
-  left: 0;
+  top: 2rem;
+  left: 2.5rem;
   padding: 0.6rem 1.2rem;
-  background: #fbbf24;
-  color: #000000;
+  background: #fbbf24 !important;
+  color: #000000 !important;
   font-size: 0.75rem;
   font-weight: 700;
-  border-radius: 0 0 4px 0;
+  border-radius: 4px;
   letter-spacing: 0.1em;
   text-transform: uppercase;
   z-index: 1;
@@ -151,11 +161,10 @@
 
 .auth-card {
   width: 100%;
-  max-width: 460px;
-  min-height: 96px;
+  max-width: 480px;
+  min-height: 480px;
   border-radius: 16px;
-  padding: 0.75rem;
-  margin: 1.5rem;
+  padding: 2.5rem;
   background: rgba(15, 23, 42, 0.95);
   box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
   border: 1px solid rgba(148, 163, 184, 0.2);
@@ -203,13 +212,14 @@
 .auth-card select,
 .auth-card textarea {
   width: 100%;
-  padding: 0.6rem 0.85rem;
+  padding: 0.9rem 1rem;
   background: #ffffff;
   border: 1px solid #e5e7eb;
   border-radius: 8px;
   color: #0f172a;
-  font-size: 0.9rem;
+  font-size: 1rem;
   margin-top: 0.3rem;
+  min-height: 48px;
 }
 
 .auth-card input:not([type='checkbox']):focus,
