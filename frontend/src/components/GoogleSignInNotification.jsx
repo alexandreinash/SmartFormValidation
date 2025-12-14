@@ -23,11 +23,11 @@ function GoogleSignInNotification() {
       // Remove the flag after showing
       localStorage.removeItem('sfv_regular_just_logged_in');
       
-      // Auto-hide after 1.2 seconds
+      // Auto-hide after animation completes (0.8 seconds)
       const timer = setTimeout(() => {
         setShow(false);
         setIsRegularLogin(false);
-      }, 1200);
+      }, 800);
       
       return () => clearTimeout(timer);
     }
@@ -42,11 +42,11 @@ function GoogleSignInNotification() {
       // Remove the flag after showing
       localStorage.removeItem('sfv_regular_just_logged_in');
       
-      // Auto-hide after 1.2 seconds
+      // Auto-hide after animation completes (0.8 seconds)
       const timer = setTimeout(() => {
         setShow(false);
         setIsRegularLogin(false);
-      }, 1200);
+      }, 800);
       
       return () => clearTimeout(timer);
     }

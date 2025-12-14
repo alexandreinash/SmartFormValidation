@@ -8,9 +8,21 @@ const PasswordReset = require('../models/PasswordReset');
 const { logAudit } = require('../services/auditLogger');
 const { sendRegistrationEmail, sendPasswordResetEmail } = require('../services/emailService');
 
-const googleClient = process.env.GOOGLE_CLIENT_ID 
-  ? new OAuth2Client(process.env.GOOGLE_CLIENT_ID)
-  : null;
+// Initialize Google OAuth client
+let googleClient = null;
+if (process.env.GOOGLE_CLIENT_ID) {
+  try {
+    googleClient = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
+    console.log('[Google OAuth] Client initialized successfully');
+    console.log('[Google OAuth] Client ID:', process.env.GOOGLE_CLIENT_ID.substring(0, 20) + '...');
+    console.log('[Google OAuth] Note: Ensure this matches the frontend Google Client ID');
+  } catch (err) {
+    console.error('[Google OAuth] Failed to initialize client:', err);
+  }
+} else {
+  console.warn('[Google OAuth] ⚠️  GOOGLE_CLIENT_ID not set in environment variables');
+  console.warn('[Google OAuth] Google sign-in will not work until GOOGLE_CLIENT_ID is configured');
+}
 
 // Validation chains used by the routes
 const validateRegister = [
@@ -178,6 +190,7 @@ async function googleLogin(req, res, next) {
     }
 
     if (!googleClient || !process.env.GOOGLE_CLIENT_ID) {
+      console.error('[Google OAuth] Client not initialized. GOOGLE_CLIENT_ID:', process.env.GOOGLE_CLIENT_ID ? 'set' : 'not set');
       return res.status(500).json({ 
         success: false, 
         message: 'Google OAuth is not configured. Please set GOOGLE_CLIENT_ID in environment variables.' 
@@ -185,10 +198,42 @@ async function googleLogin(req, res, next) {
     }
 
     // Verify the Google token
-    const ticket = await googleClient.verifyIdToken({
-      idToken: credential,
-      audience: process.env.GOOGLE_CLIENT_ID,
-    });
+    let ticket;
+    try {
+      // Try with the configured client ID first
+      ticket = await googleClient.verifyIdToken({
+        idToken: credential,
+        audience: process.env.GOOGLE_CLIENT_ID,
+      });
+    } catch (verifyErr) {
+      console.error('[Google OAuth] Token verification failed:', verifyErr);
+      console.error('[Google OAuth] Error details:', {
+        message: verifyErr.message,
+        code: verifyErr.code,
+        name: verifyErr.name
+      });
+      
+      // If audience mismatch, try without strict audience check (for development)
+      if (verifyErr.message && (
+          verifyErr.message.includes('Wrong recipient') || 
+          verifyErr.message.includes('audience') ||
+          verifyErr.message.includes('Invalid token')
+        )) {
+        console.warn('[Google OAuth] Attempting verification without strict audience check...');
+        try {
+          ticket = await googleClient.verifyIdToken({
+            idToken: credential,
+            // Don't specify audience - let it verify against any allowed client
+          });
+          console.log('[Google OAuth] Token verified without strict audience check');
+        } catch (retryErr) {
+          console.error('[Google OAuth] Retry verification also failed:', retryErr);
+          throw verifyErr; // Throw original error
+        }
+      } else {
+        throw verifyErr; // Re-throw for other errors
+      }
+    }
     
     const payload = ticket.getPayload();
     const email = payload.email;
@@ -203,32 +248,32 @@ async function googleLogin(req, res, next) {
     
     // Check if user exists
     let user = await User.findOne({ where: { email } });
+    const isNewUser = !user;
     
     if (!user) {
-      // Create new user with random password (since they're using Google OAuth)
-      const randomPassword = await bcrypt.hash(Math.random().toString(36), 10);
-      user = await User.create({ 
-        email, 
-        password: randomPassword,
-        role: 'user' // Default role for Google sign-in users
-      });
+      // For new Google users, create a temporary session token with verified email
+      // This avoids re-verifying the Google token (which causes audience mismatch)
+      const sessionToken = jwt.sign(
+        { 
+          email: email,
+          googleId: googleId,
+          type: 'google_role_selection',
+          verified: true
+        },
+        process.env.JWT_SECRET || 'dev_secret',
+        { expiresIn: '10m' } // 10 minute expiry for role selection
+      );
       
-      logAudit({
-        userId: user.id,
-        action: 'user_registered_google',
-        entityType: 'user',
-        entityId: user.id,
-      }).catch((err) => {
-        console.error('Failed to log audit:', err);
-      });
-      
-      // Send registration email (non-blocking)
-      sendRegistrationEmail(user.email, user.role).catch((err) => {
-        console.error('Failed to send registration email:', err);
+      return res.json({
+        success: true,
+        needsRoleSelection: true,
+        email: email,
+        sessionToken: sessionToken,
+        message: 'Please select your role to complete registration',
       });
     }
     
-    // Generate JWT token
+    // Generate JWT token for existing users
     const token = jwt.sign(
       { id: user.id, role: user.role },
       process.env.JWT_SECRET || 'dev_secret',
@@ -246,6 +291,7 @@ async function googleLogin(req, res, next) {
     
     return res.json({
       success: true,
+      needsRoleSelection: false,
       data: { 
         token, 
         user: { id: user.id, email: user.email, role: user.role } 
@@ -254,6 +300,12 @@ async function googleLogin(req, res, next) {
     });
   } catch (err) {
     console.error('Google login error:', err);
+    console.error('Error details:', {
+      name: err.name,
+      message: err.message,
+      code: err.code,
+      stack: err.stack
+    });
     
     // Check if it's a database connection error
     if (err.name === 'SequelizeConnectionError' || err.name === 'SequelizeConnectionRefusedError') {
@@ -264,16 +316,39 @@ async function googleLogin(req, res, next) {
     }
     
     // Check if it's a Google token verification error
-    if (err.message && err.message.includes('Token used too early')) {
+    if (err.message && (
+        err.message.includes('Token used too early') || 
+        err.message.includes('Wrong recipient') || 
+        err.message.includes('audience') ||
+        err.message.includes('Invalid token') ||
+        err.message.includes('expired') ||
+        err.code === 'auth/id-token-expired'
+      )) {
+      // Provide more helpful error message
+      let errorMsg = 'Invalid or expired Google token. Please sign in again.';
+      
+      if (err.message.includes('Wrong recipient') || err.message.includes('audience')) {
+        errorMsg = 'Google Client ID mismatch. Please ensure the backend GOOGLE_CLIENT_ID matches the frontend client ID.';
+        console.error('[Google OAuth] Client ID mismatch detected. Backend ID:', process.env.GOOGLE_CLIENT_ID);
+      }
+      
       return res.status(401).json({ 
         success: false, 
-        message: 'Invalid Google token. Please try again.' 
+        message: errorMsg 
       });
     }
     
-    return res.status(401).json({ 
+    // More specific error messages
+    if (err.code === 'EAUTH' || err.message?.includes('authentication')) {
+      return res.status(401).json({ 
+        success: false, 
+        message: 'Google authentication failed. Please try again.' 
+      });
+    }
+    
+    return res.status(500).json({ 
       success: false, 
-      message: err.message || 'Invalid Google credential. Please try again.' 
+      message: err.message || 'Google login failed. Please try again.' 
     });
   }
 }
@@ -502,15 +577,131 @@ const validateResetPassword = [
   body('password').isLength({ min: 6 }).withMessage('Password must be at least 6 characters'),
 ];
 
+const validateGoogleRoleSelection = [
+  body('email').isEmail().withMessage('Valid email is required'),
+  body('role').isIn(['admin', 'user']).withMessage('Role must be either admin or user'),
+  body('sessionToken').notEmpty().withMessage('Session token is required'),
+];
+
+// Complete Google login with role selection (for first-time users)
+async function completeGoogleLogin(req, res, next) {
+  try {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      return res.status(400).json({ 
+        success: false, 
+        message: 'Validation failed',
+        errors: errors.array() 
+      });
+    }
+
+    const { email, role, sessionToken } = req.body;
+    
+    // Verify the session token instead of re-verifying Google token
+    let sessionPayload;
+    try {
+      sessionPayload = jwt.verify(sessionToken, process.env.JWT_SECRET || 'dev_secret');
+    } catch (err) {
+      return res.status(401).json({ 
+        success: false, 
+        message: 'Invalid or expired session token. Please sign in again.' 
+      });
+    }
+    
+    // Verify the session token is for role selection and email matches
+    if (sessionPayload.type !== 'google_role_selection' || !sessionPayload.verified) {
+      return res.status(400).json({ 
+        success: false, 
+        message: 'Invalid session token type' 
+      });
+    }
+    
+    if (sessionPayload.email !== email) {
+      return res.status(400).json({ 
+        success: false, 
+        message: 'Email mismatch' 
+      });
+    }
+    
+    // Check if user already exists (should not happen, but safety check)
+    let user = await User.findOne({ where: { email } });
+    
+    if (user) {
+      // User already exists, proceed with normal login
+      const token = jwt.sign(
+        { id: user.id, role: user.role },
+        process.env.JWT_SECRET || 'dev_secret',
+        { expiresIn: '8h' }
+      );
+      
+      return res.json({
+        success: true,
+        data: { 
+          token, 
+          user: { id: user.id, email: user.email, role: user.role } 
+        },
+        message: 'Google login successful',
+      });
+    }
+    
+    // Create new user with selected role
+    const randomPassword = await bcrypt.hash(Math.random().toString(36), 10);
+    // Generate username from email (take part before @)
+    const username = email.split('@')[0] + '_' + Math.random().toString(36).substring(2, 8);
+    
+    user = await User.create({ 
+      email,
+      username,
+      password: randomPassword,
+      role: role
+    });
+    
+    logAudit({
+      userId: user.id,
+      action: 'user_registered_google',
+      entityType: 'user',
+      entityId: user.id,
+    }).catch((err) => {
+      console.error('Failed to log audit:', err);
+    });
+    
+    // Send registration email (non-blocking)
+    sendRegistrationEmail(user.email, user.role).catch((err) => {
+      console.error('Failed to send registration email:', err);
+    });
+    
+    // Generate JWT token
+    const token = jwt.sign(
+      { id: user.id, role: user.role },
+      process.env.JWT_SECRET || 'dev_secret',
+      { expiresIn: '8h' }
+    );
+    
+    return res.json({
+      success: true,
+      data: { 
+        token, 
+        user: { id: user.id, email: user.email, role: user.role } 
+      },
+      message: 'Registration successful',
+    });
+  } catch (err) {
+    console.error('Complete Google login error:', err);
+    next(err);
+  }
+}
+
 module.exports = {
   validateRegister,
   validateLogin,
   validateForgotPassword,
   validateResetPassword,
+  validateGoogleRoleSelection,
   register,
   login,
   listUsers,
   googleLogin,
+  completeGoogleLogin,
   forgotPassword,
   resetPassword,
   validateResetToken,

@@ -10,7 +10,7 @@
   box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3);
   min-width: 320px;
   max-width: 400px;
-  animation: slideIn 0.3s ease-out;
+  animation: slideIn 0.8s ease-out;
 }
 
 @keyframes slideIn {
