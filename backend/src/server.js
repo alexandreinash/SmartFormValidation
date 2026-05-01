@@ -15,6 +15,7 @@ const SubmissionData = require('./models/SubmissionData');
 const AuditLog = require('./models/AuditLog');
 const Group = require('./models/Group');
 const GroupMember = require('./models/GroupMember');
+const ensureSubmissionGradingColumns = require('./startup/ensureSubmissionGradingColumns');
 
 // Define associations
 Group.hasMany(GroupMember, { foreignKey: 'group_id', as: 'memberships' });
@@ -138,6 +139,7 @@ sequelize
     
     return sequelize.sync();
   })
+  .then(() => ensureSubmissionGradingColumns({ log: console.log }))
   .then(() => {
     server.listen(PORT, () => {
       console.log(`Smart Form Validator API listening on port ${PORT}`);

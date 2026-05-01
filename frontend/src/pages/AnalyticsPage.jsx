@@ -4,21 +4,74 @@ import api from '../api';
 import { useAuth } from '../AuthContext';
 import '../css/AdminDashboard.css';
 
+const ANALYTICS_CHART_COLORS = ['#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6'];
+
+function formatChartPercent(value) {
+  return Number.isInteger(value) ? value.toFixed(0) : value.toFixed(1);
+}
+
+function wrapChartLabel(label, maxCharsPerLine = 12, maxLines = 2) {
+  const normalized = String(label || 'Untitled Form').trim();
+  if (!normalized) {
+    return ['Untitled Form'];
+  }
+
+  if (normalized.length <= maxCharsPerLine) {
+    return [normalized];
+  }
+
+  const words = normalized.split(/\s+/);
+  const lines = [];
+  let currentLine = '';
+
+  for (const word of words) {
+    const nextLine = currentLine ? `${currentLine} ${word}` : word;
+    if (nextLine.length <= maxCharsPerLine) {
+      currentLine = nextLine;
+      continue;
+    }
+
+    if (currentLine) {
+      lines.push(currentLine);
+    }
+
+    currentLine = word;
+    if (lines.length === maxLines - 1) {
+      break;
+    }
+  }
+
+  const consumed = lines.join(' ').trim();
+  const remainder = consumed ? normalized.slice(consumed.length).trim() : normalized;
+  const finalLine = remainder || currentLine;
+  lines.push(
+    finalLine.length > maxCharsPerLine
+      ? `${finalLine.slice(0, Math.max(1, maxCharsPerLine - 1))}...`
+      : finalLine
+  );
+
+  return lines.slice(0, maxLines);
+}
+
 function AnalyticsPage() {
-  const { user } = useAuth();
+  const { user, authReady } = useAuth();
   const navigate = useNavigate();
   const [analytics, setAnalytics] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
 
   useEffect(() => {
+    if (!authReady) {
+      return;
+    }
+
     if (!user || user.role !== 'admin') {
       navigate('/login');
       return;
     }
 
     loadAnalytics();
-  }, [user, navigate]);
+  }, [authReady, user, navigate]);
 
   const loadAnalytics = async () => {
     try {
@@ -71,10 +124,10 @@ function AnalyticsPage() {
       
       return {
         ...form,
-        percent: percent.toFixed(1),
+        percent: Number(percent.toFixed(1)),
         startPercent,
         endPercent: cumulativePercent,
-        color: ['#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6'][index % 5],
+        color: ANALYTICS_CHART_COLORS[index % ANALYTICS_CHART_COLORS.length],
       };
     });
   }, [analytics]);
@@ -92,27 +145,75 @@ function AnalyticsPage() {
       return {
         formTitle: form.formTitle,
         submissionCount: form.submissionCount,
-        percent: Math.round(percent * 10) / 10, // Round to 1 decimal
-        color: form.color, // Use the same color from donut chart
+        percent: Math.round(percent * 10) / 10,
+        color: form.color,
         formId: form.formId,
       };
     });
   }, [donutChartData]);
 
-  // Vertical bar chart dimensions - optimized to fit container
-  const verticalChartHeight = 250;
-  const verticalChartWidth = 500;
-  const maxPercent = 30; // Max percentage value on Y-axis (like the image)
-  const topMargin = 35;
-  const bottomMargin = 50;
-  const leftMargin = 45;
-  const rightMargin = 20;
-  
-  // Calculate bar dimensions (always 5 bars from donut chart)
-  const numBars = 5;
-  const availableWidth = verticalChartWidth - leftMargin - rightMargin;
-  const barWidth = Math.min(45, Math.floor(availableWidth / numBars - 8));
-  const barSpacing = Math.floor(availableWidth / numBars);
+  const totalTopFormSubmissions = useMemo(
+    () => donutChartData?.reduce((sum, form) => sum + form.submissionCount, 0) || 0,
+    [donutChartData]
+  );
+
+  const comparisonChartLayout = useMemo(() => {
+    if (!verticalBarChartData.length) {
+      return null;
+    }
+
+    const chartHeight = 310;
+    const chartWidth = Math.max(540, verticalBarChartData.length * 118);
+    const topMargin = 28;
+    const bottomMargin = 88;
+    const leftMargin = 58;
+    const rightMargin = 22;
+    const chartAreaWidth = chartWidth - leftMargin - rightMargin;
+    const chartAreaHeight = chartHeight - topMargin - bottomMargin;
+    const maxValue = Math.max(...verticalBarChartData.map((form) => form.percent), 0);
+    const roundedMax = Math.max(10, Math.ceil(maxValue / 5) * 5);
+    const tickStep = Math.max(5, Math.ceil((roundedMax / 4) / 5) * 5);
+    const yTicks = [];
+
+    for (let value = tickStep; value <= roundedMax; value += tickStep) {
+      yTicks.push(value);
+    }
+
+    const barSpacing = chartAreaWidth / verticalBarChartData.length;
+    const barWidth = Math.min(78, Math.max(48, barSpacing * 0.62));
+    const labelCharLimit = Math.max(10, Math.floor(barSpacing / 7));
+
+    return {
+      chartHeight,
+      chartWidth,
+      chartAreaWidth,
+      chartAreaHeight,
+      topMargin,
+      bottomMargin,
+      leftMargin,
+      rightMargin,
+      maxPercent: roundedMax,
+      yTicks,
+      barSpacing,
+      barWidth,
+      labelCharLimit,
+    };
+  }, [verticalBarChartData]);
+
+  if (!authReady) {
+    return (
+      <div className="analytics-dashboard-container">
+        <div className="analytics-header">
+          <div className="analytics-header-center">
+            <div className="analytics-header-title">Data Analytics Dashboard</div>
+          </div>
+        </div>
+        <div className="analytics-content">
+          <div className="analytics-loading">Restoring session...</div>
+        </div>
+      </div>
+    );
+  }
 
   if (loading) {
     return (
@@ -225,37 +326,50 @@ function AnalyticsPage() {
             {/* Charts Row */}
             <div className="analytics-charts-grid">
               {/* Vertical Bar Chart - Top Forms by Submissions */}
-              {verticalBarChartData && verticalBarChartData.length > 0 && (
+              {verticalBarChartData && verticalBarChartData.length > 0 && comparisonChartLayout && (
                 <div className="analytics-chart-card">
                   <div className="analytics-chart-header">
                     <h3 className="analytics-chart-title">Form Submission Comparison</h3>
                     <div className="analytics-chart-subtitle">Submission Share Analysis</div>
                   </div>
-                  <div className="analytics-line-chart-container" style={{ padding: '0.5rem 0', overflow: 'visible' }}>
-                    <svg viewBox={`0 0 ${verticalChartWidth} ${verticalChartHeight + 60}`} className="analytics-line-chart-svg" style={{ width: '100%', height: 'auto', maxWidth: '100%' }}>
+                  <div className="analytics-chart-scroll-frame">
+                    <div className="analytics-line-chart-container analytics-line-chart-container-comparison">
+                      <svg
+                        viewBox={`0 0 ${comparisonChartLayout.chartWidth} ${comparisonChartLayout.chartHeight}`}
+                        className="analytics-line-chart-svg analytics-line-chart-svg-comparison"
+                        preserveAspectRatio="xMidYMid meet"
+                      >
+                        <rect
+                          x={comparisonChartLayout.leftMargin}
+                          y={comparisonChartLayout.topMargin}
+                          width={comparisonChartLayout.chartAreaWidth}
+                          height={comparisonChartLayout.chartAreaHeight}
+                          rx="24"
+                          fill="rgba(148, 163, 184, 0.06)"
+                        />
+
                       {/* Y-axis labels and grid lines */}
-                      {[5, 10, 20, 30].map((value) => {
-                        const chartAreaHeight = verticalChartHeight - topMargin - bottomMargin;
-                        const yPos = topMargin + chartAreaHeight - (value / maxPercent) * chartAreaHeight;
+                      {comparisonChartLayout.yTicks.map((value) => {
+                        const yPos = comparisonChartLayout.topMargin + comparisonChartLayout.chartAreaHeight - (value / comparisonChartLayout.maxPercent) * comparisonChartLayout.chartAreaHeight;
                         return (
                           <g key={value}>
                             <text
-                              x={leftMargin - 8}
+                              x={comparisonChartLayout.leftMargin - 10}
                               y={yPos + 4}
                               className="analytics-line-chart-x-label"
                               textAnchor="end"
-                              fill="#6b7280"
+                              fill="#7c8698"
                               fontSize="11"
                               fontWeight="500"
                             >
-                              {value}
+                              {formatChartPercent(value)}
                             </text>
                             <line
-                              x1={leftMargin}
+                              x1={comparisonChartLayout.leftMargin}
                               y1={yPos}
-                              x2={verticalChartWidth - rightMargin}
+                              x2={comparisonChartLayout.chartWidth - comparisonChartLayout.rightMargin}
                               y2={yPos}
-                              stroke="#e5e7eb"
+                              stroke="rgba(148, 163, 184, 0.22)"
                               strokeWidth="1"
                             />
                           </g>
@@ -265,30 +379,24 @@ function AnalyticsPage() {
                       {/* Y-axis label */}
                       <text
                         x="18"
-                        y={verticalChartHeight / 2 + 30}
+                        y={comparisonChartLayout.chartHeight / 2}
                         className="analytics-line-chart-x-label"
                         textAnchor="middle"
-                        fill="#6b7280"
+                        fill="#7c8698"
                         fontSize="10"
-                        fontWeight="500"
-                        transform={`rotate(-90, 18, ${verticalChartHeight / 2 + 30})`}
+                        fontWeight="600"
+                        transform={`rotate(-90, 18, ${comparisonChartLayout.chartHeight / 2})`}
                       >
                         Submission Share (%)
                       </text>
 
                       {/* Vertical Bars */}
                       {verticalBarChartData.map((form, index) => {
-                        const chartAreaWidth = verticalChartWidth - leftMargin - rightMargin;
-                        const chartAreaHeight = verticalChartHeight - topMargin - bottomMargin;
-                        const barX = leftMargin + index * barSpacing + (barSpacing - barWidth) / 2;
-                        const barHeight = (form.percent / maxPercent) * chartAreaHeight;
-                        const barY = topMargin + chartAreaHeight - barHeight;
-                        
-                        // Truncate form name if too long - adjust based on available space
-                        const maxNameLength = Math.floor(barSpacing / 6);
-                        const displayName = form.formTitle.length > maxNameLength 
-                          ? form.formTitle.substring(0, Math.max(6, maxNameLength - 3)) + '...' 
-                          : form.formTitle;
+                        const barX = comparisonChartLayout.leftMargin + index * comparisonChartLayout.barSpacing + (comparisonChartLayout.barSpacing - comparisonChartLayout.barWidth) / 2;
+                        const scaledBarHeight = (form.percent / comparisonChartLayout.maxPercent) * comparisonChartLayout.chartAreaHeight;
+                        const barHeight = form.percent > 0 ? Math.max(18, scaledBarHeight) : 0;
+                        const barY = comparisonChartLayout.topMargin + comparisonChartLayout.chartAreaHeight - barHeight;
+                        const labelLines = wrapChartLabel(form.formTitle, comparisonChartLayout.labelCharLimit, 2);
                         
                         return (
                           <g key={form.formId || form.formTitle}>
@@ -296,42 +404,53 @@ function AnalyticsPage() {
                             <rect
                               x={barX}
                               y={barY}
-                              width={barWidth}
+                              width={comparisonChartLayout.barWidth}
                               height={barHeight}
                               fill={form.color}
-                              style={{ transition: 'opacity 0.2s' }}
-                              className="analytics-chart-bar"
+                              rx="18"
+                              style={{ transition: 'opacity 0.2s, transform 0.2s' }}
+                              className="analytics-chart-bar analytics-comparison-bar"
                             />
+                            <title>{`${form.formTitle}: ${form.submissionCount} submissions (${formatChartPercent(form.percent)}%)`}</title>
                             
                             {/* Percentage label on top of bar */}
                             <text
-                              x={barX + barWidth / 2}
-                              y={barY - 3}
+                              x={barX + comparisonChartLayout.barWidth / 2}
+                              y={barY - 10}
                               className="analytics-line-chart-x-label"
                               textAnchor="middle"
-                              fill="#1e293b"
-                              fontSize="11"
+                              fill="#4f1020"
+                              fontSize="12"
                               fontWeight="600"
                             >
-                              {form.percent}%
+                              {formatChartPercent(form.percent)}%
                             </text>
                             
                             {/* X-axis label (Form name) */}
                             <text
-                              x={barX + barWidth / 2}
-                              y={verticalChartHeight + 20}
+                              x={barX + comparisonChartLayout.barWidth / 2}
+                              y={comparisonChartLayout.chartHeight - 34}
                               className="analytics-line-chart-x-label"
                               textAnchor="middle"
-                              fill="#6b7280"
+                              fill="#556173"
                               fontSize="10"
-                              fontWeight="500"
+                              fontWeight="600"
                             >
-                              {displayName}
+                              {labelLines.map((line, lineIndex) => (
+                                <tspan
+                                  key={`${form.formId || form.formTitle}-${lineIndex}`}
+                                  x={barX + comparisonChartLayout.barWidth / 2}
+                                  dy={lineIndex === 0 ? 0 : 13}
+                                >
+                                  {line}
+                                </tspan>
+                              ))}
                             </text>
                           </g>
                         );
                       })}
-                    </svg>
+                      </svg>
+                    </div>
                   </div>
                 </div>
               )}
@@ -346,14 +465,20 @@ function AnalyticsPage() {
                   <div className="analytics-donut-chart-container">
                     <div className="analytics-donut-chart">
                       <svg viewBox="0 0 200 200" className="analytics-donut-svg">
+                        <circle
+                          cx="100"
+                          cy="100"
+                          r="70"
+                          fill="none"
+                          stroke="rgba(148, 163, 184, 0.18)"
+                          strokeWidth="34"
+                        />
                         {donutChartData.map((form, index) => {
                           const radius = 70;
                           const circumference = 2 * Math.PI * radius;
-                          const percent = parseFloat(form.percent);
+                          const percent = Number(form.percent);
                           const strokeDasharray = circumference;
-                          // Calculate offset: start from where previous segment ended
                           const strokeDashoffset = circumference - (percent / 100) * circumference;
-                          // Rotate to start at the correct position
                           const rotation = form.startPercent * 3.6 - 90;
                           
                           return (
@@ -365,10 +490,11 @@ function AnalyticsPage() {
                               r={radius}
                               fill="none"
                               stroke={form.color}
-                              strokeWidth="40"
+                              strokeWidth="34"
                               strokeDasharray={strokeDasharray}
                               strokeDashoffset={strokeDashoffset}
                               transform={`rotate(${rotation} 100 100)`}
+                              strokeLinecap="butt"
                               style={{ transition: 'all 0.3s ease' }}
                             />
                           );
@@ -376,7 +502,7 @@ function AnalyticsPage() {
                       </svg>
                       <div className="analytics-donut-center">
                         <div className="analytics-donut-center-value">
-                          {analytics.topForms.slice(0, 5).reduce((sum, f) => sum + f.submissionCount, 0)}
+                          {totalTopFormSubmissions}
                         </div>
                         <div className="analytics-donut-center-label">Submissions</div>
                       </div>
@@ -389,9 +515,9 @@ function AnalyticsPage() {
                             style={{ backgroundColor: form.color }}
                           />
                           <div className="analytics-donut-legend-text">
-                            <div className="analytics-donut-legend-name">{form.formTitle}</div>
+                            <div className="analytics-donut-legend-name" title={form.formTitle}>{form.formTitle}</div>
                             <div className="analytics-donut-legend-value">
-                              {form.submissionCount} ({form.percent}%)
+                              {form.submissionCount} ({formatChartPercent(form.percent)}%)
                             </div>
                           </div>
                         </div>

@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import api from '../api';
 import { useAuth } from '../AuthContext';
+import TeacherWorkspaceSidebar from '../components/TeacherWorkspaceSidebar';
 import SendToModal from '../components/SendToModal';
 import '../css/CreateFormPage.css';
 import '../css/components.css';
@@ -225,43 +226,7 @@ function QuizFormPage() {
           </div>
         </div>
       )}
-      {/* Left Sidebar */}
-      <div className="create-form-sidebar">
-        <h2 className="sidebar-title">Forms</h2>
-        <div className="sidebar-nav-container">
-          <nav className="sidebar-nav sidebar-nav-box">
-            <Link to="/" className="sidebar-nav-item">
-              <span className="sidebar-icon">🏠</span>
-              <span>Home</span>
-            </Link>
-            <Link to="/quiz-form" className="sidebar-nav-item sidebar-nav-item-active">
-              <span className="sidebar-icon">📝</span>
-              <span>Quiz Form</span>
-            </Link>
-            <Link to="/admin" className="sidebar-nav-item">
-              <span className="sidebar-icon">⚙️</span>
-              <span>Settings</span>
-            </Link>
-          </nav>
-          <nav className="sidebar-nav sidebar-nav-box">
-            <button
-              type="button"
-              onClick={() => {
-                setShowLogoutConfirm(true);
-                localStorage.setItem('sfv_just_logged_out', 'true');
-                logout();
-                setTimeout(() => {
-                  navigate('/login');
-                }, 800);
-              }}
-              className="sidebar-nav-item sidebar-logout-button"
-            >
-              <span className="sidebar-icon">↗️</span>
-              <span>Log Out</span>
-            </button>
-          </nav>
-        </div>
-      </div>
+      <TeacherWorkspaceSidebar activeItem="quiz" />
 
       {/* Main Content */}
       <div className="create-form-main">

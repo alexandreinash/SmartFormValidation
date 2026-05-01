@@ -4,14 +4,147 @@ const FormField = require('../models/FormField');
 const Submission = require('../models/Submission');
 const SubmissionData = require('../models/SubmissionData');
 const User = require('../models/User');
+const { Op } = require('sequelize');
 const { analyzeSentiment, analyzeEntities, validateComprehensively } = require('../services/googleNlp');
 const { logAudit } = require('../services/auditLogger');
 const {
   sendSubmissionNotificationEmail,
   sendSubmissionConfirmationEmail,
 } = require('../services/emailService');
+const {
+  buildAiGradeDraft,
+  resolveSubmissionGrade,
+  toNumberOrNull,
+  roundGrade,
+} = require('../services/submissionGrading');
 
 const validateSubmitForm = [body('values').isObject()];
+
+function getUserAccountId(user) {
+  return user?.is_account_owner ? user.id : user?.account_id;
+}
+
+function buildFormFilterForUser(user) {
+  const userAccountId = getUserAccountId(user);
+  return userAccountId ? { account_id: userAccountId } : { account_id: null };
+}
+
+function serializeSubmission(submission) {
+  const plain = typeof submission?.toJSON === 'function' ? submission.toJSON() : submission;
+  return {
+    ...plain,
+    grading: resolveSubmissionGrade(plain),
+  };
+}
+
+async function loadSubmissionWithDetails(submissionId) {
+  return Submission.findByPk(submissionId, {
+    include: [
+      {
+        model: Form,
+        as: 'form',
+        attributes: ['id', 'title', 'account_id'],
+      },
+      {
+        model: SubmissionData,
+        as: 'answers',
+        include: [{ model: FormField, as: 'field' }],
+      },
+      {
+        model: User,
+        as: 'submitter',
+        attributes: ['id', 'email', 'username'],
+        required: false,
+      },
+    ],
+  });
+}
+
+function ensureAdminCanAccessForm(req, form) {
+  const userAccountId = getUserAccountId(req.user);
+  if (userAccountId && form.account_id !== userAccountId) {
+    const error = new Error('Access denied to this form');
+    error.status = 403;
+    throw error;
+  }
+
+  if (!userAccountId && form.account_id !== null) {
+    const error = new Error('Access denied to this form');
+    error.status = 403;
+    throw error;
+  }
+}
+
+function buildSubmissionHistoryInclude(options = {}) {
+  return [
+    {
+      model: Form,
+      as: 'form',
+      attributes: ['id', 'title', 'account_id'],
+      ...(options.formWhere ? { where: options.formWhere } : {}),
+    },
+    {
+      model: SubmissionData,
+      as: 'answers',
+      include: [{ model: FormField, as: 'field' }],
+      required: false,
+    },
+    {
+      model: User,
+      as: 'submitter',
+      attributes: ['id', 'email', 'username'],
+      required: false,
+    },
+  ];
+}
+
+async function persistAiDraft(submission, options = {}) {
+  const draft = buildAiGradeDraft(submission);
+  submission.ai_grade_score = draft.aiGradeScore;
+  submission.ai_grade_max_score = draft.aiGradeMaxScore;
+  submission.ai_feedback = draft.aiFeedback;
+
+  if (options.resetTeacherReview) {
+    submission.teacher_grade_score = null;
+    submission.teacher_grade_max_score = null;
+    submission.teacher_feedback = null;
+    submission.graded_by = null;
+    submission.graded_at = null;
+    submission.published_at = null;
+    submission.grade_status = 'pending_review';
+  } else if (!submission.grade_status) {
+    submission.grade_status = 'pending_review';
+  }
+
+  await submission.save();
+  return draft;
+}
+
+function parseTeacherReviewPayload(body) {
+  const teacherGradeScore = toNumberOrNull(body.teacherGradeScore);
+  const teacherGradeMaxScore = toNumberOrNull(body.teacherGradeMaxScore);
+  const teacherFeedback = typeof body.teacherFeedback === 'string'
+    ? body.teacherFeedback.trim()
+    : '';
+
+  if (teacherGradeScore !== null && teacherGradeScore < 0) {
+    const error = new Error('Teacher grade score must be a non-negative number.');
+    error.status = 400;
+    throw error;
+  }
+
+  if (teacherGradeMaxScore !== null && teacherGradeMaxScore <= 0) {
+    const error = new Error('Teacher grade max score must be greater than zero.');
+    error.status = 400;
+    throw error;
+  }
+
+  return {
+    teacherGradeScore,
+    teacherGradeMaxScore,
+    teacherFeedback,
+  };
+}
 
 // Re‑usable helper to perform basic (non‑AI) validation of values against form fields
 async function validateBasicFormValues(formId, values) {
@@ -221,6 +354,7 @@ async function submitForm(req, res, next) {
     const submission = await Submission.create({
       form_id: form.id,
       submitted_by: req.user?.id || null,
+      grade_status: 'pending_review',
     });
 
     const dataRows = [];
@@ -255,6 +389,9 @@ async function submitForm(req, res, next) {
       });
     }
     await SubmissionData.bulkCreate(dataRows);
+
+    const gradedSubmission = await loadSubmissionWithDetails(submission.id);
+    await persistAiDraft(gradedSubmission);
 
     await logAudit({
       userId: null,
@@ -346,21 +483,7 @@ async function getFormSubmissions(req, res, next) {
     }
 
     // Check if admin has access to this form based on account
-    const userAccountId = req.user.is_account_owner ? req.user.id : req.user.account_id;
-    
-    // If admin has an account, verify form belongs to their account
-    if (userAccountId && form.account_id !== userAccountId) {
-      return res
-        .status(403)
-        .json({ success: false, message: 'Access denied to this form' });
-    }
-    
-    // If admin has no account, verify form also has no account
-    if (!userAccountId && form.account_id !== null) {
-      return res
-        .status(403)
-        .json({ success: false, message: 'Access denied to this form' });
-    }
+    ensureAdminCanAccessForm(req, form);
 
     const submissions = await Submission.findAll({
       where: { form_id: form.id },
@@ -384,7 +507,7 @@ async function getFormSubmissions(req, res, next) {
       success: true,
       data: {
         form: { id: form.id, title: form.title },
-        submissions,
+        submissions: submissions.map(serializeSubmission),
       },
     });
   } catch (err) {
@@ -393,7 +516,7 @@ async function getFormSubmissions(req, res, next) {
     if (err.message && (err.message.includes('ai_errors') || err.message.includes('Unknown column'))) {
       return res.status(500).json({
         success: false,
-        message: 'Database schema needs update. Please run: node add-ai-errors-column.js in the backend directory.',
+        message: 'Database schema needs update. Restart the backend so startup can apply the submission grading columns, or run: npm run migrate:submission-grading in the backend directory.',
       });
     }
     next(err);
@@ -403,17 +526,7 @@ async function getFormSubmissions(req, res, next) {
 // Admin-only: list all submissions from all forms
 async function getAllSubmissions(req, res, next) {
   try {
-    // Determine which forms the admin can see based on their account
-    const userAccountId = req.user.is_account_owner ? req.user.id : req.user.account_id;
-    
-    let formFilter = {};
-    if (userAccountId) {
-      // Admin has an account - only show submissions for their account's forms
-      formFilter = { account_id: userAccountId };
-    } else {
-      // Admin has no account - only show submissions for forms with no account_id
-      formFilter = { account_id: null };
-    }
+    const formFilter = buildFormFilterForUser(req.user);
 
     const submissions = await Submission.findAll({
       order: [['submitted_at', 'DESC']],
@@ -441,7 +554,7 @@ async function getAllSubmissions(req, res, next) {
     res.json({
       success: true,
       data: {
-        submissions,
+        submissions: submissions.map(serializeSubmission),
       },
     });
   } catch (err) {
@@ -450,7 +563,7 @@ async function getAllSubmissions(req, res, next) {
     if (err.message && (err.message.includes('ai_errors') || err.message.includes('Unknown column'))) {
       return res.status(500).json({
         success: false,
-        message: 'Database schema needs update. Please run: node add-ai-errors-column.js in the backend directory.',
+        message: 'Database schema needs update. Restart the backend so startup can apply the submission grading columns, or run: npm run migrate:submission-grading in the backend directory.',
       });
     }
     next(err);
@@ -460,12 +573,14 @@ async function getAllSubmissions(req, res, next) {
 // Admin-only: delete a submission and its answers
 async function deleteSubmission(req, res, next) {
   try {
-    const submission = await Submission.findByPk(req.params.submissionId);
+    const submission = await loadSubmissionWithDetails(req.params.submissionId);
     if (!submission) {
       return res
         .status(404)
         .json({ success: false, message: 'Submission not found' });
     }
+
+    ensureAdminCanAccessForm(req, submission.form);
 
     await SubmissionData.destroy({
       where: { submission_id: submission.id },
@@ -489,12 +604,14 @@ async function deleteSubmission(req, res, next) {
 // Admin-only: update submission answers (basic validation only)
 async function updateSubmission(req, res, next) {
   try {
-    const submission = await Submission.findByPk(req.params.submissionId);
+    const submission = await loadSubmissionWithDetails(req.params.submissionId);
     if (!submission) {
       return res
         .status(404)
         .json({ success: false, message: 'Submission not found' });
     }
+
+    ensureAdminCanAccessForm(req, submission.form);
 
     const values = req.body.values || {};
     const { form, validationErrors } = await validateBasicFormValues(
@@ -516,27 +633,16 @@ async function updateSubmission(req, res, next) {
       });
     }
 
-    const existingAnswers = await SubmissionData.findAll({
-      where: { submission_id: submission.id },
-    });
-
     // Update values for each existing answer row
-    for (const answer of existingAnswers) {
+    for (const answer of submission.answers || []) {
       if (Object.prototype.hasOwnProperty.call(values, answer.field_id)) {
         answer.value = values[answer.field_id] || '';
         await answer.save();
       }
     }
 
-    const updated = await Submission.findByPk(submission.id, {
-      include: [
-        {
-          model: SubmissionData,
-          as: 'answers',
-          include: [{ model: FormField, as: 'field' }],
-        },
-      ],
-    });
+    const updated = await loadSubmissionWithDetails(submission.id);
+    await persistAiDraft(updated, { resetTeacherReview: true });
 
     await logAudit({
       userId: req.user?.id || null,
@@ -549,7 +655,225 @@ async function updateSubmission(req, res, next) {
     res.json({
       success: true,
       message: 'Submission updated successfully.',
-      data: updated,
+      data: serializeSubmission(updated),
+    });
+  } catch (err) {
+    next(err);
+  }
+}
+
+async function generateSubmissionGradeDraft(req, res, next) {
+  try {
+    const submission = await loadSubmissionWithDetails(req.params.submissionId);
+    if (!submission) {
+      return res.status(404).json({ success: false, message: 'Submission not found' });
+    }
+
+    ensureAdminCanAccessForm(req, submission.form);
+    await persistAiDraft(submission, { resetTeacherReview: true });
+
+    await logAudit({
+      userId: req.user?.id || null,
+      action: 'submission_grade_draft_generated',
+      entityType: 'submission',
+      entityId: submission.id,
+      metadata: { formId: submission.form_id },
+    });
+
+    res.json({
+      success: true,
+      message: 'AI grading draft generated successfully.',
+      data: serializeSubmission(submission),
+    });
+  } catch (err) {
+    next(err);
+  }
+}
+
+async function reviewSubmissionGrade(req, res, next) {
+  try {
+    const submission = await loadSubmissionWithDetails(req.params.submissionId);
+    if (!submission) {
+      return res.status(404).json({ success: false, message: 'Submission not found' });
+    }
+
+    ensureAdminCanAccessForm(req, submission.form);
+    await persistAiDraft(submission);
+
+    const { teacherGradeScore, teacherGradeMaxScore, teacherFeedback } = parseTeacherReviewPayload(req.body);
+
+    const resolvedMaxScore = roundGrade(
+      teacherGradeMaxScore !== null
+        ? teacherGradeMaxScore
+        : Number(submission.ai_grade_max_score || 0)
+    );
+
+    if (teacherGradeScore !== null && resolvedMaxScore > 0 && teacherGradeScore > resolvedMaxScore) {
+      return res.status(400).json({
+        success: false,
+        message: 'Teacher grade score cannot exceed the maximum grade.',
+      });
+    }
+
+    submission.teacher_grade_score = teacherGradeScore;
+    submission.teacher_grade_max_score = resolvedMaxScore || null;
+    submission.teacher_feedback = teacherFeedback || null;
+    submission.grade_status = 'reviewed';
+    submission.graded_by = req.user?.id || null;
+    submission.graded_at = new Date();
+    submission.published_at = null;
+    await submission.save();
+
+    await logAudit({
+      userId: req.user?.id || null,
+      action: 'submission_grade_reviewed',
+      entityType: 'submission',
+      entityId: submission.id,
+      metadata: {
+        formId: submission.form_id,
+        teacherGradeScore,
+        teacherGradeMaxScore: resolvedMaxScore || null,
+      },
+    });
+
+    res.json({
+      success: true,
+      message: 'Teacher review saved successfully.',
+      data: serializeSubmission(submission),
+    });
+  } catch (err) {
+    next(err);
+  }
+}
+
+async function publishSubmissionGrade(req, res, next) {
+  try {
+    const submission = await loadSubmissionWithDetails(req.params.submissionId);
+    if (!submission) {
+      return res.status(404).json({ success: false, message: 'Submission not found' });
+    }
+
+    ensureAdminCanAccessForm(req, submission.form);
+
+    if (!submission.submitted_by) {
+      return res.status(400).json({
+        success: false,
+        message: 'This submission was anonymous, so there is no student account to publish the grade to.',
+      });
+    }
+
+    await persistAiDraft(submission);
+
+    if (submission.grade_status !== 'reviewed') {
+      return res.status(400).json({
+        success: false,
+        message: 'Save the teacher review before publishing this grade to the student account.',
+      });
+    }
+
+    submission.grade_status = 'published';
+    submission.graded_by = submission.graded_by || req.user?.id || null;
+    submission.graded_at = submission.graded_at || new Date();
+    submission.published_at = new Date();
+    await submission.save();
+
+    await logAudit({
+      userId: req.user?.id || null,
+      action: 'submission_grade_published',
+      entityType: 'submission',
+      entityId: submission.id,
+      metadata: { formId: submission.form_id, submittedBy: submission.submitted_by },
+    });
+
+    res.json({
+      success: true,
+      message: 'Grade published to the student account.',
+      data: serializeSubmission(submission),
+    });
+  } catch (err) {
+    next(err);
+  }
+}
+
+async function getMyPublishedGrades(req, res, next) {
+  try {
+    if (!req.user?.id) {
+      return res.status(401).json({ success: false, message: 'Unauthorized' });
+    }
+
+    const submissions = await Submission.findAll({
+      where: {
+        submitted_by: req.user.id,
+        published_at: { [Op.ne]: null },
+      },
+      order: [['published_at', 'DESC']],
+      include: [
+        {
+          model: Form,
+          as: 'form',
+          attributes: ['id', 'title'],
+        },
+      ],
+    });
+
+    res.json({
+      success: true,
+      data: {
+        submissions: submissions.map(serializeSubmission),
+      },
+    });
+  } catch (err) {
+    next(err);
+  }
+}
+
+async function getMySubmissionHistory(req, res, next) {
+  try {
+    if (!req.user?.id) {
+      return res.status(401).json({ success: false, message: 'Unauthorized' });
+    }
+
+    const submissions = await Submission.findAll({
+      where: {
+        submitted_by: req.user.id,
+      },
+      order: [['submitted_at', 'DESC']],
+      include: buildSubmissionHistoryInclude(),
+    });
+
+    res.json({
+      success: true,
+      data: {
+        submissions: submissions.map(serializeSubmission),
+      },
+    });
+  } catch (err) {
+    next(err);
+  }
+}
+
+async function getStudentSubmissionHistory(req, res, next) {
+  try {
+    const studentId = Number(req.params.studentId);
+    if (!Number.isInteger(studentId) || studentId <= 0) {
+      return res.status(400).json({ success: false, message: 'Invalid student account.' });
+    }
+
+    const submissions = await Submission.findAll({
+      where: {
+        submitted_by: studentId,
+      },
+      order: [['submitted_at', 'DESC']],
+      include: buildSubmissionHistoryInclude({
+        formWhere: buildFormFilterForUser(req.user),
+      }),
+    });
+
+    res.json({
+      success: true,
+      data: {
+        submissions: submissions.map(serializeSubmission),
+      },
     });
   } catch (err) {
     next(err);
@@ -589,6 +913,12 @@ module.exports = {
   deleteSubmission,
   deleteAllSubmissions,
   updateSubmission,
+  generateSubmissionGradeDraft,
+  reviewSubmissionGrade,
+  publishSubmissionGrade,
+  getMyPublishedGrades,
+  getMySubmissionHistory,
+  getStudentSubmissionHistory,
 };
 
 

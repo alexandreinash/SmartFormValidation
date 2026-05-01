@@ -2,9 +2,169 @@ import React, { useEffect, useState, useCallback } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import api from '../api';
 import { useAuth } from '../AuthContext';
-import RemoveAccountModal from '../components/RemoveAccountModal';
 import '../css/UserFormSelectionPage.css';
 import '../css/components.css';
+
+function SidebarGlyph({ className, children }) {
+  return (
+    <span className={className} aria-hidden="true">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.85" strokeLinecap="round" strokeLinejoin="round">
+        {children}
+      </svg>
+    </span>
+  );
+}
+
+function renderSidebarIcon(iconName, className = 'ufs-nav-icon') {
+  switch (iconName) {
+    case 'brand':
+      return (
+        <SidebarGlyph className={className}>
+          <path d="M3.5 7.5L9 12L3.5 16.5V7.5Z" fill="currentColor" stroke="none" />
+          <path d="M20.5 7.5L15 12L20.5 16.5V7.5Z" fill="currentColor" stroke="none" />
+          <path d="M9 12L12 9.5L15 12L12 14.5L9 12Z" fill="currentColor" stroke="none" />
+          <path d="M6.5 8H17.5" opacity="0.35" />
+          <path d="M6.5 16H17.5" opacity="0.35" />
+        </SidebarGlyph>
+      );
+    case 'home':
+      return (
+        <SidebarGlyph className={className}>
+          <path d="M4 10.5L12 4L20 10.5" />
+          <path d="M6.5 9.5V20H17.5V9.5" />
+          <path d="M9.5 20V13H14.5V20" />
+        </SidebarGlyph>
+      );
+    case 'text':
+      return (
+        <SidebarGlyph className={className}>
+          <path d="M6 18L4 20V6.5C4 5.67 4.67 5 5.5 5H18.5C19.33 5 20 5.67 20 6.5V15.5C20 16.33 19.33 17 18.5 17H8" />
+          <path d="M8 9H16" />
+          <path d="M8 13H14" />
+        </SidebarGlyph>
+      );
+    case 'email':
+      return (
+        <SidebarGlyph className={className}>
+          <path d="M4 7.5H20V16.5H4Z" />
+          <path d="M4 8L12 13L20 8" />
+        </SidebarGlyph>
+      );
+    case 'number':
+      return (
+        <SidebarGlyph className={className}>
+          <path d="M9 4L7 20" />
+          <path d="M17 4L15 20" />
+          <path d="M4 9H19" />
+          <path d="M3 15H18" />
+        </SidebarGlyph>
+      );
+    case 'quiz':
+      return (
+        <SidebarGlyph className={className}>
+          <path d="M7 5H17" />
+          <path d="M7 5C5.34 5 4 6.34 4 8V16C4 17.66 5.34 19 7 19H17C18.66 19 20 17.66 20 16V8C20 6.34 18.66 5 17 5" />
+          <path d="M9.25 11.5C9.25 10.12 10.37 9 11.75 9C13.13 9 14.25 10.12 14.25 11.5C14.25 12.43 13.73 13.07 12.94 13.61C12.22 14.1 11.75 14.56 11.75 15.5" />
+          <path d="M11.75 18.25H11.76" />
+        </SidebarGlyph>
+      );
+    case 'settings':
+      return (
+        <SidebarGlyph className={className}>
+          <path d="M8 8L4 12L8 16" />
+          <path d="M16 8L20 12L16 16" />
+          <path d="M13 5L11 19" />
+        </SidebarGlyph>
+      );
+    case 'logout':
+      return (
+        <SidebarGlyph className={className}>
+          <path d="M10 7V5.5C10 4.67 10.67 4 11.5 4H18.5C19.33 4 20 4.67 20 5.5V18.5C20 19.33 19.33 20 18.5 20H11.5C10.67 20 10 19.33 10 18.5V17" />
+          <path d="M4 12H15" />
+          <path d="M11 8L15 12L11 16" />
+        </SidebarGlyph>
+      );
+    default:
+      return null;
+  }
+}
+
+function getDisplayName(user) {
+  if (!user) {
+    return 'User';
+  }
+
+  if (user.username && user.username.trim()) {
+    return user.username.trim();
+  }
+
+  if (user.email) {
+    return user.email.split('@')[0];
+  }
+
+  return 'User';
+}
+
+function buildDefaultAvatar(displayName) {
+  const initial = (displayName || 'U').trim().charAt(0).toUpperCase() || 'U';
+  const svg = `
+    <svg xmlns="http://www.w3.org/2000/svg" width="80" height="80" viewBox="0 0 80 80">
+      <defs>
+        <linearGradient id="avatarGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+          <stop offset="0%" stop-color="#98001f" />
+          <stop offset="100%" stop-color="#f59e0b" />
+        </linearGradient>
+      </defs>
+      <circle cx="40" cy="40" r="40" fill="url(#avatarGradient)" />
+      <text x="50%" y="54%" dominant-baseline="middle" text-anchor="middle" fill="#fffaf3" font-family="Arial, sans-serif" font-size="30" font-weight="700">${initial}</text>
+    </svg>
+  `;
+
+  return `data:image/svg+xml;charset=UTF-8,${encodeURIComponent(svg)}`;
+}
+
+function getProfileImage(user, fallbackAvatar) {
+  return user?.profilePicture
+    || user?.profile_picture
+    || user?.avatarUrl
+    || user?.avatar_url
+    || user?.avatar
+    || user?.picture
+    || fallbackAvatar;
+}
+
+function formatPublishedGrade(grading) {
+  if (!grading || grading.finalGradeScore === null || grading.finalGradeScore === undefined || grading.finalGradeMaxScore === null || grading.finalGradeMaxScore === undefined) {
+    return 'Awaiting score';
+  }
+
+  return `${Number(grading.finalGradeScore).toFixed(2)} / ${Number(grading.finalGradeMaxScore).toFixed(2)}`;
+}
+
+function formatSubmissionStatus(grading) {
+  const status = grading?.gradeStatus || 'pending_review';
+  if (status === 'published') {
+    return 'Published';
+  }
+  if (status === 'reviewed') {
+    return 'Reviewed';
+  }
+  return 'Pending Review';
+}
+
+function PanelToggleIcon({ isOpen }) {
+  return (
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+      <path
+        d={isOpen ? 'M6 14L12 8L18 14' : 'M6 10L12 16L18 10'}
+        stroke="currentColor"
+        strokeWidth="2"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+    </svg>
+  );
+}
 
 function UserFormSelectionPage({ defaultTab }) {
   const { user, logout } = useAuth();
@@ -18,9 +178,35 @@ function UserFormSelectionPage({ defaultTab }) {
   const [activeTab, setActiveTab] = useState(defaultTab || 'text');
   const [loading, setLoading] = useState(true);
   const [status, setStatus] = useState('');
+  const [publishedGrades, setPublishedGrades] = useState([]);
+  const [gradesStatus, setGradesStatus] = useState('');
+  const [gradesLoading, setGradesLoading] = useState(false);
+  const [submissionHistory, setSubmissionHistory] = useState([]);
+  const [submissionHistoryStatus, setSubmissionHistoryStatus] = useState('');
+  const [submissionHistoryLoading, setSubmissionHistoryLoading] = useState(false);
   const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
-  const [showRemoveAccountModal, setShowRemoveAccountModal] = useState(false);
-  const [isRemovingAccount, setIsRemovingAccount] = useState(false);
+  const [showPublishedGrades, setShowPublishedGrades] = useState(true);
+  const [showSubmittedForms, setShowSubmittedForms] = useState(true);
+
+  const displayName = getDisplayName(user);
+  const defaultAvatar = buildDefaultAvatar(displayName);
+  const profileImage = getProfileImage(user, defaultAvatar);
+
+  const formTypeMenuItems = [
+    { key: 'text', label: 'General Forms', icon: 'text' },
+    { key: 'email', label: 'Email', icon: 'email' },
+    { key: 'number', label: 'Number', icon: 'number' },
+    { key: 'quiz', label: 'Quiz', icon: 'quiz' }
+  ];
+
+  const handleLogout = () => {
+    setShowLogoutConfirm(true);
+    localStorage.setItem('sfv_just_logged_out', 'true');
+    logout();
+    setTimeout(() => {
+      navigate('/login');
+    }, 800);
+  };
 
   // Helper function to categorize form based on field types
   const categorizeForm = (form) => {
@@ -46,6 +232,11 @@ function UserFormSelectionPage({ defaultTab }) {
     });
     if (hasQuizFields) {
       return 'quiz';
+    }
+
+    const uniqueFieldTypes = [...new Set(fieldTypes)];
+    if (uniqueFieldTypes.length > 1) {
+      return 'text';
     }
     
     // Check for number fields
@@ -135,53 +326,94 @@ function UserFormSelectionPage({ defaultTab }) {
     }
   }, [defaultTab]);
 
+  const loadPublishedGrades = useCallback(async (silent = false) => {
+    if (!user || user.role !== 'user') {
+      setPublishedGrades([]);
+      setGradesStatus('');
+      return;
+    }
+
+    if (!silent) {
+      setGradesLoading(true);
+    }
+
+    try {
+      const res = await api.get('/api/submissions/mine/grades');
+      setPublishedGrades(res.data.data?.submissions || []);
+      setGradesStatus('');
+    } catch (err) {
+      if (!silent) {
+        setGradesStatus(err.response?.data?.message || 'Failed to load published grades.');
+      }
+    } finally {
+      if (!silent) {
+        setGradesLoading(false);
+      }
+    }
+  }, [user]);
+
+  const loadSubmissionHistory = useCallback(async (silent = false) => {
+    if (!user || user.role !== 'user') {
+      setSubmissionHistory([]);
+      setSubmissionHistoryStatus('');
+      return;
+    }
+
+    if (!silent) {
+      setSubmissionHistoryLoading(true);
+    }
+
+    try {
+      const res = await api.get('/api/submissions/mine/history');
+      setSubmissionHistory(res.data.data?.submissions || []);
+      setSubmissionHistoryStatus('');
+    } catch (err) {
+      if (!silent) {
+        setSubmissionHistoryStatus(err.response?.data?.message || 'Failed to load submission history.');
+      }
+    } finally {
+      if (!silent) {
+        setSubmissionHistoryLoading(false);
+      }
+    }
+  }, [user]);
+
   useEffect(() => {
     loadForms();
   }, [location.pathname, defaultTab, loadForms]); // Reload when route or defaultTab changes
 
+  useEffect(() => {
+    loadPublishedGrades();
+  }, [loadPublishedGrades]);
+
+  useEffect(() => {
+    loadSubmissionHistory();
+  }, [loadSubmissionHistory]);
+
   // Auto-refresh mechanism: check for new forms every 5 seconds when page is visible
   useEffect(() => {
-    let intervalId;
-    
     const handleVisibilityChange = () => {
-      // Clear any existing interval first
-      if (intervalId) {
-        clearInterval(intervalId);
-        intervalId = null;
-      }
-      
       if (document.visibilityState === 'visible') {
-        // Page became visible, refresh immediately
         loadForms(true); // Silent refresh
-        // Then set up interval
-        intervalId = setInterval(() => {
-          if (document.visibilityState === 'visible') {
-            loadForms(true); // Silent refresh every 5 seconds
-          }
-        }, 5000);
+        loadPublishedGrades(true);
+        loadSubmissionHistory(true);
       }
     };
 
-    // Set up initial interval if page is visible
-    if (document.visibilityState === 'visible') {
-      intervalId = setInterval(() => {
-        if (document.visibilityState === 'visible') {
-          loadForms(true); // Silent refresh every 5 seconds
-        }
-      }, 5000);
-    }
+    const handleWindowFocus = () => {
+      loadForms(true);
+      loadPublishedGrades(true);
+      loadSubmissionHistory(true);
+    };
 
-    // Listen for visibility changes
     document.addEventListener('visibilitychange', handleVisibilityChange);
+    window.addEventListener('focus', handleWindowFocus);
 
-    // Cleanup
     return () => {
-      if (intervalId) {
-        clearInterval(intervalId);
-      }
       document.removeEventListener('visibilitychange', handleVisibilityChange);
+      window.removeEventListener('focus', handleWindowFocus);
     };
-  }, [loadForms]); // Re-run when loadForms changes
+  }, [loadForms, loadPublishedGrades, loadSubmissionHistory]); // Re-run when loaders change
 
   // Update activeTab when defaultTab prop changes
   useEffect(() => {
@@ -192,7 +424,7 @@ function UserFormSelectionPage({ defaultTab }) {
 
   if (loading) {
     return (
-      <div className="user-form-selection-container">
+      <div className="user-form-selection-container user-form-selection-container-loading">
         <div className="loading-container">
           <p>Loading forms...</p>
         </div>
@@ -219,74 +451,59 @@ function UserFormSelectionPage({ defaultTab }) {
       )}
       {/* Left Sidebar */}
       <div className="user-form-selection-sidebar">
-        <h2 className="sidebar-title">Forms</h2>
-        <div className="sidebar-nav-container">
-          <nav className="sidebar-nav sidebar-nav-box">
-            <Link to="/" className="sidebar-nav-item">
-              <span className="sidebar-icon">🏠</span>
-              <span>Home</span>
+        <div className="ufs-sidebar-header">
+          <div className="ufs-sidebar-logo">
+            {renderSidebarIcon('brand', 'ufs-logo-icon')}
+            <div className="ufs-logo-copy">
+              <span className="ufs-logo-text">Smart Form Validator</span>
+              <span className="ufs-logo-subtitle">Forms Workspace</span>
+            </div>
+          </div>
+        </div>
+
+        <nav className="ufs-sidebar-nav" aria-label="Form navigation">
+          <div className="ufs-primary-nav">
+            <Link to="/" className="ufs-nav-item">
+              {renderSidebarIcon('home')}
+              <span className="ufs-nav-label">Home</span>
             </Link>
-            <div className="sidebar-divider"></div>
-            <button
-              className={`sidebar-nav-item ${activeTab === 'text' ? 'sidebar-nav-item-active' : ''}`}
-              onClick={() => setActiveTab('text')}
-            >
-              <span className="sidebar-icon">💬</span>
-              <span>Text Form</span>
-            </button>
-            <button
-              className={`sidebar-nav-item ${activeTab === 'email' ? 'sidebar-nav-item-active' : ''}`}
-              onClick={() => setActiveTab('email')}
-            >
-              <span className="sidebar-icon">✉️</span>
-              <span>Email</span>
-            </button>
-            <button
-              className={`sidebar-nav-item ${activeTab === 'number' ? 'sidebar-nav-item-active' : ''}`}
-              onClick={() => setActiveTab('number')}
-            >
-              <span className="sidebar-icon">#</span>
-              <span>Number</span>
-            </button>
-            <button
-              className={`sidebar-nav-item ${activeTab === 'quiz' ? 'sidebar-nav-item-active' : ''}`}
-              onClick={() => setActiveTab('quiz')}
-            >
-              <span className="sidebar-icon">📝</span>
-              <span>Quiz</span>
-            </button>
-            {user?.role === 'admin' && (
-              <Link to="/admin" className="sidebar-nav-item">
-                <span className="sidebar-icon">⚙️</span>
-                <span>Settings</span>
-              </Link>
-            )}
-          </nav>
-          <nav className="sidebar-nav sidebar-nav-box">
+
+            {formTypeMenuItems.map((item) => (
+              <button
+                key={item.key}
+                type="button"
+                className={`ufs-nav-item ${activeTab === item.key ? 'ufs-nav-item-active' : ''}`}
+                aria-current={activeTab === item.key ? 'page' : undefined}
+                onClick={() => setActiveTab(item.key)}
+              >
+                {renderSidebarIcon(item.icon)}
+                <span className="ufs-nav-label">{item.label}</span>
+              </button>
+            ))}
+          </div>
+
+          {user?.role === 'admin' && (
+            <Link to="/admin" className="ufs-nav-item">
+              {renderSidebarIcon('settings')}
+              <span className="ufs-nav-label">Settings</span>
+            </Link>
+          )}
+        </nav>
+
+        <div className="ufs-sidebar-footer">
+          <div className="ufs-footer-actions">
             <button
               type="button"
-              onClick={() => {
-                setShowLogoutConfirm(true);
-                localStorage.setItem('sfv_just_logged_out', 'true');
-                logout();
-                setTimeout(() => {
-                  navigate('/login');
-                }, 800);
-              }}
-              className="sidebar-nav-item sidebar-logout-button"
+              onClick={handleLogout}
+              className="ufs-footer-button ufs-footer-button-primary"
             >
-              <span className="sidebar-icon">↗️</span>
-              <span>Log Out</span>
+              {renderSidebarIcon('logout', 'ufs-footer-icon')}
+              <span className="ufs-nav-label">Logout</span>
             </button>
-              <button
-                type="button"
-                onClick={() => setShowRemoveAccountModal(true)}
-                className="sidebar-nav-item sidebar-remove-account-button"
-              >
-                <span className="sidebar-icon">🗑️</span>
-                <span>Remove Account</span>
-              </button>
-          </nav>
+          </div>
+
+          <div className="ufs-sidebar-version">Smart Form Validator V1.0</div>
+          <div className="ufs-sidebar-cit">CIT University</div>
         </div>
       </div>
 
@@ -307,7 +524,17 @@ function UserFormSelectionPage({ defaultTab }) {
           </div>
           {user && (
             <div className="user-info">
-              <div className="user-welcome">Welcome, <strong>{user.email.split('@')[0]}</strong></div>
+              <div className="user-profile-badge">
+                <img
+                  src={profileImage}
+                  alt={`${displayName} profile`}
+                  className="user-avatar"
+                  onError={(event) => {
+                    event.currentTarget.src = defaultAvatar;
+                  }}
+                />
+                <div className="user-welcome">Welcome, <strong>{displayName}</strong></div>
+              </div>
             </div>
           )}
         </div>
@@ -318,65 +545,160 @@ function UserFormSelectionPage({ defaultTab }) {
           </div>
         )}
 
+        {user?.role === 'user' && (
+          <>
+            <section className="published-grades-panel">
+              <div className="published-grades-header">
+                <div>
+                  <h2 className="published-grades-title">Published Grades</h2>
+                  <p className="published-grades-subtitle">
+                    Teacher-approved results appear here after the review and approval step.
+                  </p>
+                </div>
+                <div className="published-grades-header-actions">
+                  <div className="published-grades-count">{publishedGrades.length} published</div>
+                  <button
+                    type="button"
+                    className="panel-toggle-button"
+                    onClick={() => setShowPublishedGrades((current) => !current)}
+                    aria-expanded={showPublishedGrades}
+                    aria-label={showPublishedGrades ? 'Hide published grades' : 'Show published grades'}
+                  >
+                    <span>{showPublishedGrades ? 'Hide' : 'Show'}</span>
+                    <PanelToggleIcon isOpen={showPublishedGrades} />
+                  </button>
+                </div>
+              </div>
+
+              {showPublishedGrades && (
+                gradesLoading ? (
+                  <div className="published-grades-empty">Loading published grades...</div>
+                ) : gradesStatus ? (
+                  <div className="published-grades-empty published-grades-error">{gradesStatus}</div>
+                ) : publishedGrades.length === 0 ? (
+                  <div className="published-grades-empty">
+                    Your teacher has not published any grades to your account yet.
+                  </div>
+                ) : (
+                  <div className="published-grades-grid">
+                    {publishedGrades.map((submission) => {
+                      const grading = submission.grading || {};
+                      return (
+                        <article key={submission.id} className="published-grade-card">
+                          <div className="published-grade-card-header">
+                            <div>
+                              <h3>{submission.form?.title || `Form #${submission.form_id}`}</h3>
+                              <p>
+                                Published {grading.publishedAt ? new Date(grading.publishedAt).toLocaleString() : 'recently'}
+                              </p>
+                            </div>
+                            <div className="published-grade-score">{formatPublishedGrade(grading)}</div>
+                          </div>
+
+                          <div className="published-grade-meta">
+                            Submitted {new Date(submission.submitted_at).toLocaleString()}
+                          </div>
+
+                          <div className="published-grade-feedback">
+                            {grading.finalFeedback || 'Your teacher approved this grade without additional notes.'}
+                          </div>
+                        </article>
+                      );
+                    })}
+                  </div>
+                )
+              )}
+            </section>
+
+            <section className="published-grades-panel">
+              <div className="published-grades-header">
+                <div>
+                  <h2 className="published-grades-title">Submitted Forms</h2>
+                  <p className="published-grades-subtitle">
+                    Track which forms you submitted and whether each one is still pending, reviewed, or published.
+                  </p>
+                </div>
+                <div className="published-grades-header-actions">
+                  <div className="published-grades-count">{submissionHistory.length} submitted</div>
+                  <button
+                    type="button"
+                    className="panel-toggle-button"
+                    onClick={() => setShowSubmittedForms((current) => !current)}
+                    aria-expanded={showSubmittedForms}
+                    aria-label={showSubmittedForms ? 'Hide submitted forms' : 'Show submitted forms'}
+                  >
+                    <span>{showSubmittedForms ? 'Hide' : 'Show'}</span>
+                    <PanelToggleIcon isOpen={showSubmittedForms} />
+                  </button>
+                </div>
+              </div>
+
+              {showSubmittedForms && (
+                submissionHistoryLoading ? (
+                  <div className="published-grades-empty">Loading submission history...</div>
+                ) : submissionHistoryStatus ? (
+                  <div className="published-grades-empty published-grades-error">{submissionHistoryStatus}</div>
+                ) : submissionHistory.length === 0 ? (
+                  <div className="published-grades-empty">
+                    You have not submitted any forms yet.
+                  </div>
+                ) : (
+                  <div className="published-grades-grid">
+                    {submissionHistory.map((submission) => {
+                      const grading = submission.grading || {};
+                      const statusLabel = formatSubmissionStatus(grading);
+                      const statusMessage = grading.gradeStatus === 'published'
+                        ? 'Your teacher has published this grade to your account.'
+                        : grading.gradeStatus === 'reviewed'
+                          ? 'Your submission was reviewed and is waiting to be published.'
+                          : 'Your submission was received and is waiting for teacher review.';
+
+                      return (
+                        <article key={submission.id} className="published-grade-card">
+                          <div className="published-grade-card-header">
+                            <div>
+                              <h3>{submission.form?.title || `Form #${submission.form_id}`}</h3>
+                              <p>
+                                Submitted {new Date(submission.submitted_at).toLocaleString()}
+                              </p>
+                            </div>
+                            <div className="published-grade-score">
+                              {grading.gradeStatus === 'published' ? formatPublishedGrade(grading) : statusLabel}
+                            </div>
+                          </div>
+
+                          <div className="published-grade-meta">
+                            Status: {statusLabel}
+                          </div>
+
+                          <div className="published-grade-feedback">
+                            {grading.gradeStatus === 'published'
+                              ? (grading.finalFeedback || 'Published without additional teacher notes.')
+                              : statusMessage}
+                          </div>
+                        </article>
+                      );
+                    })}
+                  </div>
+                )
+              )}
+            </section>
+          </>
+        )}
+
         {forms.length === 0 ? (
           <div className="empty-state-card">
             <h3>No forms available</h3>
             <p>There are no forms available at the moment. Please check back later.</p>
           </div>
         ) : (
-          <>
-            {/* Form Type Tabs */}
-            <div className="form-type-tabs">
-              <button
-                className={`form-type-tab ${activeTab === 'text' ? 'active' : ''}`}
-                onClick={() => setActiveTab('text')}
-              >
-                <span className="tab-icon">💬</span>
-                <span>Text Forms</span>
-                {textForms.length > 0 && (
-                  <span className="tab-count">{textForms.length}</span>
-                )}
-              </button>
-              <button
-                className={`form-type-tab ${activeTab === 'email' ? 'active' : ''}`}
-                onClick={() => setActiveTab('email')}
-              >
-                <span className="tab-icon">✉️</span>
-                <span>Email Forms</span>
-                {emailForms.length > 0 && (
-                  <span className="tab-count">{emailForms.length}</span>
-                )}
-              </button>
-            <button
-              className={`form-type-tab ${activeTab === 'number' ? 'active' : ''}`}
-              onClick={() => setActiveTab('number')}
-            >
-              <span className="tab-icon">#</span>
-              <span>Number Forms</span>
-              {numberForms.length > 0 && (
-                <span className="tab-count">{numberForms.length}</span>
-              )}
-            </button>
-            <button
-              className={`form-type-tab ${activeTab === 'quiz' ? 'active' : ''}`}
-              onClick={() => setActiveTab('quiz')}
-            >
-              <span className="tab-icon">📝</span>
-              <span>Quiz Forms</span>
-              {quizForms.length > 0 && (
-                <span className="tab-count">{quizForms.length}</span>
-              )}
-            </button>
-          </div>
-
-            {/* Forms Grid by Type */}
-            <div className="forms-section">
+          <div className="forms-section">
               {activeTab === 'text' && (
                 <div className="forms-grid">
                   {textForms.length === 0 ? (
                     <div className="empty-state-card">
-                      <h3>No Text Forms Available</h3>
-                      <p>There are no text forms available at the moment.</p>
+                      <h3>No General Forms Available</h3>
+                      <p>There are no general forms available at the moment.</p>
                     </div>
                   ) : (
                     textForms.map((form) => (
@@ -387,7 +709,7 @@ function UserFormSelectionPage({ defaultTab }) {
                             <span className="form-id-badge">ID: #{form.id}</span>
                           </div>
                           <p className="form-card-description">
-                            Click below to fill out this text form. All fields are validated using AI-powered technology.
+                            Click below to fill out this form. Mixed field types and AI-assisted validation are supported where configured.
                           </p>
                           {form.creator && (
                             <p className="form-card-creator">
@@ -502,45 +824,9 @@ function UserFormSelectionPage({ defaultTab }) {
                   )}
                 </div>
               )}
-            </div>
-          </>
+          </div>
         )}
       </div>
-
-      {/* Remove Account Modal */}
-      {showRemoveAccountModal && (
-        <RemoveAccountModal
-          user={user}
-          onConfirm={async () => {
-            setIsRemovingAccount(true);
-            try {
-              const res = await api.delete('/api/accounts/remove', { data: { confirm: 'DELETE' } });
-              if (res.data && res.data.success) {
-                setShowRemoveAccountModal(false);
-                setShowLogoutConfirm(true);
-                localStorage.setItem('sfv_just_logged_out', 'true');
-                logout();
-                setTimeout(() => {
-                  navigate('/login');
-                }, 800);
-              } else {
-                window.alert('Failed to remove account association');
-                setIsRemovingAccount(false);
-              }
-            } catch (err) {
-              console.error(err);
-              window.alert(err.response?.data?.error?.message || 'Error removing account');
-              setIsRemovingAccount(false);
-            }
-          }}
-          onCancel={() => {
-            if (!isRemovingAccount) {
-              setShowRemoveAccountModal(false);
-            }
-          }}
-          isRemoving={isRemovingAccount}
-        />
-      )}
     </div>
   );
 }

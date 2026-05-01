@@ -18,7 +18,7 @@ function HomePage() {
         navigate('/user/forms');
       }
     } else {
-      navigate('/register');
+      navigate('/login');
     }
   };
 
@@ -56,18 +56,18 @@ function HomePage() {
           </div>
         </div>
       )}
-      {/* Smart Form Validator Logo */}
-      <div className="homepage-logo">Smart Form Validator</div>
+      <div className="homepage-top-bar">
+        <div className="homepage-logo">Smart Form Validator</div>
 
-      {/* Logout Button */}
-      <button
-        type="button"
-        className="homepage-logout-button"
-        onClick={handleLogout}
-        disabled={!user}
-      >
-        Log out
-      </button>
+        <button
+          type="button"
+          className="homepage-logout-button"
+          onClick={handleLogout}
+          disabled={!user}
+        >
+          Log out
+        </button>
+      </div>
 
       {/* Box on Right Side */}
       <div className="homepage-right-box">

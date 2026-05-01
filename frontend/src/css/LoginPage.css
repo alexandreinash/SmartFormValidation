@@ -132,7 +132,7 @@
 
 .auth-hero-banner-top {
   position: absolute;
-  top: 2rem;
+  top: 2.85rem;
   left: 2.5rem;
   padding: 0.6rem 1.2rem;
   background: #fbbf24 !important;
@@ -271,6 +271,28 @@
   font-size: 0.85rem;
   font-weight: 500;
   margin-bottom: 0.15rem;
+}
+
+.login-page-card {
+  color: #1f2937;
+}
+
+.login-page-card .auth-title {
+  color: #5f1630;
+}
+
+.login-page-card .auth-subtitle {
+  color: #334155;
+}
+
+.login-page-notice {
+  padding: 0.9rem 1rem;
+  border-radius: 10px;
+  background: rgba(248, 250, 252, 0.96);
+  border: 1px solid rgba(148, 163, 184, 0.38);
+  color: #334155;
+  font-size: 0.95rem;
+  line-height: 1.6;
 }
 
 .auth-remember-row {

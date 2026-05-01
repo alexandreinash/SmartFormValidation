@@ -17,10 +17,8 @@ import AnalyticsPage from './pages/AnalyticsPage';
 import DataDashboard from './pages/DataDashboard';
 import ManageGroupsPage from './pages/ManageGroupsPage';
 import ManageUsersPage from './pages/ManageUsersPage';
+import StudentSubmissionHistoryPage from './pages/StudentSubmissionHistoryPage';
 import LoginPage from './pages/LoginPage';
-import RegisterPage from './pages/RegisterPage';
-import ForgotPasswordPage from './pages/ForgotPasswordPage';
-import ResetPasswordPage from './pages/ResetPasswordPage';
 import HomePage from './pages/HomePage';
 import GoogleSignInNotification from './components/GoogleSignInNotification';
 
@@ -30,10 +28,7 @@ function AppShell() {
   const location = useLocation();
 
   const isAuthRoute =
-    location.pathname === '/login' || 
-    location.pathname === '/register' || 
-    location.pathname === '/forgot-password' || 
-    location.pathname === '/reset-password';
+    location.pathname === '/login';
   const isHomePage = location.pathname === '/';
   const isAdminDashboard = location.pathname === '/admin';
   const isFormCreationPage = 
@@ -56,9 +51,9 @@ function AppShell() {
         <Routes>
           <Route path="/" element={<HomePage />} />
           <Route path="/login" element={<LoginPage />} />
-          <Route path="/register" element={<RegisterPage />} />
-          <Route path="/forgot-password" element={<ForgotPasswordPage />} />
-          <Route path="/reset-password" element={<ResetPasswordPage />} />
+          <Route path="/register" element={<Navigate to="/login" replace />} />
+          <Route path="/forgot-password" element={<Navigate to="/login" replace />} />
+          <Route path="/reset-password" element={<Navigate to="/login" replace />} />
           <Route path="/admin" element={<AdminDashboard />} />
           <Route path="/admin/create-form" element={<CreateFormPage />} />
           <Route path="/text-form" element={<TextFormPage />} />
@@ -97,6 +92,7 @@ function AppShell() {
           <Route path="/data-dashboard" element={<DataDashboard />} />
           <Route path="/admin/groups" element={<ManageGroupsPage />} />
           <Route path="/admin/users" element={<ManageUsersPage />} />
+          <Route path="/admin/users/:studentId/submissions" element={<StudentSubmissionHistoryPage />} />
           <Route path="*" element={<Navigate to="/login" replace />} />
         </Routes>
       </main>

@@ -6,6 +6,7 @@ const AuthContext = createContext(null);
 export function AuthProvider({ children }) {
   const [user, setUser] = useState(null);
   const [token, setToken] = useState(null);
+  const [authReady, setAuthReady] = useState(false);
 
   useEffect(() => {
     const storedToken = localStorage.getItem('sfv_token');
@@ -18,6 +19,8 @@ export function AuthProvider({ children }) {
         setUser(null);
       }
     }
+
+    setAuthReady(true);
   }, []);
 
   const login = async (email, password) => {
@@ -112,10 +115,12 @@ export function AuthProvider({ children }) {
         setUser(null);
       }
     }
+
+    setAuthReady(true);
   };
 
   return (
-    <AuthContext.Provider value={{ user, token, login, register, logout, syncUserFromStorage }}>
+    <AuthContext.Provider value={{ user, token, authReady, login, register, logout, syncUserFromStorage }}>
       {children}
     </AuthContext.Provider>
   );

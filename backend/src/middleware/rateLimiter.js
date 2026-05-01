@@ -3,6 +3,30 @@ const rateLimit = require('express-rate-limit');
 // More lenient in development mode
 const isProduction = process.env.NODE_ENV === 'production';
 
+function isLocalDevelopmentIp(ipAddress = '') {
+  return (
+    ipAddress === '::1'
+    || ipAddress === '127.0.0.1'
+    || ipAddress.startsWith('::ffff:127.0.0.1')
+    || ipAddress.startsWith('10.')
+    || ipAddress.startsWith('192.168.')
+    || /^172\.(1[6-9]|2\d|3[0-1])\./.test(ipAddress)
+  );
+}
+
+function shouldSkipRateLimit(req) {
+  if (isProduction) {
+    return false;
+  }
+
+  const forwardedFor = String(req.headers['x-forwarded-for'] || '')
+    .split(',')
+    .map((part) => part.trim())
+    .filter(Boolean);
+  const candidateIps = [req.ip, req.socket?.remoteAddress, ...forwardedFor].filter(Boolean);
+  return candidateIps.some((ipAddress) => isLocalDevelopmentIp(String(ipAddress)));
+}
+
 // General API rate limiter
 const apiLimiter = rateLimit({
   windowMs: parseInt(process.env.RATE_LIMIT_WINDOW_MS) || 15 * 60 * 1000, // 15 minutes default
@@ -13,6 +37,7 @@ const apiLimiter = rateLimit({
   },
   standardHeaders: true, // Return rate limit info in the `RateLimit-*` headers
   legacyHeaders: false, // Disable the `X-RateLimit-*` headers
+  skip: shouldSkipRateLimit,
 });
 
 // Rate limiter for form submissions
@@ -31,6 +56,7 @@ const submissionLimiter = rateLimit({
   standardHeaders: true, // Return rate limit info in headers
   legacyHeaders: false,
   skipSuccessfulRequests: false,
+  skip: shouldSkipRateLimit,
 });
 
 // Rate limiter for authentication endpoints
@@ -49,6 +75,7 @@ const authLimiter = rateLimit({
   standardHeaders: true,
   legacyHeaders: false,
   skipSuccessfulRequests: true, // Don't count successful requests
+  skip: shouldSkipRateLimit,
 });
 
 // Log rate limit settings on startup for debugging

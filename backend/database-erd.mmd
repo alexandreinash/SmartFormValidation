@@ -1,0 +1,113 @@
+erDiagram
+    users ||--o{ users : "account_id (self-ref)"
+    users ||--o{ forms : "creates"
+    users ||--o{ submissions : "submits"
+    users ||--o{ groups : "creates"
+    users ||--o{ group_members : "belongs_to"
+    users ||--o{ password_resets : "has"
+    users ||--o{ audit_logs : "performs"
+    
+    forms ||--o{ form_fields : "contains"
+    forms ||--o{ submissions : "receives"
+    forms ||--o{ form_permissions : "shared_with"
+    
+    form_fields ||--o{ submission_data : "has_value"
+    
+    submissions ||--o{ submission_data : "contains"
+    
+    groups ||--o{ group_members : "has"
+    groups ||--o{ form_permissions : "granted_to"
+
+    users {
+        int id PK
+        varchar username
+        varchar email UK
+        varchar password
+        enum role
+        int account_id FK
+        boolean is_account_owner
+        datetime created_at
+    }
+
+    forms {
+        int id PK
+        varchar title
+        int created_by FK
+        int account_id FK
+        datetime created_at
+    }
+
+    form_fields {
+        int id PK
+        int form_id FK
+        varchar label
+        enum type
+        boolean is_required
+        boolean ai_validation_enabled
+        varchar expected_entity
+        varchar expected_sentiment
+        text options
+    }
+
+    submissions {
+        int id PK
+        int form_id FK
+        int submitted_by FK
+        datetime submitted_at
+    }
+
+    submission_data {
+        int id PK
+        int submission_id FK
+        int field_id FK
+        text value
+        boolean ai_sentiment_flag
+        boolean ai_entity_flag
+        boolean ai_not_evaluated
+        text ai_errors
+    }
+
+    groups {
+        int id PK
+        varchar name
+        text description
+        int created_by FK
+        int account_id FK
+        datetime created_at
+    }
+
+    group_members {
+        int id PK
+        int group_id FK
+        int user_id FK
+        enum role
+        datetime joined_at
+    }
+
+    form_permissions {
+        int id PK
+        int form_id FK
+        int group_id FK
+        enum permission_type
+        datetime granted_at
+    }
+
+    password_resets {
+        int id PK
+        int user_id FK
+        varchar token UK
+        datetime expires_at
+        datetime created_at
+        boolean used
+    }
+
+    audit_logs {
+        int id PK
+        int user_id FK
+        varchar action
+        varchar entity_type
+        int entity_id
+        text details
+        varchar ip_address
+        datetime created_at
+    }
