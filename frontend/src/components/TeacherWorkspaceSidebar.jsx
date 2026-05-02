@@ -111,7 +111,6 @@ function renderSidebarIcon(iconName, className = 'ufs-nav-icon') {
 
 const teacherMenuItems = [
   { key: 'builder', label: 'Create Form', href: '/admin/create-form', icon: 'builder' },
-  { key: 'quiz', label: 'Quiz Template', href: '/quiz-form', icon: 'quiz' },
   { key: 'review', label: 'Review Queue', href: '/admin/submissions/all', icon: 'review' },
   { key: 'forms', label: 'Manage Forms', href: '/admin/forms/all', icon: 'forms' },
 ];

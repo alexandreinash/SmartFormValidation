@@ -210,22 +210,6 @@ function AdminDashboard() {
             </button>
           </div>
 
-          {/* Create Quiz Form Card */}
-          <div className="admin-card">
-            <div className="admin-card-icon"><DashboardIcon name="quiz-template" /></div>
-            <h3 className="admin-card-title">Quiz Template</h3>
-            <p className="admin-card-description">
-              Start from a quiz-focused template when you want a faster setup for graded assessments.
-            </p>
-            <button
-              type="button"
-              className="admin-card-button"
-              onClick={() => navigate('/quiz-form')}
-            >
-              Open Quiz Template
-            </button>
-          </div>
-
           {/* View Submissions Card */}
           <div className="admin-card">
             <div className="admin-card-icon"><DashboardIcon name="submissions" /></div>

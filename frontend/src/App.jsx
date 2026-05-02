@@ -6,7 +6,6 @@ import CreateFormPage from './pages/CreateFormPage';
 import TextFormPage from './pages/TextFormPage';
 import EmailFormPage from './pages/EmailFormPage';
 import NumberFormPage from './pages/NumberFormPage';
-import QuizFormPage from './pages/QuizFormPage';
 import EditFormPage from './pages/EditFormPage';
 import EditQuizFormPage from './pages/EditQuizFormPage';
 import FormFillPage from './pages/FormFillPage';
@@ -59,7 +58,7 @@ function AppShell() {
           <Route path="/text-form" element={<TextFormPage />} />
           <Route path="/email-form" element={<EmailFormPage />} />
           <Route path="/number-form" element={<NumberFormPage />} />
-          <Route path="/quiz-form" element={<QuizFormPage />} />
+          <Route path="/quiz-form" element={<Navigate to="/admin/create-form" replace />} />
           <Route path="/forms" element={<Navigate to="/user/forms" replace />} />
           <Route path="/user/forms" element={<UserFormSelectionPage />} />
           <Route path="/user/textforms" element={<UserFormSelectionPage defaultTab="text" />} />

@@ -10,13 +10,38 @@ const QUIZ_TYPES = new Set(['multiple_choice', 'fill_blank', 'true_false']);
 
 const FIELD_TYPE_OPTIONS = [
   { value: 'text', label: 'Short Text' },
-  { value: 'textarea', label: 'Long Answer' },
   { value: 'email', label: 'Email' },
   { value: 'number', label: 'Number' },
+  { value: 'textarea', label: 'Long Answer' },
   { value: 'multiple_choice', label: 'Quiz: Multiple Choice' },
   { value: 'fill_blank', label: 'Quiz: Fill in the Blank' },
   { value: 'true_false', label: 'Quiz: True / False' },
 ];
+
+const FIELD_TYPE_GROUPS = [
+  {
+    label: 'Standard Fields',
+    values: ['text', 'email', 'number', 'textarea'],
+  },
+  {
+    label: 'Quiz Fields',
+    values: ['multiple_choice', 'fill_blank', 'true_false'],
+  },
+];
+
+const FIELD_TYPE_DESCRIPTIONS = {
+  text: 'Best for short written responses such as names, titles, or brief answers.',
+  email: 'Captures a validated email address for follow-up or identity checks.',
+  number: 'Collects numeric data such as student IDs, scores, or quantities.',
+  textarea: 'Gives students room for detailed explanations, reflections, or essays.',
+  multiple_choice: 'Creates an auto-graded choice question with prepared answer options.',
+  fill_blank: 'Creates an auto-graded written response with case-sensitive matching rules.',
+  true_false: 'Creates an auto-graded binary response for quick concept checks.',
+};
+
+function getFieldTypeLabel(type) {
+  return FIELD_TYPE_OPTIONS.find((option) => option.value === type)?.label ?? 'Custom Field';
+}
 
 function createEmptyField(type = 'text') {
   const baseField = {
@@ -82,13 +107,6 @@ function createTemplateFields(templateKey) {
     ];
   }
 
-  if (templateKey === 'quiz') {
-    return [
-      { ...createEmptyField('multiple_choice'), label: 'Question 1' },
-      { ...createEmptyField('fill_blank'), label: 'Question 2' },
-    ];
-  }
-
   return [createEmptyField('text')];
 }
 
@@ -136,6 +154,12 @@ function buildApiField(field) {
     expected_sentiment: 'any',
     options: null,
   };
+}
+
+function getFilledOptions(field) {
+  return Array.isArray(field?.options)
+    ? field.options.filter((option) => option.trim() !== '')
+    : [];
 }
 
 function CreateFormPage() {
@@ -339,9 +363,6 @@ function CreateFormPage() {
               <button type="button" className="button button-secondary" onClick={() => applyTemplate('feedback')}>
                 Feedback Template
               </button>
-              <button type="button" className="button button-secondary" onClick={() => applyTemplate('quiz')}>
-                Quiz Starter
-              </button>
             </div>
           </div>
         </div>
@@ -359,67 +380,86 @@ function CreateFormPage() {
             />
           </div>
 
-          <div className="card" style={{ marginBottom: '1.5rem' }}>
-            <div className="summary-grid summary-grid-wide">
-              <div className="summary-card">
-                <div className="summary-label">Total Fields</div>
-                <div className="summary-value">{fields.length}</div>
+          <div className="create-form-summary-panel">
+            <div className="create-form-summary-head">
+              <div>
+                <div className="create-form-summary-kicker">Builder Snapshot</div>
+                <h3 className="create-form-summary-title">Track your form structure as you build.</h3>
               </div>
-              <div className="summary-card">
-                <div className="summary-label">Quiz Questions</div>
-                <div className="summary-value">{quizQuestionCount}</div>
+              <p className="create-form-summary-text">
+                Keep an eye on how many fields are active, how many quiz items you are grading, and how much AI review is enabled.
+              </p>
+            </div>
+            <div className="create-form-summary-grid">
+              <div className="create-form-summary-card">
+                <div className="create-form-summary-label">Total Fields</div>
+                <div className="create-form-summary-value">{fields.length}</div>
               </div>
-              <div className="summary-card">
-                <div className="summary-label">AI Enabled Fields</div>
-                <div className="summary-value">{fields.filter((field) => field.ai_validation_enabled).length}</div>
+              <div className="create-form-summary-card">
+                <div className="create-form-summary-label">Quiz Questions</div>
+                <div className="create-form-summary-value">{quizQuestionCount}</div>
+              </div>
+              <div className="create-form-summary-card">
+                <div className="create-form-summary-label">AI Enabled Fields</div>
+                <div className="create-form-summary-value">{fields.filter((field) => field.ai_validation_enabled).length}</div>
               </div>
             </div>
           </div>
 
           <div className="form-section">
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '1rem', flexWrap: 'wrap' }}>
+            <div className="form-fields-toolbar">
               <h3 className="form-section-title" style={{ marginBottom: 0 }}>Form Fields</h3>
-              <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
-                <button type="button" className="button button-secondary" onClick={() => addField('text')}>+ Text</button>
-                <button type="button" className="button button-secondary" onClick={() => addField('email')}>+ Email</button>
-                <button type="button" className="button button-secondary" onClick={() => addField('number')}>+ Number</button>
-                <button type="button" className="button button-secondary" onClick={() => addField('textarea')}>+ Long Answer</button>
-                <button type="button" className="button button-secondary" onClick={() => addField('multiple_choice')}>+ Quiz</button>
+              <div className="form-fields-actions">
+                <button
+                  type="button"
+                  className="create-form-add-field-button"
+                  onClick={() => addField('text')}
+                >
+                  + Add Field
+                </button>
               </div>
             </div>
             
-            {fields.map((field, index) => (
-              <div key={index} className="field-card">
-                <div className="field-label-row">
-                  <label className="field-label-text">Field Label</label>
-                  <div className="field-input-row">
-                    <div style={{ flex: 1, minWidth: '250px' }}>
-                      <input
-                        type="text"
-                        placeholder="Enter field label"
-                        value={field.label}
-                        onChange={(e) => updateField(index, 'label', e.target.value)}
-                        required
-                        className={`field-input field-input-yellow ${fieldErrors[index] ? 'field-input-error' : ''}`}
-                      />
-                      {fieldErrors[index] && (
-                        <div className="field-error-message">{fieldErrors[index]}</div>
-                      )}
+            {fields.map((field, index) => {
+              const isQuizField = QUIZ_TYPES.has(field.type);
+              const fieldTypeLabel = getFieldTypeLabel(field.type);
+              const fieldTypeDescription = FIELD_TYPE_DESCRIPTIONS[field.type] ?? 'Student-facing response field.';
+
+              return (
+              <div key={index} className={`field-card ${isQuizField ? 'field-card-quiz' : ''}`}>
+                <div className="field-card-header">
+                  <div className="field-card-heading">
+                    <div className="field-card-step">Field {String(index + 1).padStart(2, '0')}</div>
+                    <div className="field-card-title-group">
+                      <h4 className="field-card-title">{fieldTypeLabel}</h4>
+                      <p className="field-card-description">{fieldTypeDescription}</p>
                     </div>
-                    <select
-                      value={field.type}
-                      onChange={(e) => updateField(index, 'type', e.target.value)}
-                      className="field-type-button field-type-button-yellow"
-                    >
-                      {FIELD_TYPE_OPTIONS.map((option) => (
-                        <option key={option.value} value={option.value}>{option.label}</option>
-                      ))}
-                    </select>
+                  </div>
+                  <div className="field-card-header-actions">
+                    <div className="field-card-type-group">
+                      <label className="field-card-control-label">Response Type</label>
+                      <select
+                        value={field.type}
+                        onChange={(e) => updateField(index, 'type', e.target.value)}
+                        className="field-type-select"
+                      >
+                        {FIELD_TYPE_GROUPS.map((group) => (
+                          <optgroup key={group.label} label={group.label}>
+                            {group.values.map((value) => {
+                              const option = FIELD_TYPE_OPTIONS.find((item) => item.value === value);
+                              return option ? (
+                                <option key={option.value} value={option.value}>{option.label}</option>
+                              ) : null;
+                            })}
+                          </optgroup>
+                        ))}
+                      </select>
+                    </div>
                     {fields.length > 1 && (
                       <button
                         type="button"
                         onClick={() => removeField(index)}
-                        className="remove-field-button"
+                        className="remove-field-button field-card-remove-button"
                         title="Remove this field"
                       >
                         ×
@@ -427,32 +467,65 @@ function CreateFormPage() {
                     )}
                   </div>
                 </div>
-                <div className="field-options-row">
-                  <label className="field-checkbox">
-                    <input
-                      type="checkbox"
-                      checked={field.is_required}
-                      onChange={(e) => updateField(index, 'is_required', e.target.checked)}
-                      disabled={QUIZ_TYPES.has(field.type)}
-                    />
-                    <span>Required</span>
-                  </label>
-                  <label className="field-checkbox">
-                    <input
-                      type="checkbox"
-                      checked={field.ai_validation_enabled}
-                      onChange={(e) => updateField(index, 'ai_validation_enabled', e.target.checked)}
-                      disabled={QUIZ_TYPES.has(field.type)}
-                    />
-                    <span>AI Validation</span>
-                  </label>
-                  {QUIZ_TYPES.has(field.type) && (
-                    <span className="flag secondary">Quiz questions are always required and AI graded.</span>
-                  )}
+
+                <div className="field-card-body">
+                  <div className="field-card-main">
+                    <div className="field-label-row">
+                      <label className="field-label-text">Field Label</label>
+                      <div className="field-input-row field-input-row-single">
+                        <div className="field-label-input-group">
+                          <input
+                            type="text"
+                            placeholder="Enter field label"
+                            value={field.label}
+                            onChange={(e) => updateField(index, 'label', e.target.value)}
+                            required
+                            className={`field-input field-input-yellow ${fieldErrors[index] ? 'field-input-error' : ''}`}
+                          />
+                          {fieldErrors[index] && (
+                            <div className="field-error-message">{fieldErrors[index]}</div>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="field-card-settings">
+                    <div className="field-card-control-label">Field Settings</div>
+                    <div className="field-options-row field-options-row-card">
+                      <label className="field-checkbox">
+                        <input
+                          type="checkbox"
+                          checked={field.is_required}
+                          onChange={(e) => updateField(index, 'is_required', e.target.checked)}
+                          disabled={isQuizField}
+                        />
+                        <span>Required</span>
+                      </label>
+                      <label className="field-checkbox">
+                        <input
+                          type="checkbox"
+                          checked={field.ai_validation_enabled}
+                          onChange={(e) => updateField(index, 'ai_validation_enabled', e.target.checked)}
+                          disabled={isQuizField}
+                        />
+                        <span>AI Validation</span>
+                      </label>
+                    </div>
+                    {isQuizField && (
+                      <div className="field-card-note">Quiz questions are always required and AI graded automatically.</div>
+                    )}
+                  </div>
                 </div>
 
                 {field.type === 'multiple_choice' && (
                   <div className="quiz-options-section">
+                    {(() => {
+                      const filledOptions = getFilledOptions(field);
+                      const canSelectCorrectAnswer = filledOptions.length > 1;
+
+                      return (
+                        <>
                     <label className="field-label-text" style={{ marginBottom: '0.75rem', display: 'block' }}>
                       Answer Options
                     </label>
@@ -477,112 +550,136 @@ function CreateFormPage() {
                         )}
                       </div>
                     ))}
-                    <div style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap', marginTop: '0.75rem' }}>
-                      <button type="button" className="button button-secondary" onClick={() => addOption(index)}>
-                        Add Option
-                      </button>
-                      <select
-                        value={field.correct_answer}
-                        onChange={(e) => updateField(index, 'correct_answer', e.target.value)}
-                        className="field-input field-input-yellow"
-                        style={{ maxWidth: '240px' }}
-                      >
-                        <option value="">Select correct answer</option>
-                        {field.options.filter((option) => option.trim() !== '').map((option) => (
-                          <option key={option} value={option}>{option}</option>
-                        ))}
-                      </select>
-                      <input
-                        type="number"
-                        min="1"
-                        step="1"
-                        value={field.points}
-                        onChange={(e) => updateField(index, 'points', e.target.value)}
-                        className="field-input field-input-yellow"
-                        style={{ maxWidth: '120px' }}
-                        placeholder="Points"
-                      />
+                    <div className="quiz-controls-row">
+                      <div className="quiz-controls-stack">
+                        <select
+                          value={field.correct_answer}
+                          onChange={(e) => updateField(index, 'correct_answer', e.target.value)}
+                          className="field-input field-input-yellow quiz-answer-select"
+                          disabled={!canSelectCorrectAnswer}
+                        >
+                          <option value="">
+                            {canSelectCorrectAnswer ? 'Select correct answer' : 'Add at least two choices'}
+                          </option>
+                          {filledOptions.map((option) => (
+                            <option key={option} value={option}>{option}</option>
+                          ))}
+                        </select>
+                        <div className="quiz-controls-actions">
+                          <button type="button" className="button button-secondary quiz-add-option-button" onClick={() => addOption(index)}>
+                            Add Option
+                          </button>
+                          <div className="quiz-points-group">
+                            <div className="quiz-points-label">Points per question</div>
+                            <input
+                              type="number"
+                              min="1"
+                              step="1"
+                              value={field.points}
+                              onChange={(e) => updateField(index, 'points', e.target.value)}
+                              className="field-input field-input-yellow"
+                              placeholder="Points"
+                            />
+                          </div>
+                        </div>
+                      </div>
                     </div>
+                        </>
+                      );
+                    })()}
                   </div>
                 )}
 
                 {field.type === 'fill_blank' && (
                   <div className="quiz-options-section">
-                    <div style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap' }}>
+                    <div className="quiz-fill-blank-layout">
                       <input
                         type="text"
                         value={field.correct_answer}
                         onChange={(e) => updateField(index, 'correct_answer', e.target.value)}
                         placeholder="Correct answer"
-                        className="field-input field-input-yellow"
-                        style={{ flex: '1 1 240px' }}
+                        className="field-input field-input-yellow quiz-inline-primary quiz-fill-blank-answer"
                       />
-                      <select
-                        value={field.match_mode}
-                        onChange={(e) => updateField(index, 'match_mode', e.target.value)}
-                        className="field-input field-input-yellow"
-                        style={{ maxWidth: '220px' }}
-                      >
-                        <option value="case_insensitive">Case-insensitive match</option>
-                        <option value="case_sensitive">Case-sensitive match</option>
-                      </select>
-                      <input
-                        type="number"
-                        min="1"
-                        step="1"
-                        value={field.points}
-                        onChange={(e) => updateField(index, 'points', e.target.value)}
-                        className="field-input field-input-yellow"
-                        style={{ maxWidth: '120px' }}
-                        placeholder="Points"
-                      />
+                      <div className="quiz-fill-blank-meta">
+                        <select
+                          value={field.match_mode}
+                          onChange={(e) => updateField(index, 'match_mode', e.target.value)}
+                          className="field-input field-input-yellow quiz-inline-select quiz-match-select"
+                        >
+                          <option value="case_insensitive">Case-insensitive match</option>
+                          <option value="case_sensitive">Case-sensitive match</option>
+                        </select>
+                        <div className="quiz-points-group">
+                          <div className="quiz-points-label">Points per question</div>
+                          <input
+                            type="number"
+                            min="1"
+                            step="1"
+                            value={field.points}
+                            onChange={(e) => updateField(index, 'points', e.target.value)}
+                            className="field-input field-input-yellow"
+                            placeholder="Points"
+                          />
+                        </div>
+                      </div>
                     </div>
                   </div>
                 )}
 
                 {field.type === 'true_false' && (
                   <div className="quiz-options-section">
-                    <div style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap' }}>
+                    <div className="quiz-inline-row quiz-inline-row-compact">
                       <select
                         value={field.correct_answer}
                         onChange={(e) => updateField(index, 'correct_answer', e.target.value)}
-                        className="field-input field-input-yellow"
-                        style={{ maxWidth: '220px' }}
+                        className="field-input field-input-yellow quiz-inline-select quiz-binary-select"
                       >
                         <option value="True">True</option>
                         <option value="False">False</option>
                       </select>
-                      <input
-                        type="number"
-                        min="1"
-                        step="1"
-                        value={field.points}
-                        onChange={(e) => updateField(index, 'points', e.target.value)}
-                        className="field-input field-input-yellow"
-                        style={{ maxWidth: '120px' }}
-                        placeholder="Points"
-                      />
+                      <div className="quiz-points-group">
+                        <div className="quiz-points-label">Points per question</div>
+                        <input
+                          type="number"
+                          min="1"
+                          step="1"
+                          value={field.points}
+                          onChange={(e) => updateField(index, 'points', e.target.value)}
+                          className="field-input field-input-yellow"
+                          placeholder="Points"
+                        />
+                      </div>
                     </div>
                   </div>
                 )}
               </div>
-            ))}
+            );
+            })}
           </div>
 
-          <div style={{ display: 'flex', gap: '12px' }}>
-            <button
-              type="submit"
-              className="save-form-button save-form-button-yellow"
-            >
-              Save Form
-            </button>
-            <button
-              type="button"
-              onClick={handleSaveAndSend}
-              className="save-form-button save-form-button-blue"
-            >
-              Save and Send
-            </button>
+          <div className="create-form-action-panel">
+            <div className="create-form-action-copy">
+              <div className="create-form-summary-kicker">Publish Options</div>
+              <h3 className="create-form-action-title">Choose how you want to finish this form.</h3>
+              <p className="create-form-action-text">
+                Save it as a draft if you are still editing, or save and send when the structure is ready for students.
+              </p>
+            </div>
+            <div className="create-form-actions">
+              <button
+                type="submit"
+                className="save-form-button save-form-button-primary"
+              >
+                Save Form
+              </button>
+              <button
+                type="button"
+                onClick={handleSaveAndSend}
+                className="save-form-button save-form-button-secondary"
+              >
+                Save and Send
+              </button>
+            </div>
           </div>
 
           {message && (

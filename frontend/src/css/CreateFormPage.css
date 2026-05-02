@@ -256,6 +256,21 @@
   margin: 0 0 1.5rem 0;
 }
 
+.form-fields-toolbar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 1rem;
+  flex-wrap: wrap;
+  margin-bottom: 1rem;
+}
+
+.form-fields-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
 .form-section-subtitle {
   font-size: 1rem;
   font-weight: 500;
@@ -263,31 +278,223 @@
   margin: 0 0 1.5rem 0;
 }
 
-/* Field Card - White with Shadow */
+.create-form-summary-panel,
+.create-form-action-panel {
+  position: relative;
+  overflow: hidden;
+  border-radius: 28px;
+  border: 1px solid rgba(217, 202, 189, 0.78);
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.98), rgba(252, 247, 239, 0.95));
+  box-shadow: 0 24px 44px rgba(76, 33, 15, 0.08);
+}
+
+.create-form-summary-panel::before,
+.create-form-action-panel::before {
+  content: '';
+  position: absolute;
+  inset: 0 0 auto 0;
+  height: 4px;
+  background: linear-gradient(90deg, rgba(140, 29, 44, 0.94) 0%, rgba(201, 151, 45, 0.88) 100%);
+}
+
+.create-form-summary-panel {
+  margin-bottom: 1.75rem;
+  padding: 1.4rem 1.55rem 1.5rem;
+}
+
+.create-form-summary-head {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 1.5rem;
+  margin-bottom: 1.2rem;
+}
+
+.create-form-summary-kicker {
+  color: #8c1d2c;
+  font-size: 0.72rem;
+  font-weight: 800;
+  letter-spacing: 0.11em;
+  text-transform: uppercase;
+}
+
+.create-form-summary-title,
+.create-form-action-title {
+  margin: 0.35rem 0 0;
+  color: #4f1020;
+  font-size: 1.08rem;
+  font-weight: 700;
+  letter-spacing: -0.015em;
+}
+
+.create-form-summary-text,
+.create-form-action-text {
+  margin: 0;
+  max-width: 520px;
+  color: #6b7280;
+  font-size: 0.88rem;
+  line-height: 1.5;
+}
+
+.create-form-summary-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 1rem;
+}
+
+.create-form-summary-card {
+  padding: 1.15rem 1.2rem;
+  border-radius: 20px;
+  border: 1px solid rgba(217, 202, 189, 0.78);
+  background: linear-gradient(180deg, #fffdfa 0%, #fff7ea 100%);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.7);
+}
+
+.create-form-summary-label {
+  color: #8c1d2c;
+  font-size: 0.74rem;
+  font-weight: 800;
+  letter-spacing: 0.11em;
+  text-transform: uppercase;
+}
+
+.create-form-summary-value {
+  margin-top: 0.55rem;
+  color: #111827;
+  font-size: 1.78rem;
+  font-weight: 700;
+  line-height: 1;
+}
+
+/* Field Card */
 .field-card {
-  background: #ffffff;
-  border: 1px solid rgba(229, 231, 235, 0.5);
-  border-radius: 12px;
-  padding: 1.5rem;
-  margin-bottom: 1.25rem;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
-  transition: all 0.2s ease;
+  position: relative;
+  overflow: hidden;
+  background: linear-gradient(180deg, #ffffff 0%, #fdf8f1 100%);
+  border: 1px solid rgba(217, 202, 189, 0.82);
+  border-radius: 26px;
+  padding: 1.6rem;
+  margin-bottom: 1.5rem;
+  box-shadow: 0 20px 40px rgba(76, 33, 15, 0.08);
+  transition: border-color 0.2s ease, box-shadow 0.2s ease, transform 0.2s ease;
+}
+
+.field-card::before {
+  content: '';
+  position: absolute;
+  inset: 0 0 auto 0;
+  height: 4px;
+  background: linear-gradient(90deg, rgba(140, 29, 44, 0.96) 0%, rgba(201, 151, 45, 0.92) 100%);
 }
 
 .field-card:hover {
-  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+  border-color: rgba(201, 151, 45, 0.65);
+  box-shadow: 0 24px 42px rgba(76, 33, 15, 0.1);
+  transform: translateY(-1px);
+}
+
+.field-card-quiz {
+  background: linear-gradient(180deg, #ffffff 0%, #fcf7ef 100%);
+}
+
+.field-card-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1.5rem;
+  padding-bottom: 1.25rem;
+  border-bottom: 1px solid rgba(217, 202, 189, 0.55);
+}
+
+.field-card-heading {
+  display: flex;
+  gap: 1rem;
+  align-items: flex-start;
+  min-width: 0;
+}
+
+.field-card-step {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 92px;
+  padding: 0.55rem 0.85rem;
+  border-radius: 999px;
+  background: #fff1d6;
+  color: #8c1d2c;
+  font-size: 0.74rem;
+  font-weight: 800;
+  letter-spacing: 0.13em;
+  text-transform: uppercase;
+  box-shadow: inset 0 0 0 1px rgba(201, 151, 45, 0.32);
+}
+
+.field-card-title-group {
+  min-width: 0;
+}
+
+.field-card-title {
+  margin: 0;
+  font-size: 1.16rem;
+  font-weight: 700;
+  color: #4f1020;
+  letter-spacing: -0.02em;
+}
+
+.field-card-description {
+  margin: 0.35rem 0 0;
+  max-width: 620px;
+  color: #6b7280;
+  font-size: 0.88rem;
+  line-height: 1.5;
+}
+
+.field-card-header-actions {
+  display: flex;
+  align-items: flex-end;
+  gap: 0.85rem;
+  flex-shrink: 0;
+}
+
+.field-card-type-group {
+  width: min(100%, 320px);
+  min-width: 280px;
+}
+
+.field-card-control-label,
+.field-card .field-label-text {
+  display: block;
+  margin-bottom: 0.65rem;
+  color: #8c1d2c;
+  font-size: 0.8rem;
+  font-weight: 800;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.field-card-body {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(260px, 320px);
+  gap: 1.25rem;
+  align-items: start;
+  margin-top: 1.25rem;
+}
+
+.field-card-main,
+.field-card-settings,
+.field-label-input-group {
+  min-width: 0;
+}
+
+.field-card-settings {
+  padding: 1.1rem 1.15rem 1.2rem;
+  border-radius: 20px;
+  border: 1px solid rgba(217, 202, 189, 0.72);
+  background: linear-gradient(180deg, rgba(255, 250, 242, 0.96), rgba(255, 255, 255, 0.92));
 }
 
 .field-label-row {
-  margin-bottom: 1rem;
-}
-
-.field-label-text {
-  display: block;
-  font-size: 0.95rem;
-  font-weight: 600;
-  color: #111827;
-  margin-bottom: 0.5rem;
+  margin-bottom: 0;
 }
 
 .field-input-row {
@@ -295,6 +502,10 @@
   gap: 0.75rem;
   align-items: center;
   flex-wrap: wrap;
+}
+
+.field-input-row-single {
+  display: block;
 }
 
 .field-row {
@@ -344,6 +555,57 @@
 
 .field-type-button-yellow:hover {
   background: linear-gradient(135deg, #f59e0b, #d97706) !important;
+}
+
+.create-form-main .field-type-select {
+  width: 100%;
+  min-width: 0;
+  padding: 0.95rem 3.15rem 0.95rem 1.1rem !important;
+  border: 1px solid rgba(140, 29, 44, 0.14) !important;
+  border-radius: 18px !important;
+  background-color: #8c1d2c !important;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='14' height='18' viewBox='0 0 14 18' fill='none'%3E%3Cpath d='M4 7L7 4L10 7' stroke='white' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'/%3E%3Cpath d='M4 11L7 14L10 11' stroke='white' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E") !important;
+  background-repeat: no-repeat !important;
+  background-position: right 1.05rem center !important;
+  background-size: 0.85rem 1.05rem !important;
+  color: #fffdf8 !important;
+  font-size: 1rem;
+  font-weight: 600;
+  line-height: 1.2;
+  appearance: none;
+  -webkit-appearance: none;
+  -moz-appearance: none;
+  cursor: pointer;
+  box-shadow: 0 10px 18px rgba(140, 29, 44, 0.14) !important;
+  transition: transform 0.18s ease, box-shadow 0.18s ease, background-color 0.18s ease, border-color 0.18s ease;
+}
+
+.create-form-main .field-type-select:hover {
+  background-color: #781725 !important;
+  box-shadow: 0 12px 20px rgba(140, 29, 44, 0.18) !important;
+  transform: translateY(-1px);
+}
+
+.create-form-main .field-type-select:focus {
+  outline: none;
+  box-shadow: 0 0 0 4px rgba(140, 29, 44, 0.14), 0 12px 20px rgba(140, 29, 44, 0.18) !important;
+  transform: translateY(-1px);
+}
+
+.create-form-main .field-type-select optgroup {
+  background: #f7efe5;
+  color: #8c1d2c;
+  font-style: normal;
+  font-weight: 800;
+}
+
+.create-form-main .field-type-select option,
+.quiz-inline-select option,
+.create-form-main .quiz-answer-select option {
+  background: #fffdf9;
+  color: #111827;
+  font-size: 0.97rem;
+  font-weight: 600;
 }
 
 select.field-type-button-yellow {
@@ -409,6 +671,13 @@ select.field-type-button-yellow option {
   margin-top: 1rem;
 }
 
+.field-options-row-card {
+  margin-top: 0;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 0.8rem;
+}
+
 .add-field-button {
   padding: 0.625rem 1.25rem;
   background: #e0f2fe;
@@ -428,6 +697,25 @@ select.field-type-button-yellow option {
 .add-field-button:hover {
   background: #bae6fd;
   border-color: #7dd3fc;
+}
+
+.create-form-main .create-form-add-field-button {
+  padding: 0.85rem 1.4rem !important;
+  border: 1px solid rgba(191, 174, 154, 0.75) !important;
+  border-radius: 999px !important;
+  background: #fffdf9 !important;
+  color: #5b0c16 !important;
+  font-size: 0.96rem !important;
+  font-weight: 700 !important;
+  cursor: pointer;
+  box-shadow: 0 8px 18px rgba(76, 33, 15, 0.08) !important;
+  transition: background-color 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.create-form-main .create-form-add-field-button:hover {
+  background: #fff3dc !important;
+  border-color: #c9972d !important;
+  box-shadow: 0 12px 22px rgba(76, 33, 15, 0.12) !important;
 }
 
 .add-field-button-yellow {
@@ -460,6 +748,14 @@ select.field-type-button-yellow option {
   font-family: inherit;
 }
 
+.field-card-remove-button {
+  width: 44px;
+  height: 44px;
+  border-radius: 14px;
+  font-size: 1.35rem;
+  box-shadow: 0 8px 16px rgba(220, 38, 38, 0.12);
+}
+
 .remove-field-button:hover {
   background: #fecaca;
   border-color: #fca5a5;
@@ -470,14 +766,25 @@ select.field-type-button-yellow option {
 .field-checkbox {
   display: flex;
   align-items: center;
-  gap: 0.625rem;
+  justify-content: space-between;
+  gap: 0.75rem;
+  padding: 0.85rem 0.95rem;
+  border: 1px solid rgba(217, 202, 189, 0.7);
+  border-radius: 16px;
+  background: #ffffff;
   cursor: pointer;
   font-size: 0.9rem;
   color: #111827;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.5);
 }
 
 .field-checkbox:hover {
   color: var(--text-main);
+  border-color: rgba(201, 151, 45, 0.65);
+}
+
+.field-checkbox span {
+  font-weight: 600;
 }
 
 .field-checkbox input[type="checkbox"] {
@@ -522,16 +829,34 @@ select.field-type-button-yellow option {
   box-shadow: 0 0 0 3px rgba(251, 191, 36, 0.2);
 }
 
+.field-checkbox input[type="checkbox"]:disabled {
+  opacity: 0.65;
+  cursor: not-allowed;
+}
+
+.field-card-note {
+  margin-top: 0.9rem;
+  padding: 0.9rem 1rem;
+  border-radius: 16px;
+  background: rgba(140, 29, 44, 0.08);
+  color: #7d1726;
+  font-size: 0.9rem;
+  line-height: 1.5;
+  border: 1px solid rgba(140, 29, 44, 0.1);
+}
+
 /* Save Button - Yellow/Orange */
 .save-form-button {
-  padding: 0.875rem 2rem;
+  min-width: 180px;
+  padding: 1rem 1.6rem;
   background: var(--accent-active);
   color: var(--text-light);
   border: none;
-  border-radius: 0.5rem;
+  border-radius: 18px;
   cursor: pointer;
-  font-size: 1rem;
-  font-weight: 600;
+  font-size: 0.98rem;
+  font-weight: 700;
+  letter-spacing: 0.01em;
   transition: all 0.2s ease;
   margin-top: 1rem;
   box-shadow: var(--shadow-sm);
@@ -587,6 +912,55 @@ select.field-type-button-yellow option {
 
 .save-form-button:active {
   transform: translateY(0);
+}
+
+.create-form-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 1rem;
+  flex-wrap: wrap;
+  margin-top: 0;
+}
+
+.create-form-action-panel {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1.5rem;
+  margin-top: 1.9rem;
+  padding: 1.35rem 1.5rem;
+}
+
+.create-form-action-copy {
+  max-width: 560px;
+}
+
+.create-form-main .save-form-button {
+  margin-top: 0 !important;
+}
+
+.create-form-main .save-form-button.save-form-button-primary {
+  background: linear-gradient(135deg, #8c1d2c 0%, #741321 100%) !important;
+  color: #fffdf8 !important;
+  box-shadow: 0 14px 26px rgba(125, 23, 38, 0.24) !important;
+}
+
+.create-form-main .save-form-button.save-form-button-primary:hover {
+  background: linear-gradient(135deg, #a62435 0%, #891827 100%) !important;
+  box-shadow: 0 18px 32px rgba(125, 23, 38, 0.28) !important;
+}
+
+.create-form-main .save-form-button.save-form-button-secondary {
+  background: linear-gradient(180deg, #fffdf9 0%, #fff5e6 100%) !important;
+  color: #6c1623 !important;
+  border: 1px solid rgba(191, 174, 154, 0.78) !important;
+  box-shadow: 0 12px 24px rgba(76, 33, 15, 0.08) !important;
+}
+
+.create-form-main .save-form-button.save-form-button-secondary:hover {
+  background: linear-gradient(180deg, #fff7ea 0%, #ffeecf 100%) !important;
+  border-color: rgba(201, 151, 45, 0.9) !important;
+  box-shadow: 0 16px 28px rgba(76, 33, 15, 0.12) !important;
 }
 
 /* Message Styles */
@@ -788,6 +1162,36 @@ select.field-type-button-yellow option {
   transform: translateY(-1px);
 }
 
+@media (max-width: 1100px) {
+  .create-form-summary-head,
+  .create-form-action-panel {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .create-form-summary-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .field-card-header {
+    flex-direction: column;
+  }
+
+  .field-card-body {
+    grid-template-columns: 1fr;
+  }
+
+  .field-card-header-actions {
+    width: 100%;
+    justify-content: space-between;
+  }
+
+  .field-card-type-group {
+    width: 100%;
+    min-width: 0;
+  }
+}
+
 /* Responsive Design */
 @media (max-width: 768px) {
   .create-form-container {
@@ -831,6 +1235,48 @@ select.field-type-button-yellow option {
   .text-form-title {
     font-size: 1.75rem;
   }
+
+  .field-card {
+    padding: 1.2rem;
+    border-radius: 22px;
+  }
+
+  .create-form-summary-panel,
+  .create-form-action-panel {
+    padding: 1.15rem 1.1rem;
+    border-radius: 24px;
+  }
+
+  .create-form-summary-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .create-form-actions {
+    justify-content: flex-start;
+  }
+
+  .field-card-header,
+  .field-card-heading,
+  .field-card-header-actions {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .field-card-step {
+    align-self: flex-start;
+  }
+
+  .field-card-remove-button {
+    align-self: flex-start;
+  }
+
+  .field-card-settings {
+    padding: 1rem;
+  }
+
+  .save-form-button {
+    width: 100%;
+  }
 }
 
 /* Quiz Form Styles */
@@ -840,6 +1286,159 @@ select.field-type-button-yellow option {
   background: #f9fafb;
   border-radius: 8px;
   border: 1px solid #e5e7eb;
+}
+
+.quiz-controls-row {
+  display: block;
+  margin-top: 0.75rem;
+}
+
+.create-form-main .quiz-add-option-button {
+  min-height: 56px;
+  width: 100%;
+  max-width: 196px;
+  padding: 0.95rem 1.1rem !important;
+  justify-content: center;
+}
+
+.quiz-controls-stack {
+  width: 100%;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.9rem;
+}
+
+.quiz-controls-actions {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 1rem;
+  width: 100%;
+}
+
+.quiz-controls-stack .field-input,
+.quiz-inline-row .field-input,
+.quiz-points-group .field-input {
+  min-width: 0;
+  flex: 0 1 auto;
+}
+
+.quiz-inline-row {
+  display: flex;
+  align-items: flex-end;
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+
+.quiz-inline-row-wide {
+  flex-wrap: nowrap;
+}
+
+.quiz-fill-blank-layout {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.quiz-fill-blank-meta {
+  display: flex;
+  align-items: flex-end;
+  justify-content: flex-end;
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+
+.quiz-inline-primary {
+  flex: 1 1 360px;
+}
+
+.quiz-fill-blank-answer {
+  flex: 1 1 auto;
+  width: 100%;
+  max-width: none;
+}
+
+.quiz-inline-select {
+  min-height: 56px;
+  padding-right: 3rem !important;
+  appearance: none;
+  -webkit-appearance: none;
+  -moz-appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='14' height='18' viewBox='0 0 14 18' fill='none'%3E%3Cpath d='M4 7L7 4L10 7' stroke='%235b0c16' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'/%3E%3Cpath d='M4 11L7 14L10 11' stroke='%235b0c16' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E") !important;
+  background-repeat: no-repeat !important;
+  background-position: right 0.95rem center !important;
+  background-size: 0.85rem 1.05rem !important;
+  cursor: pointer;
+  transition: transform 0.18s ease, box-shadow 0.18s ease, border-color 0.18s ease, background-color 0.18s ease;
+}
+
+.quiz-match-select {
+  flex: 0 0 280px;
+  width: 280px;
+  max-width: 100%;
+}
+
+.quiz-binary-select {
+  flex: 0 1 320px;
+  width: 320px;
+  max-width: 100%;
+}
+
+.quiz-points-group {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  flex: 0 0 148px;
+  width: 148px;
+  max-width: 148px;
+  gap: 0.4rem;
+}
+
+.quiz-points-label {
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  text-align: left;
+  color: #8c1d2c;
+}
+
+.create-form-main .quiz-answer-select {
+  width: 100%;
+  min-height: 56px;
+  padding-right: 2.8rem !important;
+  appearance: none;
+  -webkit-appearance: none;
+  -moz-appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='14' height='18' viewBox='0 0 14 18' fill='none'%3E%3Cpath d='M4 7L7 4L10 7' stroke='%235b0c16' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'/%3E%3Cpath d='M4 11L7 14L10 11' stroke='%235b0c16' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E") !important;
+  background-repeat: no-repeat !important;
+  background-position: right 0.95rem center !important;
+  background-size: 0.85rem 1.05rem !important;
+  cursor: pointer;
+  transition: transform 0.18s ease, box-shadow 0.18s ease, border-color 0.18s ease, background-color 0.18s ease;
+}
+
+.create-form-main .quiz-answer-select:hover,
+.quiz-inline-select:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 12px 24px rgba(76, 33, 15, 0.1);
+}
+
+.create-form-main .quiz-answer-select:focus,
+.quiz-inline-select:focus {
+  transform: translateY(-1px);
+}
+
+.create-form-main .quiz-answer-select:disabled {
+  color: #9ca3af !important;
+  background-color: #f8fafc !important;
+  cursor: not-allowed;
+}
+
+.quiz-points-group .field-input {
+  width: 100%;
+  min-height: 56px;
 }
 
 .quiz-option-row {
@@ -863,4 +1462,41 @@ select.field-type-button-yellow option {
 
 .quiz-option-row input[type="text"] {
   flex: 1;
+}
+
+@media (max-width: 980px) {
+  .create-form-main .quiz-add-option-button,
+  .create-form-main .quiz-answer-select,
+  .quiz-inline-primary,
+  .quiz-inline-select,
+  .quiz-controls-stack,
+  .quiz-points-group {
+    width: 100%;
+  }
+
+  .quiz-controls-actions {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .quiz-inline-row {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .quiz-inline-row-wide {
+    flex-wrap: wrap;
+  }
+
+  .quiz-fill-blank-meta {
+    justify-content: flex-start;
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .quiz-points-group {
+    flex-basis: auto;
+    width: 100%;
+    max-width: none;
+  }
 }

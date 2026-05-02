@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useCallback } from 'react';
+import React, { useEffect, useState, useCallback, useMemo } from 'react';
 import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import api from '../api';
 import { useAuth } from '../AuthContext';
@@ -97,6 +97,78 @@ function formatStatusLabel(status) {
   return String(status || 'pending_review')
     .replace(/_/g, ' ')
     .replace(/\b\w/g, (character) => character.toUpperCase());
+}
+
+function getSubmissionTimestamp(submission) {
+  const parsed = new Date(submission?.submitted_at || 0).getTime();
+  return Number.isNaN(parsed) ? 0 : parsed;
+}
+
+function getFinalGradeRatio(submission) {
+  const grading = submission.grading || {};
+  if (!grading.finalGradeMaxScore) {
+    return -1;
+  }
+
+  return Number(grading.finalGradeScore || 0) / Number(grading.finalGradeMaxScore || 1);
+}
+
+function getReviewPriority(submission, fallbackFormTitle = '') {
+  const gradeStatus = submission.grading?.gradeStatus || 'pending_review';
+
+  if (hasAiNotEvaluated(submission)) {
+    return 4;
+  }
+
+  if (hasAiIssues(submission, fallbackFormTitle)) {
+    return 3;
+  }
+
+  if (gradeStatus !== 'published') {
+    return 2;
+  }
+
+  return 1;
+}
+
+function getDateRangeStart(dateRange) {
+  if (dateRange === 'all_time') {
+    return null;
+  }
+
+  const now = new Date();
+  const start = new Date(now);
+  start.setHours(0, 0, 0, 0);
+
+  if (dateRange === 'today') {
+    return start;
+  }
+
+  if (dateRange === 'last_7_days') {
+    start.setDate(start.getDate() - 6);
+    return start;
+  }
+
+  if (dateRange === 'last_30_days') {
+    start.setDate(start.getDate() - 29);
+    return start;
+  }
+
+  return null;
+}
+
+function isSubmissionWithinDateRange(submission, dateRange) {
+  const start = getDateRangeStart(dateRange);
+  if (!start) {
+    return true;
+  }
+
+  const submittedAt = new Date(submission?.submitted_at || 0);
+  if (Number.isNaN(submittedAt.getTime())) {
+    return false;
+  }
+
+  return submittedAt >= start;
 }
 
 function normalizeFeedbackText(value) {
@@ -354,8 +426,14 @@ export default function FormSubmissionsPage() {
   const [submissions, setSubmissions] = useState([]);
   const [status, setStatus] = useState('');
   const [filter, setFilter] = useState('all');
+  const [searchTerm, setSearchTerm] = useState('');
+  const [sortBy, setSortBy] = useState('pending_first');
+  const [dateRange, setDateRange] = useState('all_time');
+  const [formFilter, setFormFilter] = useState('all');
+  const [exportAction, setExportAction] = useState('');
   const [viewingId, setViewingId] = useState(null);
   const [isBusy, setIsBusy] = useState(false);
+  const [activeSubmissionAction, setActiveSubmissionAction] = useState({ submissionId: null, type: '' });
   const [selectedSubmissions, setSelectedSubmissions] = useState([]);
   const [reviewDrafts, setReviewDrafts] = useState({});
 
@@ -421,45 +499,154 @@ export default function FormSubmissionsPage() {
     }
   }, [id, isAllSubmissions, lastMessage, loadSubmissions]);
 
-  const filteredSubmissions = submissions.filter((submission) => {
-    if (filter === 'all') {
+  const availableForms = useMemo(() => {
+    if (!isAllSubmissions) {
+      return [];
+    }
+
+    const uniqueForms = new Map();
+    submissions.forEach((submission) => {
+      if (submission.form?.id) {
+        uniqueForms.set(String(submission.form.id), submission.form.title || `Form #${submission.form.id}`);
+      }
+    });
+
+    return Array.from(uniqueForms, ([formId, title]) => ({ formId, title }))
+      .sort((left, right) => left.title.localeCompare(right.title));
+  }, [isAllSubmissions, submissions]);
+
+  const scopedSubmissions = useMemo(() => {
+    const query = searchTerm.trim().toLowerCase();
+
+    return submissions.filter((submission) => {
+      if (isAllSubmissions && formFilter !== 'all' && String(submission.form?.id) !== formFilter) {
+        return false;
+      }
+
+      if (!isSubmissionWithinDateRange(submission, dateRange)) {
+        return false;
+      }
+
+      if (!query) {
+        return true;
+      }
+
+      const haystack = [
+        `submission ${submission.id}`,
+        submission.form?.title,
+        submission.submitter?.email,
+        submission.submitter?.username,
+        formatStatusLabel(submission.grading?.gradeStatus),
+      ]
+        .filter(Boolean)
+        .join(' ')
+        .toLowerCase();
+
+      return haystack.includes(query);
+    });
+  }, [dateRange, formFilter, isAllSubmissions, searchTerm, submissions]);
+
+  const filterCounts = useMemo(() => ({
+    all: scopedSubmissions.length,
+    pending_review: scopedSubmissions.filter((submission) => submission.grading?.gradeStatus !== 'published').length,
+    published: scopedSubmissions.filter((submission) => submission.grading?.gradeStatus === 'published').length,
+    ai_flagged: scopedSubmissions.filter((submission) => hasAiIssues(submission, formInfo?.title)).length,
+    ai_not_evaluated: scopedSubmissions.filter(hasAiNotEvaluated).length,
+  }), [formInfo?.title, scopedSubmissions]);
+
+  const filteredSubmissions = useMemo(() => {
+    const nextItems = scopedSubmissions.filter((submission) => {
+      if (filter === 'all') {
+        return true;
+      }
+      if (filter === 'ai_flagged') {
+        return hasAiIssues(submission, formInfo?.title);
+      }
+      if (filter === 'ai_not_evaluated') {
+        return hasAiNotEvaluated(submission);
+      }
+      if (filter === 'pending_review') {
+        return submission.grading?.gradeStatus !== 'published';
+      }
+      if (filter === 'published') {
+        return submission.grading?.gradeStatus === 'published';
+      }
       return true;
-    }
-    if (filter === 'ai_flagged') {
-      return hasAiIssues(submission, formInfo?.title);
-    }
-    if (filter === 'ai_not_evaluated') {
-      return hasAiNotEvaluated(submission);
-    }
-    if (filter === 'pending_review') {
-      return submission.grading?.gradeStatus !== 'published';
-    }
-    if (filter === 'published') {
-      return submission.grading?.gradeStatus === 'published';
-    }
-    return true;
-  });
+    });
 
-  const isAllSelected = filteredSubmissions.length > 0 && selectedSubmissions.length === filteredSubmissions.length;
-  const totalSubmissions = submissions.length;
+    nextItems.sort((left, right) => {
+      if (sortBy === 'oldest') {
+        return getSubmissionTimestamp(left) - getSubmissionTimestamp(right);
+      }
+
+      if (sortBy === 'newest') {
+        return getSubmissionTimestamp(right) - getSubmissionTimestamp(left);
+      }
+
+      if (sortBy === 'ai_priority') {
+        const priorityDifference = getReviewPriority(right, formInfo?.title) - getReviewPriority(left, formInfo?.title);
+        if (priorityDifference !== 0) {
+          return priorityDifference;
+        }
+
+        return getSubmissionTimestamp(right) - getSubmissionTimestamp(left);
+      }
+
+      if (sortBy === 'highest_score') {
+        const ratioDifference = getFinalGradeRatio(right) - getFinalGradeRatio(left);
+        if (ratioDifference !== 0) {
+          return ratioDifference;
+        }
+
+        return getSubmissionTimestamp(right) - getSubmissionTimestamp(left);
+      }
+
+      const leftPublished = left.grading?.gradeStatus === 'published';
+      const rightPublished = right.grading?.gradeStatus === 'published';
+      if (leftPublished !== rightPublished) {
+        return leftPublished ? 1 : -1;
+      }
+
+      const priorityDifference = getReviewPriority(right, formInfo?.title) - getReviewPriority(left, formInfo?.title);
+      if (priorityDifference !== 0) {
+        return priorityDifference;
+      }
+
+      return getSubmissionTimestamp(right) - getSubmissionTimestamp(left);
+    });
+
+    return nextItems;
+  }, [filter, formInfo?.title, scopedSubmissions, sortBy]);
+
+  useEffect(() => {
+    const visibleIds = new Set(filteredSubmissions.map((submission) => submission.id));
+    setSelectedSubmissions((current) => {
+      const nextSelection = current.filter((submissionId) => visibleIds.has(submissionId));
+      return nextSelection.length === current.length ? current : nextSelection;
+    });
+  }, [filteredSubmissions]);
+
+  useEffect(() => {
+    if (!viewingId) {
+      return;
+    }
+
+    if (!filteredSubmissions.some((submission) => submission.id === viewingId)) {
+      setViewingId(null);
+      return;
+    }
+
+    window.requestAnimationFrame(() => {
+      const panel = document.querySelector(`[data-review-panel-id="${viewingId}"]`);
+      if (panel && typeof panel.scrollIntoView === 'function') {
+        panel.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      }
+    });
+  }, [filteredSubmissions, viewingId]);
+
   const totalAiFlagged = submissions.filter((submission) => hasAiIssues(submission, formInfo?.title)).length;
+  const totalPending = submissions.filter((submission) => submission.grading?.gradeStatus !== 'published').length;
   const totalAiNotEvaluated = submissions.filter(hasAiNotEvaluated).length;
-  const totalPublished = submissions.filter((submission) => submission.grading?.gradeStatus === 'published').length;
-  const averagePercentage = submissions.length === 0
-    ? 0
-    : Math.round(
-        submissions.reduce((total, submission) => {
-          const grading = submission.grading || {};
-          if (!grading.finalGradeMaxScore) {
-            return total;
-          }
-          return total + ((Number(grading.finalGradeScore || 0) / Number(grading.finalGradeMaxScore || 1)) * 100);
-        }, 0) / submissions.length
-      );
-
-  const toggleView = (submissionId) => {
-    setViewingId((current) => (current === submissionId ? null : submissionId));
-  };
 
   const handleReviewChange = (submissionId, field, value) => {
     setReviewDrafts((current) => ({
@@ -479,15 +666,6 @@ export default function FormSubmissionsPage() {
     ));
   };
 
-  const handleSelectAll = () => {
-    if (isAllSelected) {
-      setSelectedSubmissions([]);
-      return;
-    }
-
-    setSelectedSubmissions(filteredSubmissions.map((submission) => submission.id));
-  };
-
   const deleteSubmission = async (submissionId) => {
     if (!window.confirm('Are you sure you want to delete this submission?')) {
       return;
@@ -501,29 +679,6 @@ export default function FormSubmissionsPage() {
       await loadSubmissions();
     } catch (error) {
       setStatus(error.response?.data?.message || 'Failed to delete submission.');
-    } finally {
-      setIsBusy(false);
-    }
-  };
-
-  const deleteAllSubmissions = async () => {
-    const count = submissions.length;
-    if (!count) {
-      return;
-    }
-
-    if (!window.confirm(`Are you sure you want to delete all ${count} submission(s)? This action cannot be undone.`)) {
-      return;
-    }
-
-    try {
-      setIsBusy(true);
-      await api.delete('/api/submissions/all');
-      setSelectedSubmissions([]);
-      setStatus(`All ${count} submission(s) deleted.`);
-      await loadSubmissions();
-    } catch (error) {
-      setStatus(error.response?.data?.message || 'Failed to delete all submissions.');
     } finally {
       setIsBusy(false);
     }
@@ -555,6 +710,7 @@ export default function FormSubmissionsPage() {
   const generateGradeDraft = async (submissionId) => {
     try {
       setIsBusy(true);
+      setActiveSubmissionAction({ submissionId, type: 'generate' });
       await api.post(`/api/submissions/${submissionId}/generate-grade`);
       setStatus(`AI grading draft regenerated for submission #${submissionId}.`);
       await loadSubmissions();
@@ -563,6 +719,7 @@ export default function FormSubmissionsPage() {
       setStatus(error.response?.data?.message || 'Failed to generate AI grading draft.');
     } finally {
       setIsBusy(false);
+      setActiveSubmissionAction({ submissionId: null, type: '' });
     }
   };
 
@@ -601,9 +758,49 @@ export default function FormSubmissionsPage() {
   };
 
   const exportRows = buildGradeSheetRows(filteredSubmissions, isAllSubmissions);
+  const handleExportAction = (event) => {
+    const action = event.target.value;
+    setExportAction('');
+
+    if (action === 'csv') {
+      downloadGradeSheetCsv(exportRows);
+      return;
+    }
+
+    if (action === 'print') {
+      const printed = printGradeSheet(exportRows);
+      if (!printed) {
+        setStatus('Pop-up blocked. Allow pop-ups to print the grade sheet.');
+      }
+    }
+  };
+
+  const filterOptions = [
+    { key: 'all', label: 'All submissions' },
+    { key: 'pending_review', label: 'Pending review' },
+    { key: 'published', label: 'Published' },
+    { key: 'ai_flagged', label: 'AI flagged' },
+    { key: 'ai_not_evaluated', label: 'AI not evaluated' },
+  ];
+  const selectedFormOption = availableForms.find((form) => form.formId === formFilter);
+  const currentReviewIndex = filteredSubmissions.findIndex((submission) => submission.id === viewingId);
+  const activeReviewSubmission = currentReviewIndex >= 0 ? filteredSubmissions[currentReviewIndex] : null;
+
+  const openAdjacentReview = (direction) => {
+    if (currentReviewIndex < 0) {
+      return;
+    }
+
+    const nextSubmission = filteredSubmissions[currentReviewIndex + direction];
+    if (!nextSubmission) {
+      return;
+    }
+
+    setViewingId(nextSubmission.id);
+  };
 
   return (
-    <div className="page-heading">
+    <div className="page-heading submissions-review-page">
       <div className="page-header">
         <div>
           {isAllSubmissions ? (
@@ -648,64 +845,177 @@ export default function FormSubmissionsPage() {
       {status && <p className="status">{status}</p>}
 
       {submissions.length > 0 && (
-        <div className="card submissions-summary">
-          <div className="summary-header">
-            <div>
-              <h3>Overview</h3>
-              <p className="summary-subtitle">
-                Teacher-focused grading controls for AI-reviewed submissions.
-              </p>
-            </div>
-
-            <div className="filter-group">
-              <span className="filter-label">Filter submissions</span>
-              <div className="filter-chips" role="tablist" aria-label="Filter submissions">
-                {[
-                  { key: 'all', label: 'All' },
-                  { key: 'pending_review', label: 'Pending Review' },
-                  { key: 'published', label: 'Published' },
-                  { key: 'ai_flagged', label: 'AI Flagged' },
-                  { key: 'ai_not_evaluated', label: 'AI Not Evaluated' },
-                ].map((item) => (
-                  <button
-                    key={item.key}
-                    type="button"
-                    className={filter === item.key ? 'chip chip-active' : 'chip'}
-                    onClick={() => setFilter(item.key)}
-                  >
-                    {item.label}
-                  </button>
-                ))}
-              </div>
-            </div>
+        <div className="card submissions-summary submissions-summary-panel">
+          <div className="summary-panel-copy">
+            <div className="page-kicker">Review Snapshot</div>
+            <h3 className="summary-panel-title">Focus on the submissions that still need teacher action.</h3>
+            <p className="summary-subtitle">
+              Keep the high-level numbers here, then use the filters below to narrow the review queue.
+            </p>
           </div>
 
-          <div className="summary-grid summary-grid-wide">
+          <div className="summary-grid summary-grid-primary">
             <div className="summary-card">
-              <div className="summary-label">Total Submissions</div>
-              <div className="summary-value">{totalSubmissions}</div>
-            </div>
-            <div className="summary-card">
+                <div className="summary-label">Total in Queue</div>
+                <div className="summary-value">{submissions.length}</div>
+              </div>
+              <div className="summary-card">
               <div className="summary-label">Pending Review</div>
-              <div className="summary-value highlight-muted">{totalSubmissions - totalPublished}</div>
-            </div>
-            <div className="summary-card">
-              <div className="summary-label">Published Grades</div>
-              <div className="summary-value highlight-success">{totalPublished}</div>
+              <div className="summary-value highlight-muted">{totalPending}</div>
             </div>
             <div className="summary-card">
               <div className="summary-label">AI Flagged</div>
               <div className="summary-value highlight-danger">{totalAiFlagged}</div>
             </div>
             <div className="summary-card">
-              <div className="summary-label">AI Not Evaluated</div>
-              <div className="summary-value highlight-muted">{totalAiNotEvaluated}</div>
-            </div>
-            <div className="summary-card">
-              <div className="summary-label">Average Final Score</div>
-              <div className="summary-value">{averagePercentage}%</div>
+                <div className="summary-label">AI Not Evaluated</div>
+                <div className="summary-value highlight-danger">{totalAiNotEvaluated}</div>
             </div>
           </div>
+        </div>
+      )}
+
+      {submissions.length > 0 && (
+        <div className="card submissions-controls-panel">
+          <div className="submissions-controls-header">
+            <div>
+              <h3 className="submissions-section-title">Filter and sort the review queue</h3>
+              <p className="summary-subtitle">
+                Search by student or form, narrow by status, and export the filtered queue only when needed.
+              </p>
+            </div>
+
+            <div className="submissions-export-actions">
+              <label className="submission-control-group submission-control-group-export">
+                <span className="filter-label">Export queue</span>
+                <select
+                  className="submission-filter-select"
+                  value={exportAction}
+                  onChange={handleExportAction}
+                >
+                  <option value="">Choose export</option>
+                  <option value="csv">Download CSV</option>
+                  <option value="print">Print grade sheet</option>
+                </select>
+              </label>
+            </div>
+          </div>
+
+          <div className="submissions-controls-grid">
+            <label className="submission-control-group submission-control-group-search">
+              <span className="filter-label">Search queue</span>
+              <input
+                type="text"
+                className="submission-filter-input"
+                value={searchTerm}
+                onChange={(event) => setSearchTerm(event.target.value)}
+                placeholder="Search student, form, or submission ID"
+              />
+            </label>
+
+            {isAllSubmissions && (
+              <label className="submission-control-group">
+                <span className="filter-label">Filter by form</span>
+                <select
+                  className="submission-filter-select"
+                  value={formFilter}
+                  onChange={(event) => setFormFilter(event.target.value)}
+                >
+                  <option value="all">All forms</option>
+                  {availableForms.map((form) => (
+                    <option key={form.formId} value={form.formId}>{form.title}</option>
+                  ))}
+                </select>
+              </label>
+            )}
+
+            <label className="submission-control-group">
+              <span className="filter-label">Sort queue</span>
+              <select
+                className="submission-filter-select"
+                value={sortBy}
+                onChange={(event) => setSortBy(event.target.value)}
+              >
+                <option value="pending_first">Pending first</option>
+                <option value="newest">Newest first</option>
+                <option value="oldest">Oldest first</option>
+                <option value="ai_priority">AI priority first</option>
+                <option value="highest_score">Highest final score</option>
+              </select>
+            </label>
+
+            <label className="submission-control-group">
+              <span className="filter-label">Date range</span>
+              <select
+                className="submission-filter-select"
+                value={dateRange}
+                onChange={(event) => setDateRange(event.target.value)}
+              >
+                <option value="all_time">All time</option>
+                <option value="today">Today</option>
+                <option value="last_7_days">Last 7 days</option>
+                <option value="last_30_days">Last 30 days</option>
+              </select>
+            </label>
+          </div>
+
+          <div className="filter-group filter-group-inline">
+            <span className="filter-label">Review state</span>
+            <div className="filter-chips" role="tablist" aria-label="Filter submissions">
+              {filterOptions.map((item) => (
+                <button
+                  key={item.key}
+                  type="button"
+                  className={filter === item.key ? 'chip chip-active' : 'chip'}
+                  onClick={() => setFilter(item.key)}
+                >
+                  {item.label}
+                  <span className="chip-count">{filterCounts[item.key]}</span>
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {isAllSubmissions && ((formFilter !== 'all' && selectedFormOption) || selectedSubmissions.length > 0) && (
+            <div className="bulk-selection-bar">
+              <div className="bulk-selection-copy">
+                {selectedSubmissions.length > 0
+                  ? `${selectedSubmissions.length} submission${selectedSubmissions.length === 1 ? '' : 's'} selected in the current view.`
+                  : `Focused on ${selectedFormOption?.title}. Open the dedicated form queue when you want the single-form workspace.`}
+              </div>
+              <div className="submission-toolbar-actions bulk-selection-actions">
+                {formFilter !== 'all' && selectedFormOption && (
+                  <button
+                    type="button"
+                    className="button button-secondary"
+                    onClick={() => navigate(`/admin/forms/${selectedFormOption.formId}/submissions`)}
+                  >
+                    Open {selectedFormOption.title}
+                  </button>
+                )}
+                {selectedSubmissions.length > 0 && (
+                  <button
+                    type="button"
+                    className="button button-secondary"
+                    onClick={() => setSelectedSubmissions([])}
+                    disabled={isBusy}
+                  >
+                    Clear Selection
+                  </button>
+                )}
+                {selectedSubmissions.length > 0 && (
+                  <button
+                    type="button"
+                    className="button button-danger"
+                    onClick={deleteSelectedSubmissions}
+                    disabled={isBusy}
+                  >
+                    Delete Selected ({selectedSubmissions.length})
+                  </button>
+                )}
+              </div>
+            </div>
+          )}
         </div>
       )}
 
@@ -718,65 +1028,21 @@ export default function FormSubmissionsPage() {
         </div>
       ) : (
         <div className="card submissions-list">
-          <div className="submissions-header submissions-toolbar">
+          <div className="submissions-header">
             <div>
-              <h3>Submission grading queue</h3>
+              <h3 className="submissions-section-title">Submission grading queue</h3>
               <p className="summary-subtitle">
-                Showing {filteredSubmissions.length} submission{filteredSubmissions.length !== 1 ? 's' : ''} in the current filter.
+                Showing {filteredSubmissions.length} of {scopedSubmissions.length} submission{scopedSubmissions.length !== 1 ? 's' : ''} in the current queue scope.
               </p>
             </div>
-
-            <div className="submission-toolbar-actions">
-              <button
-                type="button"
-                className="button button-secondary"
-                onClick={() => downloadGradeSheetCsv(exportRows)}
-              >
-                Download CSV
-              </button>
-              <button
-                type="button"
-                className="button button-secondary"
-                onClick={() => {
-                  const printed = printGradeSheet(exportRows);
-                  if (!printed) {
-                    setStatus('Pop-up blocked. Allow pop-ups to print the grade sheet.');
-                  }
-                }}
-              >
-                Print Grade Sheet
-              </button>
-              {isAllSubmissions && (
-                <button
-                  type="button"
-                  className="button button-secondary"
-                  onClick={handleSelectAll}
-                  disabled={isBusy}
-                >
-                  {isAllSelected ? 'Clear Selection' : 'Select Filtered'}
-                </button>
-              )}
-              {isAllSubmissions && selectedSubmissions.length > 0 ? (
-                <button
-                  type="button"
-                  className="button button-danger"
-                  onClick={deleteSelectedSubmissions}
-                  disabled={isBusy}
-                >
-                  Delete Selected ({selectedSubmissions.length})
-                </button>
-              ) : isAllSubmissions ? (
-                <button
-                  type="button"
-                  className="button button-danger"
-                  onClick={deleteAllSubmissions}
-                  disabled={isBusy}
-                >
-                  Delete All
-                </button>
-              ) : null}
-            </div>
           </div>
+
+          {filteredSubmissions.length === 0 && (
+            <div className="empty-filter-state">
+              <h4>No submissions match the current filters</h4>
+              <p>Try clearing the search, changing the status chip, or switching the selected form.</p>
+            </div>
+          )}
 
           {filteredSubmissions.map((submission, index) => {
             const grading = submission.grading || {};
@@ -787,11 +1053,17 @@ export default function FormSubmissionsPage() {
               teacherFeedback: '',
             };
             const breakdownByField = new Map((grading.breakdown || []).map((item) => [item.fieldId, item]));
+            const hasAiFlag = hasAiIssues(submission, formInfo?.title);
+            const aiNotEvaluated = hasAiNotEvaluated(submission);
+            const answerCount = (submission.answers || []).length;
+            const isReviewOpen = viewingId === submission.id;
+            const isRegeneratingDraft = activeSubmissionAction.submissionId === submission.id
+              && activeSubmissionAction.type === 'generate';
 
             return (
-              <div key={submission.id} className="submission-block submission-block-detailed">
-                <div className="submission-header submission-header-stacked">
-                  <div className="submission-title-group">
+              <div key={submission.id} className="submission-block submission-block-detailed submission-row-shell">
+                <div className="submission-row-layout">
+                  <div className="submission-title-group submission-row-main">
                     {isAllSubmissions && (
                       <input
                         type="checkbox"
@@ -801,75 +1073,74 @@ export default function FormSubmissionsPage() {
                       />
                     )}
 
-                    <div>
-                      <h4 className="submission-title submission-title-rich">
-                        Submission #{submissionNumber}
-                        <span className={`status-pill status-pill-${grading.gradeStatus || 'pending_review'}`}>
-                          {(grading.gradeStatus || 'pending_review').replace('_', ' ')}
-                        </span>
-                        {hasAiIssues(submission, formInfo?.title) && <span className="status-pill status-pill-ai">AI reviewed</span>}
-                      </h4>
-                      <div className="submission-meta">
+                    <div className="submission-row-content">
+                      <div className="submission-row-topline">
+                        <div>
+                          <h4 className="submission-title submission-title-rich">Submission #{submissionNumber}</h4>
+                          <div className="submission-badge-row">
+                            <span className={`status-pill status-pill-${grading.gradeStatus || 'pending_review'}`}>
+                              {formatStatusLabel(grading.gradeStatus || 'pending_review')}
+                            </span>
+                            {hasAiFlag && <span className="status-pill status-pill-ai">AI Flagged</span>}
+                            {aiNotEvaluated && <span className="status-pill status-pill-muted">AI Not Evaluated</span>}
+                          </div>
+                        </div>
+
+                        <div className="submission-row-actions submission-row-actions-primary">
+                          <button
+                            type="button"
+                            className="button button-primary"
+                            onClick={() => setViewingId(submission.id)}
+                            disabled={isBusy || isReviewOpen}
+                          >
+                            {isReviewOpen ? 'Reviewing' : 'Open Review'}
+                          </button>
+                        </div>
+                      </div>
+
+                      <div className="submission-detail-grid">
                         {isAllSubmissions && submission.form && (
-                          <>
-                            <strong>Form:</strong> {submission.form.title} (#{submission.form.id})
-                            <br />
-                          </>
+                          <div className="submission-detail-card">
+                            <span className="submission-detail-label">Form</span>
+                            <strong>{submission.form.title}</strong>
+                            <small>#{submission.form.id}</small>
+                          </div>
                         )}
-                        <strong>Submitted:</strong> {new Date(submission.submitted_at).toLocaleString()}
-                        <br />
-                        <strong>Student:</strong> {submission.submitter?.email || 'Anonymous (cannot publish)'}
-                      </div>
-                    </div>
-                  </div>
-
-                  <div className="submission-side-panel">
-                    <div className="submission-actions">
-                      <button
-                        type="button"
-                        className="button button-secondary"
-                        onClick={() => toggleView(submission.id)}
-                        disabled={isBusy}
-                      >
-                        {viewingId === submission.id ? 'Hide Review' : 'Open Review'}
-                      </button>
-                      <button
-                        type="button"
-                        className="button button-secondary"
-                        onClick={() => generateGradeDraft(submission.id)}
-                        disabled={isBusy}
-                      >
-                        Regenerate AI Draft
-                      </button>
-                      <button
-                        type="button"
-                        className="button button-danger"
-                        onClick={() => deleteSubmission(submission.id)}
-                        disabled={isBusy}
-                      >
-                        Delete
-                      </button>
-                    </div>
-
-                    <div className="grading-quick-stats">
-                      <div className="grading-quick-card">
-                        <span className="grading-quick-label">AI Draft</span>
-                        <strong>{formatGrade(grading.aiGradeScore, grading.aiGradeMaxScore)}</strong>
-                      </div>
-                      <div className="grading-quick-card">
-                        <span className="grading-quick-label">Final Grade</span>
-                        <strong>{formatGrade(grading.finalGradeScore, grading.finalGradeMaxScore)}</strong>
-                      </div>
-                      <div className="grading-quick-card">
-                        <span className="grading-quick-label">Published</span>
-                        <strong>{grading.publishedAt ? new Date(grading.publishedAt).toLocaleString() : 'Not yet'}</strong>
+                        <div className="submission-detail-card">
+                          <span className="submission-detail-label">Student</span>
+                          <strong>{submission.submitter?.email || 'Anonymous'}</strong>
+                          {!submission.submitter && <small>Cannot receive published grades</small>}
+                        </div>
+                        <div className="submission-detail-card">
+                          <span className="submission-detail-label">Submitted</span>
+                          <strong>{new Date(submission.submitted_at).toLocaleString()}</strong>
+                        </div>
+                        <div className="submission-detail-card">
+                          <span className="submission-detail-label">Final Grade</span>
+                          <strong>{formatGrade(grading.finalGradeScore, grading.finalGradeMaxScore)}</strong>
+                          <small>{formatPercentage(grading.finalGradeScore, grading.finalGradeMaxScore)}</small>
+                        </div>
                       </div>
                     </div>
                   </div>
                 </div>
 
                 {viewingId === submission.id && (
-                  <div className="submission-review-body">
+                  <div className="submission-review-body" data-review-panel-id={submission.id}>
+                    <div className="submission-review-intro">
+                      <div>
+                        <div className="submission-detail-label">Review Workspace</div>
+                        <h5 className="review-panel-title">Finalize grading for Submission #{submissionNumber}</h5>
+                        <p className="summary-subtitle">
+                          Confirm the AI draft, adjust the final score if needed, and review answer-level notes before publishing.
+                        </p>
+                      </div>
+                      <div className="submission-review-intro-meta">
+                        <span className="review-intro-chip">{answerCount} answer{answerCount === 1 ? '' : 's'}</span>
+                        <span className="review-intro-chip">{formatStatusLabel(grading.gradeStatus || 'pending_review')}</span>
+                      </div>
+                    </div>
+
                     <section className="grading-review-card">
                       <div className="grading-review-header">
                         <div>
@@ -948,6 +1219,14 @@ export default function FormSubmissionsPage() {
                       <div className="grading-review-actions">
                         <button
                           type="button"
+                          className="button button-secondary"
+                          onClick={() => generateGradeDraft(submission.id)}
+                          disabled={isBusy}
+                        >
+                          {isRegeneratingDraft ? 'Regenerating…' : 'Regenerate AI Draft'}
+                        </button>
+                        <button
+                          type="button"
                           className="button button-primary"
                           onClick={() => saveTeacherReview(submission.id)}
                           disabled={isBusy}
@@ -962,11 +1241,27 @@ export default function FormSubmissionsPage() {
                         >
                           Publish to Student Account
                         </button>
+                        <button
+                          type="button"
+                          className="button button-secondary submission-danger-button"
+                          onClick={() => deleteSubmission(submission.id)}
+                          disabled={isBusy}
+                        >
+                          Delete Submission
+                        </button>
                       </div>
                     </section>
 
-                    <section>
-                      <h5 className="review-section-title">Answer inspection</h5>
+                    <section className="grading-review-card answer-inspection-card">
+                      <div className="grading-review-header grading-review-header-compact">
+                        <div>
+                          <h5 className="review-section-title">Answer inspection</h5>
+                          <p>
+                            Review field-by-field scoring notes, answer summaries, and AI issues before approving the final grade.
+                          </p>
+                        </div>
+                        <span className="answer-count-badge">{answerCount} answer{answerCount === 1 ? '' : 's'}</span>
+                      </div>
                       <ul className="answers-list">
                         {(submission.answers || []).map((answer) => {
                           const parsedErrors = parseAiErrors(answer.ai_errors);
@@ -1021,6 +1316,43 @@ export default function FormSubmissionsPage() {
               </div>
             );
           })}
+        </div>
+      )}
+
+      {activeReviewSubmission && (
+        <div className="review-sticky-nav" role="navigation" aria-label="Submission review navigator">
+          <div className="review-sticky-copy">
+            <span className="review-sticky-kicker">Review Navigator</span>
+            <strong>
+              {currentReviewIndex + 1} of {filteredSubmissions.length}
+            </strong>
+            <span>{activeReviewSubmission.submitter?.email || `Submission #${activeReviewSubmission.id}`}</span>
+          </div>
+          <div className="review-sticky-actions">
+            <button
+              type="button"
+              className="button button-secondary"
+              onClick={() => openAdjacentReview(-1)}
+              disabled={currentReviewIndex <= 0}
+            >
+              Previous
+            </button>
+            <button
+              type="button"
+              className="button button-secondary"
+              onClick={() => openAdjacentReview(1)}
+              disabled={currentReviewIndex === -1 || currentReviewIndex >= filteredSubmissions.length - 1}
+            >
+              Next
+            </button>
+            <button
+              type="button"
+              className="button button-primary"
+              onClick={() => setViewingId(null)}
+            >
+              Close Review
+            </button>
+          </div>
         </div>
       )}
     </div>
