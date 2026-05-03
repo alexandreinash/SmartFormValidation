@@ -27,6 +27,85 @@ if (process.env.GOOGLE_CLIENT_ID) {
   console.warn('[Google OAuth] Google sign-in will not work until GOOGLE_CLIENT_ID is configured');
 }
 
+function parseCsvEnv(value) {
+  return new Set(
+    String(value || '')
+      .split(',')
+      .map((entry) => entry.trim().toLowerCase())
+      .filter(Boolean)
+  );
+}
+
+function getEmailDomain(email) {
+  const normalizedEmail = String(email || '').trim().toLowerCase();
+  const atIndex = normalizedEmail.lastIndexOf('@');
+  return atIndex === -1 ? '' : normalizedEmail.slice(atIndex + 1);
+}
+
+function buildGoogleUsername(email) {
+  const base = String(email || 'user')
+    .split('@')[0]
+    .replace(/[^a-zA-Z0-9._-]/g, '_')
+    .slice(0, 32);
+
+  return `${base || 'user'}_${Math.random().toString(36).slice(2, 8)}`;
+}
+
+function evaluateGoogleAccountAccess(payload) {
+  const email = String(payload?.email || '').trim().toLowerCase();
+  const hostedDomain = String(payload?.hd || '').trim().toLowerCase();
+  const emailDomain = getEmailDomain(email);
+  const allowedEmails = parseCsvEnv(process.env.ALLOWED_GOOGLE_EMAILS);
+  const allowedDomains = parseCsvEnv(process.env.ALLOWED_GOOGLE_DOMAINS);
+
+  if (!email) {
+    return {
+      allowed: false,
+      message: 'Email not found in Google account',
+    };
+  }
+
+  if (payload?.email_verified === false) {
+    return {
+      allowed: false,
+      message: 'Your Google account email must be verified before you can sign in.',
+    };
+  }
+
+  if (!allowedEmails.size && !allowedDomains.size) {
+    return {
+      allowed: false,
+      message: 'Google sign-in access is not configured. Set ALLOWED_GOOGLE_DOMAINS or ALLOWED_GOOGLE_EMAILS on the backend first.',
+    };
+  }
+
+  if (allowedEmails.has(email)) {
+    return { allowed: true, email };
+  }
+
+  if (allowedDomains.has(emailDomain) || (hostedDomain && allowedDomains.has(hostedDomain))) {
+    return { allowed: true, email };
+  }
+
+  return {
+    allowed: false,
+    message: 'Only approved university Google accounts can sign in to this system.',
+  };
+}
+
+function resolveGoogleUserRole(email) {
+  const normalizedEmail = String(email || '').trim().toLowerCase();
+  const emailDomain = getEmailDomain(normalizedEmail);
+  const adminEmails = parseCsvEnv(process.env.GOOGLE_ADMIN_EMAILS);
+  const adminDomains = parseCsvEnv(process.env.GOOGLE_ADMIN_DOMAINS);
+
+  if (adminEmails.has(normalizedEmail) || adminDomains.has(emailDomain)) {
+    return 'admin';
+  }
+
+  return 'user';
+}
+
 // Validation chains used by the routes
 const validateRegister = [
   body('username').trim().notEmpty().withMessage('Username is required'),
@@ -410,18 +489,18 @@ async function googleLogin(req, res, next) {
         message: 'Failed to extract user information from Google token. Please try again.'
       });
     }
-    
-    const email = payload.email;
-    const googleId = payload.sub;
-    
-    if (!email) {
-      return res.status(400).json({ 
-        success: false, 
-        message: 'Email not found in Google account' 
+
+    const accessDecision = evaluateGoogleAccountAccess(payload);
+    if (!accessDecision.allowed) {
+      return res.status(403).json({
+        success: false,
+        message: accessDecision.message,
       });
     }
-    
-    // Check if user exists
+
+    const email = accessDecision.email;
+    const googleId = payload.sub;
+
     let user;
     try {
       user = await User.findOne({ where: { email } });
@@ -433,26 +512,21 @@ async function googleLogin(req, res, next) {
           message: 'Database connection error. Please check if the database server is running.'
         });
       }
-      // Re-throw other database errors to be caught by outer catch
       throw dbErr;
     }
-    
-    const isNewUser = !user;
-    
+
     if (!user) {
-      // For new Google users, create a temporary session token with verified email
-      // This avoids re-verifying the Google token (which causes audience mismatch)
       let sessionToken;
       try {
         sessionToken = jwt.sign(
-          { 
-            email: email,
-            googleId: googleId,
+          {
+            email,
+            googleId,
             type: 'google_role_selection',
             verified: true
           },
           process.env.JWT_SECRET || 'dev_secret',
-          { expiresIn: '10m' } // 10 minute expiry for role selection
+          { expiresIn: '10m' }
         );
       } catch (jwtErr) {
         console.error('[Google OAuth] Failed to create session token:', jwtErr);
@@ -461,17 +535,16 @@ async function googleLogin(req, res, next) {
           message: 'Failed to create authentication token. Please try again.'
         });
       }
-      
+
       return res.json({
         success: true,
         needsRoleSelection: true,
-        email: email,
-        sessionToken: sessionToken,
+        email,
+        sessionToken,
         message: 'Please select your role to complete registration',
       });
     }
-    
-    // Generate JWT token for existing users
+
     let token;
     try {
       token = jwt.sign(
@@ -498,7 +571,6 @@ async function googleLogin(req, res, next) {
     
     return res.json({
       success: true,
-      needsRoleSelection: false,
       data: { 
         token, 
         user: { id: user.id, email: user.email, role: user.role } 

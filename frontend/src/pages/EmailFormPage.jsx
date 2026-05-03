@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import api from '../api';
 import { useAuth } from '../AuthContext';
+import TeacherWorkspaceSidebar from '../components/TeacherWorkspaceSidebar';
 import '../css/CreateFormPage.css';
 import '../css/components.css';
 
@@ -15,21 +16,7 @@ function EmailFormPage() {
   const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
 
   const validateFieldLabel = (label) => {
-    if (!label.trim()) {
-      return ''; // Empty is handled by required attribute
-    }
-    
-    // Check if contains only numbers
-    if (/^\d+$/.test(label.trim())) {
-      return 'Field label cannot contain only numbers';
-    }
-    
-    // Check if contains @ symbol (required for email)
-    if (!label.includes('@')) {
-      return 'Field label must contain an email address (@ symbol)';
-    }
-    
-    return ''; // Valid
+    return label.trim() ? '' : '';
   };
 
   const updateField = (index, key, value) => {
@@ -126,51 +113,7 @@ function EmailFormPage() {
           </div>
         </div>
       )}
-      {/* Left Sidebar */}
-      <div className="create-form-sidebar">
-        <h2 className="sidebar-title">Forms</h2>
-        <div className="sidebar-nav-container">
-          <nav className="sidebar-nav sidebar-nav-box">
-            <Link to="/" className="sidebar-nav-item">
-              <span className="sidebar-icon">🏠</span>
-              <span>Home</span>
-            </Link>
-            <Link to="/text-form" className="sidebar-nav-item">
-              <span className="sidebar-icon">💬</span>
-              <span>Text Form</span>
-            </Link>
-            <Link to="/email-form" className="sidebar-nav-item sidebar-nav-item-active">
-              <span className="sidebar-icon">✉️</span>
-              <span>Email</span>
-            </Link>
-            <Link to="/number-form" className="sidebar-nav-item">
-              <span className="sidebar-icon">#</span>
-              <span>Number</span>
-            </Link>
-            <Link to="/admin" className="sidebar-nav-item">
-              <span className="sidebar-icon">⚙️</span>
-              <span>Settings</span>
-            </Link>
-          </nav>
-          <nav className="sidebar-nav sidebar-nav-box">
-            <button
-              type="button"
-              onClick={() => {
-                setShowLogoutConfirm(true);
-                localStorage.setItem('sfv_just_logged_out', 'true');
-                logout();
-                setTimeout(() => {
-                  navigate('/login');
-                }, 800);
-              }}
-              className="sidebar-nav-item sidebar-logout-button"
-            >
-              <span className="sidebar-icon">↗️</span>
-              <span>Log Out</span>
-            </button>
-          </nav>
-        </div>
-      </div>
+      <TeacherWorkspaceSidebar activeItem="email" />
 
       {/* Main Content */}
       <div className="create-form-main">

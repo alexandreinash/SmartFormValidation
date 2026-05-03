@@ -6,7 +6,6 @@ import CreateFormPage from './pages/CreateFormPage';
 import TextFormPage from './pages/TextFormPage';
 import EmailFormPage from './pages/EmailFormPage';
 import NumberFormPage from './pages/NumberFormPage';
-import QuizFormPage from './pages/QuizFormPage';
 import EditFormPage from './pages/EditFormPage';
 import EditQuizFormPage from './pages/EditQuizFormPage';
 import FormFillPage from './pages/FormFillPage';
@@ -20,10 +19,8 @@ import AnalyticsPage from './pages/AnalyticsPage';
 import DataDashboard from './pages/DataDashboard';
 import ManageGroupsPage from './pages/ManageGroupsPage';
 import ManageUsersPage from './pages/ManageUsersPage';
+import StudentSubmissionHistoryPage from './pages/StudentSubmissionHistoryPage';
 import LoginPage from './pages/LoginPage';
-import RegisterPage from './pages/RegisterPage';
-import ForgotPasswordPage from './pages/ForgotPasswordPage';
-import ResetPasswordPage from './pages/ResetPasswordPage';
 import HomePage from './pages/HomePage';
 import GoogleSignInNotification from './components/GoogleSignInNotification';
 
@@ -33,10 +30,7 @@ function AppShell() {
   const location = useLocation();
 
   const isAuthRoute =
-    location.pathname === '/login' || 
-    location.pathname === '/register' || 
-    location.pathname === '/forgot-password' || 
-    location.pathname === '/reset-password';
+    location.pathname === '/login';
   const isHomePage = location.pathname === '/';
   const isAdminDashboard = location.pathname === '/admin';
   const isFormCreationPage = 
@@ -59,16 +53,16 @@ function AppShell() {
         <Routes>
           <Route path="/" element={<HomePage />} />
           <Route path="/login" element={<LoginPage />} />
-          <Route path="/register" element={<RegisterPage />} />
-          <Route path="/forgot-password" element={<ForgotPasswordPage />} />
-          <Route path="/reset-password" element={<ResetPasswordPage />} />
+          <Route path="/register" element={<Navigate to="/login" replace />} />
+          <Route path="/forgot-password" element={<Navigate to="/login" replace />} />
+          <Route path="/reset-password" element={<Navigate to="/login" replace />} />
           <Route path="/admin" element={<AdminDashboard />} />
           <Route path="/admin/create-form" element={<CreateFormPage />} />
           <Route path="/text-form" element={<TextFormPage />} />
           <Route path="/email-form" element={<EmailFormPage />} />
           <Route path="/number-form" element={<NumberFormPage />} />
-          <Route path="/quiz-form" element={<QuizFormPage />} />
-          <Route path="/forms" element={<Navigate to="/all-forms" replace />} />
+          <Route path="/quiz-form" element={<Navigate to="/admin/create-form" replace />} />
+          <Route path="/forms" element={<Navigate to="/user/forms" replace />} />
           <Route path="/all-forms" element={<AllFormsPage />} />
           <Route path="/user/forms" element={<UserFormSelectionPage />} />
           <Route path="/user/textforms" element={<UserFormSelectionPage defaultTab="text" />} />
@@ -109,6 +103,7 @@ function AppShell() {
           <Route path="/data-dashboard" element={<DataDashboard />} />
           <Route path="/admin/groups" element={<ManageGroupsPage />} />
           <Route path="/admin/users" element={<ManageUsersPage />} />
+          <Route path="/admin/users/:studentId/submissions" element={<StudentSubmissionHistoryPage />} />
           <Route path="*" element={<Navigate to="/login" replace />} />
         </Routes>
       </main>

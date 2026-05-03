@@ -289,6 +289,7 @@ function ManageUsersPage() {
                   <th style={{ padding: '0.75rem', fontWeight: '600' }}>Role</th>
                   <th style={{ padding: '0.75rem', fontWeight: '600' }}>Account Owner</th>
                   <th style={{ padding: '0.75rem', fontWeight: '600' }}>Created At</th>
+                  <th style={{ padding: '0.75rem', fontWeight: '600' }}>Actions</th>
                 </tr>
               </thead>
               <tbody>
@@ -354,6 +355,19 @@ function ManageUsersPage() {
                         <span style={{ marginLeft: '0.5rem', color: '#999', fontStyle: 'italic', fontSize: '0.75rem' }}>
                           (You)
                         </span>
+                      )}
+                    </td>
+                    <td style={{ padding: '0.75rem' }}>
+                      {u.role === 'user' ? (
+                        <button
+                          type="button"
+                          className="button button-secondary"
+                          onClick={() => navigate(`/admin/users/${u.id}/submissions`, { state: { student: u } })}
+                        >
+                          View Submissions
+                        </button>
+                      ) : (
+                        <span style={{ color: '#999', fontSize: '0.875rem' }}>No history view</span>
                       )}
                     </td>
                   </tr>

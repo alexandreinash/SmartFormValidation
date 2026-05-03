@@ -8,44 +8,22 @@ function GoogleSignInNotification() {
   const location = useLocation();
   const [show, setShow] = useState(false);
   const [isLogout, setIsLogout] = useState(false);
-  const [isRegularLogin, setIsRegularLogin] = useState(false);
 
   useEffect(() => {
     // Note: Logout notifications are now handled directly on each page, not here
-    
-    // Check if user just logged in via regular email/password (check this first)
-    const justLoggedInRegular = localStorage.getItem('sfv_regular_just_logged_in');
-    
-    if (justLoggedInRegular === 'true' && user) {
-      setIsLogout(false);
-      setIsRegularLogin(true);
-      setShow(true);
-      // Remove the flag after showing
-      localStorage.removeItem('sfv_regular_just_logged_in');
-      
-      // Auto-hide after animation completes (0.8 seconds)
-      const timer = setTimeout(() => {
-        setShow(false);
-        setIsRegularLogin(false);
-      }, 800);
-      
-      return () => clearTimeout(timer);
-    }
-    
+
     // Check if user just logged in via Google (only check Google flag, not generic state)
     const justLoggedInGoogle = localStorage.getItem('sfv_google_just_logged_in');
     
     if (justLoggedInGoogle === 'true' && user) {
       setIsLogout(false);
-      setIsRegularLogin(true);
       setShow(true);
       // Remove the flag after showing
-      localStorage.removeItem('sfv_regular_just_logged_in');
+      localStorage.removeItem('sfv_google_just_logged_in');
       
       // Auto-hide after animation completes (0.8 seconds)
       const timer = setTimeout(() => {
         setShow(false);
-        setIsRegularLogin(false);
       }, 800);
       
       return () => clearTimeout(timer);
@@ -67,11 +45,9 @@ function GoogleSignInNotification() {
         <div className="google-signin-notification-text">
           {isLogout 
             ? 'You have successfully been logged out.' 
-            : isRegularLogin 
-            ? user?.role === 'admin'
-              ? `as an Admin - ${user?.email || ''}`
-              : `as a User - ${user?.email || ''}`
-            : `Successfully signed in with Google - ${user?.email || ''}`
+            : user?.role === 'admin'
+              ? `Signed in with your approved Google account as an Admin - ${user?.email || ''}`
+              : `Signed in with your approved Google account as a User - ${user?.email || ''}`
           }
         </div>
       </div>

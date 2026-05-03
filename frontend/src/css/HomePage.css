@@ -33,11 +33,21 @@
   opacity: 0.6;
 }
 
-/* Smart Form Validator Logo - Top Left with Yellow Box */
-.homepage-logo {
+.homepage-top-bar {
   position: absolute;
   top: 2rem;
   left: 2rem;
+  right: 2rem;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  z-index: 10;
+}
+
+/* Smart Form Validator Logo - Top Left with Yellow Box */
+.homepage-logo {
+  position: static;
   color: #000000;
   font-size: 0.875rem;
   font-weight: 700;
@@ -51,9 +61,7 @@
 
 /* Logout Button - Top Right with Yellow Box */
 .homepage-logout-button {
-  position: absolute;
-  top: 0.5rem;
-  right: 2rem;
+  position: static;
   padding: 0.5rem 1rem;
   background: #fbbf24;
   color: #000000;
