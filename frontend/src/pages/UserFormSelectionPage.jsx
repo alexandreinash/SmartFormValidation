@@ -68,6 +68,34 @@ function renderSidebarIcon(iconName, className = 'ufs-nav-icon') {
           <path d="M11.75 18.25H11.76" />
         </SidebarGlyph>
       );
+    case 'forms':
+      return (
+        <SidebarGlyph className={className}>
+          <path d="M6 5.5H18" />
+          <path d="M6 10.5H18" />
+          <path d="M6 15.5H18" />
+          <path d="M4 5.5H4.01" />
+          <path d="M4 10.5H4.01" />
+          <path d="M4 15.5H4.01" />
+        </SidebarGlyph>
+      );
+    case 'published':
+      return (
+        <SidebarGlyph className={className}>
+          <path d="M7 4.5H17" />
+          <path d="M7 4.5C5.34 4.5 4 5.84 4 7.5V16.5C4 18.16 5.34 19.5 7 19.5H17C18.66 19.5 20 18.16 20 16.5V7.5C20 5.84 18.66 4.5 17 4.5" />
+          <path d="M8 9.5H16" />
+          <path d="M8 13H13" />
+          <path d="M14 15.5L15.5 17L18 13.5" />
+        </SidebarGlyph>
+      );
+    case 'submitted':
+      return (
+        <SidebarGlyph className={className}>
+          <path d="M12 7V12L15 15" />
+          <path d="M12 21C16.97 21 21 16.97 21 12C21 7.03 16.97 3 12 3C7.03 3 3 7.03 3 12C3 16.97 7.03 21 12 21Z" />
+        </SidebarGlyph>
+      );
     case 'settings':
       return (
         <SidebarGlyph className={className}>
@@ -105,32 +133,13 @@ function getDisplayName(user) {
   return 'User';
 }
 
-function buildDefaultAvatar(displayName) {
-  const initial = (displayName || 'U').trim().charAt(0).toUpperCase() || 'U';
-  const svg = `
-    <svg xmlns="http://www.w3.org/2000/svg" width="80" height="80" viewBox="0 0 80 80">
-      <defs>
-        <linearGradient id="avatarGradient" x1="0%" y1="0%" x2="100%" y2="100%">
-          <stop offset="0%" stop-color="#98001f" />
-          <stop offset="100%" stop-color="#f59e0b" />
-        </linearGradient>
-      </defs>
-      <circle cx="40" cy="40" r="40" fill="url(#avatarGradient)" />
-      <text x="50%" y="54%" dominant-baseline="middle" text-anchor="middle" fill="#fffaf3" font-family="Arial, sans-serif" font-size="30" font-weight="700">${initial}</text>
-    </svg>
-  `;
-
-  return `data:image/svg+xml;charset=UTF-8,${encodeURIComponent(svg)}`;
-}
-
-function getProfileImage(user, fallbackAvatar) {
-  return user?.profilePicture
-    || user?.profile_picture
-    || user?.avatarUrl
-    || user?.avatar_url
-    || user?.avatar
-    || user?.picture
-    || fallbackAvatar;
+function getInitials(displayName) {
+  return String(displayName || 'User')
+    .split(' ')
+    .filter(Boolean)
+    .slice(0, 2)
+    .map((part) => part.charAt(0).toUpperCase())
+    .join('') || 'U';
 }
 
 function formatPublishedGrade(grading) {
@@ -152,20 +161,6 @@ function formatSubmissionStatus(grading) {
   return 'Pending Review';
 }
 
-function PanelToggleIcon({ isOpen }) {
-  return (
-    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
-      <path
-        d={isOpen ? 'M6 14L12 8L18 14' : 'M6 10L12 16L18 10'}
-        stroke="currentColor"
-        strokeWidth="2"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
-    </svg>
-  );
-}
-
 function UserFormSelectionPage({ defaultTab }) {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
@@ -185,19 +180,67 @@ function UserFormSelectionPage({ defaultTab }) {
   const [submissionHistoryStatus, setSubmissionHistoryStatus] = useState('');
   const [submissionHistoryLoading, setSubmissionHistoryLoading] = useState(false);
   const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
-  const [showPublishedGrades, setShowPublishedGrades] = useState(true);
-  const [showSubmittedForms, setShowSubmittedForms] = useState(true);
 
   const displayName = getDisplayName(user);
-  const defaultAvatar = buildDefaultAvatar(displayName);
-  const profileImage = getProfileImage(user, defaultAvatar);
+  const userInitials = getInitials(displayName);
 
   const formTypeMenuItems = [
-    { key: 'text', label: 'General Forms', icon: 'text' },
-    { key: 'email', label: 'Email', icon: 'email' },
-    { key: 'number', label: 'Number', icon: 'number' },
-    { key: 'quiz', label: 'Quiz', icon: 'quiz' }
+    { key: 'text', label: 'General Forms', icon: 'text', href: '/user/textforms' },
+    { key: 'email', label: 'Email', icon: 'email', href: '/user/emailforms' },
+    { key: 'number', label: 'Number', icon: 'number', href: '/user/numberforms' },
+    { key: 'quiz', label: 'Quiz', icon: 'quiz', href: '/user/quizforms' }
   ];
+  const formTabs = formTypeMenuItems.map((item) => item.key);
+  const isFormsActive = formTabs.includes(activeTab);
+  const showFormsCategoryTabs = formTabs.includes(activeTab);
+  const currentForms = activeTab === 'email'
+    ? emailForms
+    : activeTab === 'number'
+      ? numberForms
+      : activeTab === 'quiz'
+        ? quizForms
+        : textForms;
+  const currentFormView = activeTab === 'email'
+    ? {
+        emptyTitle: 'No Email Forms Available',
+        emptyText: 'There are no email forms available at the moment.',
+        description: 'Click below to fill out this email form. All fields are validated using AI-powered technology.',
+        actionLabel: 'Fill Out Form →',
+      }
+    : activeTab === 'number'
+      ? {
+          emptyTitle: 'No Number Forms Available',
+          emptyText: 'There are no number forms available at the moment.',
+          description: 'Click below to fill out this number form. All fields are validated using AI-powered technology.',
+          actionLabel: 'Fill Out Form →',
+        }
+      : activeTab === 'quiz'
+        ? {
+            emptyTitle: 'No Quiz Forms Available',
+            emptyText: 'There are no quiz forms available at the moment.',
+            description: 'Click below to take this quiz. Your score will be calculated automatically after submission.',
+            actionLabel: 'Take Quiz →',
+          }
+        : {
+            emptyTitle: 'No General Forms Available',
+            emptyText: 'There are no general forms available at the moment.',
+            description: 'Click below to fill out this form. Mixed field types and AI-assisted validation are supported where configured.',
+            actionLabel: 'Fill Out Form →',
+          };
+  const activeHeader = activeTab === 'published_grades'
+    ? {
+        title: 'Published Grades',
+        subtitle: 'Teacher-approved results appear here after the review and approval step.',
+      }
+    : activeTab === 'submitted_forms'
+      ? {
+          title: 'Submitted Forms',
+          subtitle: 'Track which forms you submitted and whether each one is still pending, reviewed, or published.',
+        }
+      : {
+          title: 'Available Forms',
+          subtitle: 'Select a form below to fill out and submit. All forms use AI-powered validation for better accuracy.',
+        };
 
   const handleLogout = () => {
     setShowLogoutConfirm(true);
@@ -206,6 +249,20 @@ function UserFormSelectionPage({ defaultTab }) {
     setTimeout(() => {
       navigate('/login');
     }, 800);
+  };
+
+  const handleActiveViewRefresh = () => {
+    if (activeTab === 'published_grades') {
+      loadPublishedGrades();
+      return;
+    }
+
+    if (activeTab === 'submitted_forms') {
+      loadSubmissionHistory();
+      return;
+    }
+
+    loadForms();
   };
 
   // Helper function to categorize form based on field types
@@ -468,18 +525,38 @@ function UserFormSelectionPage({ defaultTab }) {
               <span className="ufs-nav-label">Home</span>
             </Link>
 
-            {formTypeMenuItems.map((item) => (
-              <button
-                key={item.key}
-                type="button"
-                className={`ufs-nav-item ${activeTab === item.key ? 'ufs-nav-item-active' : ''}`}
-                aria-current={activeTab === item.key ? 'page' : undefined}
-                onClick={() => setActiveTab(item.key)}
+            <div className="ufs-nav-group">
+              <Link
+                to="/user/forms"
+                className={`ufs-nav-item ufs-nav-item-parent ${isFormsActive ? 'ufs-nav-item-active' : ''}`}
+                aria-current={isFormsActive ? 'page' : undefined}
               >
-                {renderSidebarIcon(item.icon)}
-                <span className="ufs-nav-label">{item.label}</span>
-              </button>
-            ))}
+                {renderSidebarIcon('forms')}
+                <span className="ufs-nav-label">Forms</span>
+              </Link>
+            </div>
+
+            {user?.role === 'user' && (
+              <>
+                <Link
+                  to="/user/published-grades"
+                  className={`ufs-nav-item ${activeTab === 'published_grades' ? 'ufs-nav-item-active' : ''}`}
+                  aria-current={activeTab === 'published_grades' ? 'page' : undefined}
+                >
+                  {renderSidebarIcon('published')}
+                  <span className="ufs-nav-label">Published Grades</span>
+                </Link>
+
+                <Link
+                  to="/user/submitted-forms"
+                  className={`ufs-nav-item ${activeTab === 'submitted_forms' ? 'ufs-nav-item-active' : ''}`}
+                  aria-current={activeTab === 'submitted_forms' ? 'page' : undefined}
+                >
+                  {renderSidebarIcon('submitted')}
+                  <span className="ufs-nav-label">Submitted Forms</span>
+                </Link>
+              </>
+            )}
           </div>
 
           {user?.role === 'admin' && (
@@ -513,31 +590,40 @@ function UserFormSelectionPage({ defaultTab }) {
           <div>
             <h1 
               className="user-form-selection-title clickable-title"
-              onClick={loadForms}
-              title="Click to refresh forms"
+              onClick={handleActiveViewRefresh}
+              title="Click to refresh"
             >
-              Available Forms
+              {activeHeader.title}
             </h1>
             <p className="user-form-selection-subtitle">
-              Select a form below to fill out and submit. All forms use AI-powered validation for better accuracy.
+              {activeHeader.subtitle}
             </p>
           </div>
           {user && (
             <div className="user-info">
               <div className="user-profile-badge">
-                <img
-                  src={profileImage}
-                  alt={`${displayName} profile`}
-                  className="user-avatar"
-                  onError={(event) => {
-                    event.currentTarget.src = defaultAvatar;
-                  }}
-                />
-                <div className="user-welcome">Welcome, <strong>{displayName}</strong></div>
+                <div className="user-avatar" aria-hidden="true">{userInitials}</div>
+                <div className="user-welcome">{displayName}</div>
               </div>
             </div>
           )}
         </div>
+
+        {showFormsCategoryTabs && (
+          <div className="forms-category-tabs" aria-label="Form categories">
+            {formTypeMenuItems.map((item) => (
+              <Link
+                key={item.key}
+                to={item.href}
+                className={`forms-category-tab ${activeTab === item.key ? 'forms-category-tab-active' : ''}`}
+                aria-current={activeTab === item.key ? 'page' : undefined}
+              >
+                {renderSidebarIcon(item.icon, 'forms-category-tab-icon')}
+                <span>{item.label}</span>
+              </Link>
+            ))}
+          </div>
+        )}
 
         {status && (
           <div className={`status-message ${status.includes('Failed') ? 'status-error' : 'status-success'}`}>
@@ -545,285 +631,140 @@ function UserFormSelectionPage({ defaultTab }) {
           </div>
         )}
 
-        {user?.role === 'user' && (
-          <>
-            <section className="published-grades-panel">
-              <div className="published-grades-header">
-                <div>
-                  <h2 className="published-grades-title">Published Grades</h2>
-                  <p className="published-grades-subtitle">
-                    Teacher-approved results appear here after the review and approval step.
-                  </p>
-                </div>
-                <div className="published-grades-header-actions">
-                  <div className="published-grades-count">{publishedGrades.length} published</div>
-                  <button
-                    type="button"
-                    className="panel-toggle-button"
-                    onClick={() => setShowPublishedGrades((current) => !current)}
-                    aria-expanded={showPublishedGrades}
-                    aria-label={showPublishedGrades ? 'Hide published grades' : 'Show published grades'}
-                  >
-                    <span>{showPublishedGrades ? 'Hide' : 'Show'}</span>
-                    <PanelToggleIcon isOpen={showPublishedGrades} />
-                  </button>
-                </div>
+        {activeTab === 'published_grades' && user?.role === 'user' ? (
+          <section className="published-grades-panel student-workspace-panel">
+            <div className="student-workspace-panel-toolbar">
+              <div className="published-grades-count">{publishedGrades.length} published</div>
+            </div>
+
+            {gradesLoading ? (
+              <div className="published-grades-empty">Loading published grades...</div>
+            ) : gradesStatus ? (
+              <div className="published-grades-empty published-grades-error">{gradesStatus}</div>
+            ) : publishedGrades.length === 0 ? (
+              <div className="published-grades-empty">
+                Your teacher has not published any grades to your account yet.
               </div>
+            ) : (
+              <div className="published-grades-grid">
+                {publishedGrades.map((submission) => {
+                  const grading = submission.grading || {};
+                  return (
+                    <article key={submission.id} className="published-grade-card">
+                      <div className="published-grade-card-header">
+                        <div>
+                          <h3>{submission.form?.title || `Form #${submission.form_id}`}</h3>
+                          <p>
+                            Published {grading.publishedAt ? new Date(grading.publishedAt).toLocaleString() : 'recently'}
+                          </p>
+                        </div>
+                        <div className="published-grade-score">{formatPublishedGrade(grading)}</div>
+                      </div>
 
-              {showPublishedGrades && (
-                gradesLoading ? (
-                  <div className="published-grades-empty">Loading published grades...</div>
-                ) : gradesStatus ? (
-                  <div className="published-grades-empty published-grades-error">{gradesStatus}</div>
-                ) : publishedGrades.length === 0 ? (
-                  <div className="published-grades-empty">
-                    Your teacher has not published any grades to your account yet.
-                  </div>
-                ) : (
-                  <div className="published-grades-grid">
-                    {publishedGrades.map((submission) => {
-                      const grading = submission.grading || {};
-                      return (
-                        <article key={submission.id} className="published-grade-card">
-                          <div className="published-grade-card-header">
-                            <div>
-                              <h3>{submission.form?.title || `Form #${submission.form_id}`}</h3>
-                              <p>
-                                Published {grading.publishedAt ? new Date(grading.publishedAt).toLocaleString() : 'recently'}
-                              </p>
-                            </div>
-                            <div className="published-grade-score">{formatPublishedGrade(grading)}</div>
-                          </div>
+                      <div className="published-grade-meta">
+                        Submitted {new Date(submission.submitted_at).toLocaleString()}
+                      </div>
 
-                          <div className="published-grade-meta">
+                      <div className="published-grade-feedback">
+                        {grading.finalFeedback || 'Your teacher approved this grade without additional notes.'}
+                      </div>
+                    </article>
+                  );
+                })}
+              </div>
+            )}
+          </section>
+        ) : activeTab === 'submitted_forms' && user?.role === 'user' ? (
+          <section className="published-grades-panel student-workspace-panel">
+            <div className="student-workspace-panel-toolbar">
+              <div className="published-grades-count">{submissionHistory.length} submitted</div>
+            </div>
+
+            {submissionHistoryLoading ? (
+              <div className="published-grades-empty">Loading submission history...</div>
+            ) : submissionHistoryStatus ? (
+              <div className="published-grades-empty published-grades-error">{submissionHistoryStatus}</div>
+            ) : submissionHistory.length === 0 ? (
+              <div className="published-grades-empty">
+                You have not submitted any forms yet.
+              </div>
+            ) : (
+              <div className="published-grades-grid">
+                {submissionHistory.map((submission) => {
+                  const grading = submission.grading || {};
+                  const statusLabel = formatSubmissionStatus(grading);
+                  const statusMessage = grading.gradeStatus === 'published'
+                    ? 'Your teacher has published this grade to your account.'
+                    : grading.gradeStatus === 'reviewed'
+                      ? 'Your submission was reviewed and is waiting to be published.'
+                      : 'Your submission was received and is waiting for teacher review.';
+
+                  return (
+                    <article key={submission.id} className="published-grade-card">
+                      <div className="published-grade-card-header">
+                        <div>
+                          <h3>{submission.form?.title || `Form #${submission.form_id}`}</h3>
+                          <p>
                             Submitted {new Date(submission.submitted_at).toLocaleString()}
-                          </div>
+                          </p>
+                        </div>
+                        <div className="published-grade-score">
+                          {grading.gradeStatus === 'published' ? formatPublishedGrade(grading) : statusLabel}
+                        </div>
+                      </div>
 
-                          <div className="published-grade-feedback">
-                            {grading.finalFeedback || 'Your teacher approved this grade without additional notes.'}
-                          </div>
-                        </article>
-                      );
-                    })}
-                  </div>
-                )
-              )}
-            </section>
+                      <div className="published-grade-meta">
+                        Status: {statusLabel}
+                      </div>
 
-            <section className="published-grades-panel">
-              <div className="published-grades-header">
-                <div>
-                  <h2 className="published-grades-title">Submitted Forms</h2>
-                  <p className="published-grades-subtitle">
-                    Track which forms you submitted and whether each one is still pending, reviewed, or published.
-                  </p>
-                </div>
-                <div className="published-grades-header-actions">
-                  <div className="published-grades-count">{submissionHistory.length} submitted</div>
-                  <button
-                    type="button"
-                    className="panel-toggle-button"
-                    onClick={() => setShowSubmittedForms((current) => !current)}
-                    aria-expanded={showSubmittedForms}
-                    aria-label={showSubmittedForms ? 'Hide submitted forms' : 'Show submitted forms'}
-                  >
-                    <span>{showSubmittedForms ? 'Hide' : 'Show'}</span>
-                    <PanelToggleIcon isOpen={showSubmittedForms} />
-                  </button>
-                </div>
+                      <div className="published-grade-feedback">
+                        {grading.gradeStatus === 'published'
+                          ? (grading.finalFeedback || 'Published without additional teacher notes.')
+                          : statusMessage}
+                      </div>
+                    </article>
+                  );
+                })}
               </div>
-
-              {showSubmittedForms && (
-                submissionHistoryLoading ? (
-                  <div className="published-grades-empty">Loading submission history...</div>
-                ) : submissionHistoryStatus ? (
-                  <div className="published-grades-empty published-grades-error">{submissionHistoryStatus}</div>
-                ) : submissionHistory.length === 0 ? (
-                  <div className="published-grades-empty">
-                    You have not submitted any forms yet.
-                  </div>
-                ) : (
-                  <div className="published-grades-grid">
-                    {submissionHistory.map((submission) => {
-                      const grading = submission.grading || {};
-                      const statusLabel = formatSubmissionStatus(grading);
-                      const statusMessage = grading.gradeStatus === 'published'
-                        ? 'Your teacher has published this grade to your account.'
-                        : grading.gradeStatus === 'reviewed'
-                          ? 'Your submission was reviewed and is waiting to be published.'
-                          : 'Your submission was received and is waiting for teacher review.';
-
-                      return (
-                        <article key={submission.id} className="published-grade-card">
-                          <div className="published-grade-card-header">
-                            <div>
-                              <h3>{submission.form?.title || `Form #${submission.form_id}`}</h3>
-                              <p>
-                                Submitted {new Date(submission.submitted_at).toLocaleString()}
-                              </p>
-                            </div>
-                            <div className="published-grade-score">
-                              {grading.gradeStatus === 'published' ? formatPublishedGrade(grading) : statusLabel}
-                            </div>
-                          </div>
-
-                          <div className="published-grade-meta">
-                            Status: {statusLabel}
-                          </div>
-
-                          <div className="published-grade-feedback">
-                            {grading.gradeStatus === 'published'
-                              ? (grading.finalFeedback || 'Published without additional teacher notes.')
-                              : statusMessage}
-                          </div>
-                        </article>
-                      );
-                    })}
-                  </div>
-                )
-              )}
-            </section>
-          </>
-        )}
-
-        {forms.length === 0 ? (
+            )}
+          </section>
+        ) : forms.length === 0 ? (
           <div className="empty-state-card">
             <h3>No forms available</h3>
             <p>There are no forms available at the moment. Please check back later.</p>
           </div>
         ) : (
           <div className="forms-section">
-              {activeTab === 'text' && (
-                <div className="forms-grid">
-                  {textForms.length === 0 ? (
-                    <div className="empty-state-card">
-                      <h3>No General Forms Available</h3>
-                      <p>There are no general forms available at the moment.</p>
-                    </div>
-                  ) : (
-                    textForms.map((form) => (
-                      <div key={form.id} className="form-selection-card">
-                        <div className="form-card-content">
-                          <div className="form-card-header">
-                            <h3 className="form-card-title">{form.title}</h3>
-                            <span className="form-id-badge">ID: #{form.id}</span>
-                          </div>
-                          <p className="form-card-description">
-                            Click below to fill out this form. Mixed field types and AI-assisted validation are supported where configured.
-                          </p>
-                          {form.creator && (
-                            <p className="form-card-creator">
-                              Created by: {form.creator.email}
-                            </p>
-                          )}
-                        </div>
-                        <Link to={`/forms/${form.id}`} className="form-fill-button">
-                          Fill Out Form →
-                        </Link>
-                      </div>
-                    ))
-                  )}
+            <div className="forms-grid">
+              {currentForms.length === 0 ? (
+                <div className="empty-state-card">
+                  <h3>{currentFormView.emptyTitle}</h3>
+                  <p>{currentFormView.emptyText}</p>
                 </div>
-              )}
-
-              {activeTab === 'email' && (
-                <div className="forms-grid">
-                  {emailForms.length === 0 ? (
-                    <div className="empty-state-card">
-                      <h3>No Email Forms Available</h3>
-                      <p>There are no email forms available at the moment.</p>
-                    </div>
-                  ) : (
-                    emailForms.map((form) => (
-                      <div key={form.id} className="form-selection-card">
-                        <div className="form-card-content">
-                          <div className="form-card-header">
-                            <h3 className="form-card-title">{form.title}</h3>
-                            <span className="form-id-badge">ID: #{form.id}</span>
-                          </div>
-                          <p className="form-card-description">
-                            Click below to fill out this email form. All fields are validated using AI-powered technology.
-                          </p>
-                          {form.creator && (
-                            <p className="form-card-creator">
-                              Created by: {form.creator.email}
-                            </p>
-                          )}
-                        </div>
-                        <Link to={`/forms/${form.id}`} className="form-fill-button">
-                          Fill Out Form →
-                        </Link>
+              ) : (
+                currentForms.map((form) => (
+                  <div key={form.id} className="form-selection-card">
+                    <div className="form-card-content">
+                      <div className="form-card-header">
+                        <h3 className="form-card-title">{form.title}</h3>
+                        <span className="form-id-badge">ID: #{form.id}</span>
                       </div>
-                    ))
-                  )}
-                </div>
-              )}
-
-              {activeTab === 'number' && (
-                <div className="forms-grid">
-                  {numberForms.length === 0 ? (
-                    <div className="empty-state-card">
-                      <h3>No Number Forms Available</h3>
-                      <p>There are no number forms available at the moment.</p>
+                      <p className="form-card-description">
+                        {currentFormView.description}
+                      </p>
+                      {form.creator && (
+                        <p className="form-card-creator">
+                          Created by: {form.creator.email}
+                        </p>
+                      )}
                     </div>
-                  ) : (
-                    numberForms.map((form) => (
-                      <div key={form.id} className="form-selection-card">
-                        <div className="form-card-content">
-                          <div className="form-card-header">
-                            <h3 className="form-card-title">{form.title}</h3>
-                            <span className="form-id-badge">ID: #{form.id}</span>
-                          </div>
-                          <p className="form-card-description">
-                            Click below to fill out this number form. All fields are validated using AI-powered technology.
-                          </p>
-                          {form.creator && (
-                            <p className="form-card-creator">
-                              Created by: {form.creator.email}
-                            </p>
-                          )}
-                        </div>
-                        <Link to={`/forms/${form.id}`} className="form-fill-button">
-                          Fill Out Form →
-                        </Link>
-                      </div>
-                    ))
-                  )}
-                </div>
+                    <Link to={`/forms/${form.id}`} className="form-fill-button">
+                      {currentFormView.actionLabel}
+                    </Link>
+                  </div>
+                ))
               )}
-
-              {activeTab === 'quiz' && (
-                <div className="forms-grid">
-                  {quizForms.length === 0 ? (
-                    <div className="empty-state-card">
-                      <h3>No Quiz Forms Available</h3>
-                      <p>There are no quiz forms available at the moment.</p>
-                    </div>
-                  ) : (
-                    quizForms.map((form) => (
-                      <div key={form.id} className="form-selection-card">
-                        <div className="form-card-content">
-                          <div className="form-card-header">
-                            <h3 className="form-card-title">{form.title}</h3>
-                            <span className="form-id-badge">ID: #{form.id}</span>
-                          </div>
-                          <p className="form-card-description">
-                            Click below to take this quiz. Your score will be calculated automatically after submission.
-                          </p>
-                          {form.creator && (
-                            <p className="form-card-creator">
-                              Created by: {form.creator.email}
-                            </p>
-                          )}
-                        </div>
-                        <Link to={`/forms/${form.id}`} className="form-fill-button">
-                          Take Quiz →
-                        </Link>
-                      </div>
-                    ))
-                  )}
-                </div>
-              )}
+            </div>
           </div>
         )}
       </div>

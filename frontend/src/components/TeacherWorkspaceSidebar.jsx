@@ -1,6 +1,8 @@
 import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../AuthContext';
+import TeacherWorkspaceUserBadge from './TeacherWorkspaceUserBadge';
+import '../css/TeacherWorkspaceSidebar.css';
 
 function SidebarGlyph({ className, children }) {
   return (
@@ -116,7 +118,7 @@ const teacherMenuItems = [
 ];
 
 export default function TeacherWorkspaceSidebar({ activeItem = 'home', onHomeClick }) {
-  const { user, logout } = useAuth();
+  const { logout } = useAuth();
   const navigate = useNavigate();
   const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
 
@@ -131,6 +133,8 @@ export default function TeacherWorkspaceSidebar({ activeItem = 'home', onHomeCli
 
   return (
     <>
+      <TeacherWorkspaceUserBadge />
+
       {showLogoutConfirm && (
         <div className="logout-confirmation-text">
           <div className="logout-confirmation-content">
@@ -145,7 +149,7 @@ export default function TeacherWorkspaceSidebar({ activeItem = 'home', onHomeCli
           </div>
         </div>
       )}
-      <div className="user-form-selection-sidebar teacher-workspace-sidebar">
+      <div className="teacher-workspace-sidebar">
         <div className="ufs-sidebar-header">
           <div className="ufs-sidebar-logo">
             {renderSidebarIcon('brand', 'ufs-logo-icon')}

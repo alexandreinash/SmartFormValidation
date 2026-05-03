@@ -91,13 +91,6 @@
   margin: 0 auto;
 }
 
-.admin-dashboard-user-floating {
-  position: absolute;
-  top: 2.5rem;
-  right: 3rem;
-  z-index: 6;
-}
-
 .admin-dashboard-header {
   display: flex;
   margin-bottom: 2.5rem;
@@ -124,43 +117,9 @@
   line-height: 1.5;
 }
 
-.admin-user-info {
-  display: flex;
-  justify-content: flex-end;
-  padding-top: 0;
-  margin-left: auto;
-}
-
-.admin-user-profile-badge {
-  display: flex;
-  align-items: center;
-  gap: 0.7rem;
-  padding: 0.45rem 0.8rem;
-  border-radius: 9px;
-  background: rgba(255, 255, 255, 0.92);
-  border: 1px solid rgba(209, 213, 219, 0.85);
-  box-shadow: 0 8px 18px rgba(15, 23, 42, 0.07);
-}
-
-.admin-user-avatar {
-  width: 36px;
-  height: 36px;
-  border-radius: 50%;
-  object-fit: cover;
-  border: 2px solid rgba(245, 158, 11, 0.18);
-  box-shadow: 0 6px 14px rgba(152, 0, 31, 0.16);
-  flex-shrink: 0;
-}
-
-.admin-user-welcome {
-  font-size: 0.82rem;
-  color: #6b7280;
-  font-weight: 500;
-}
-
-.admin-user-welcome strong {
-  color: #111827;
-  font-weight: 700;
+.teacher-topbar-user-badge-dashboard {
+  top: 2rem;
+  right: 3rem;
 }
 
 /* Welcome Title */
@@ -305,24 +264,14 @@
 }
 
 @media (max-width: 768px) {
-  .admin-dashboard-user-floating {
-    top: 1.5rem;
-    right: 1rem;
-  }
-
   .admin-dashboard-header {
     flex-direction: column;
     align-items: stretch;
   }
 
-  .admin-user-info {
-    justify-content: flex-start;
-    margin-left: 0;
-  }
-
-  .admin-user-profile-badge {
-    width: 100%;
-    justify-content: flex-start;
+  .teacher-topbar-user-badge-dashboard {
+    top: 1.25rem;
+    right: 1rem;
   }
 }
 

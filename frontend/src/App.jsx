@@ -44,6 +44,8 @@ function AppShell() {
     location.pathname === '/user/emailforms' ||
     location.pathname === '/user/numberforms' ||
     location.pathname === '/user/quizforms' ||
+    location.pathname === '/user/published-grades' ||
+    location.pathname === '/user/submitted-forms' ||
     location.pathname.includes('/admin/forms/') && (location.pathname.includes('/edit') || location.pathname.includes('/edit-quiz'));
 
   return (
@@ -69,6 +71,8 @@ function AppShell() {
           <Route path="/user/emailforms" element={<UserFormSelectionPage defaultTab="email" />} />
           <Route path="/user/numberforms" element={<UserFormSelectionPage defaultTab="number" />} />
           <Route path="/user/quizforms" element={<UserFormSelectionPage defaultTab="quiz" />} />
+          <Route path="/user/published-grades" element={<UserFormSelectionPage defaultTab="published_grades" />} />
+          <Route path="/user/submitted-forms" element={<UserFormSelectionPage defaultTab="submitted_forms" />} />
           <Route path="/forms/:id" element={<FormFillPage />} />
           <Route
             path="/admin/forms/:id/edit"

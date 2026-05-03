@@ -1,0 +1,65 @@
+.teacher-topbar-user-badge {
+  position: fixed;
+  top: 1.45rem;
+  right: 2rem;
+  z-index: 45;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.7rem;
+  padding: 0.65rem 0.9rem;
+  border-radius: 9px;
+  background: rgba(255, 255, 255, 0.96);
+  border: 1px solid rgba(226, 232, 240, 0.95);
+  box-shadow: 0 10px 24px rgba(15, 23, 42, 0.08);
+  backdrop-filter: blur(10px);
+}
+
+.teacher-topbar-user-avatar {
+  width: 2.05rem;
+  height: 2.05rem;
+  border-radius: 999px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(135deg, #ffd21a 0%, #efbb00 100%);
+  color: #5b0c16;
+  font-size: 0.84rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.4);
+  flex-shrink: 0;
+}
+
+.teacher-topbar-user-name {
+  color: #1f2937;
+  font-size: 0.92rem;
+  font-weight: 600;
+  line-height: 1;
+  white-space: nowrap;
+}
+
+@media (max-width: 1024px) {
+  .teacher-topbar-user-badge {
+    position: absolute;
+    top: 1rem;
+    right: 1rem;
+    padding: 0.62rem 0.82rem;
+  }
+}
+
+@media (max-width: 640px) {
+  .teacher-topbar-user-badge {
+    gap: 0.55rem;
+    padding: 0.52rem 0.72rem;
+  }
+
+  .teacher-topbar-user-avatar {
+    width: 1.82rem;
+    height: 1.82rem;
+    font-size: 0.78rem;
+  }
+
+  .teacher-topbar-user-name {
+    font-size: 0.86rem;
+  }
+}

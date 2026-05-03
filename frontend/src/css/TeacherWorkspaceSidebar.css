@@ -1,0 +1,276 @@
+.teacher-workspace-sidebar {
+  --teacher-sidebar-bg-start: #650014;
+  --teacher-sidebar-bg-end: #98001f;
+  --teacher-sidebar-line: rgba(255, 255, 255, 0.1);
+  --teacher-sidebar-text: rgba(255, 250, 243, 0.8);
+  --teacher-sidebar-text-strong: #fffaf3;
+  --teacher-sidebar-text-faint: rgba(255, 250, 243, 0.56);
+  --teacher-sidebar-active: #ffd21a;
+  --teacher-sidebar-active-text: #5b0c16;
+
+  width: 280px;
+  min-width: 280px;
+  height: 100vh;
+  flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
+  background: linear-gradient(180deg, var(--teacher-sidebar-bg-start) 0%, var(--teacher-sidebar-bg-end) 100%);
+  color: var(--teacher-sidebar-text-strong);
+  position: sticky;
+  top: 0;
+  align-self: flex-start;
+  overflow: hidden;
+  z-index: 10;
+}
+
+.teacher-workspace-sidebar .ufs-sidebar-header {
+  padding: 1.5rem;
+  border-bottom: 1px solid var(--teacher-sidebar-line);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-shrink: 0;
+}
+
+.teacher-workspace-sidebar .ufs-sidebar-logo {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  min-width: 0;
+}
+
+.teacher-workspace-sidebar .ufs-logo-icon {
+  width: 3rem;
+  height: 3rem;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--teacher-sidebar-active);
+  flex-shrink: 0;
+}
+
+.teacher-workspace-sidebar .ufs-logo-copy {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+}
+
+.teacher-workspace-sidebar .ufs-logo-text {
+  margin: 0;
+  color: var(--teacher-sidebar-text-strong);
+  font-size: 1.45rem;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  line-height: 1.1;
+}
+
+.teacher-workspace-sidebar .ufs-logo-subtitle {
+  color: var(--teacher-sidebar-text-faint);
+  font-size: 0.72rem;
+  font-weight: 600;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.teacher-workspace-sidebar .ufs-logo-icon svg,
+.teacher-workspace-sidebar .ufs-nav-icon svg,
+.teacher-workspace-sidebar .ufs-footer-icon svg {
+  width: 100%;
+  height: 100%;
+}
+
+.teacher-workspace-sidebar .ufs-sidebar-nav {
+  flex: 1;
+  min-height: 0;
+  padding: 1.15rem 1rem;
+  overflow-y: auto;
+}
+
+.teacher-workspace-sidebar .ufs-primary-nav {
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-start;
+  gap: 0.35rem;
+}
+
+.teacher-workspace-sidebar .ufs-nav-item {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 0.95rem;
+  padding: 0.95rem 1rem;
+  min-height: auto;
+  border: none;
+  border-radius: 0.95rem;
+  background: transparent;
+  color: var(--teacher-sidebar-text);
+  text-decoration: none;
+  font: inherit;
+  font-size: 0.97rem;
+  font-weight: 500;
+  line-height: 1.2;
+  text-align: left;
+  cursor: pointer;
+  box-shadow: none;
+  appearance: none;
+  transition: background-color 0.18s ease, color 0.18s ease, transform 0.18s ease;
+}
+
+.teacher-workspace-sidebar .ufs-nav-item:hover {
+  background-color: rgba(255, 255, 255, 0.1);
+  color: var(--teacher-sidebar-text-strong);
+  transform: translateX(2px);
+}
+
+.teacher-workspace-sidebar .ufs-nav-item-active,
+.teacher-workspace-sidebar .ufs-nav-item-active:hover {
+  background-color: var(--teacher-sidebar-active);
+  color: var(--teacher-sidebar-active-text);
+  transform: none;
+}
+
+.teacher-workspace-sidebar .ufs-nav-icon,
+.teacher-workspace-sidebar .ufs-footer-icon {
+  width: 1.25rem;
+  height: 1.25rem;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.teacher-workspace-sidebar .ufs-nav-label {
+  flex: 1;
+  min-width: 0;
+}
+
+.teacher-workspace-sidebar .ufs-sidebar-footer {
+  padding: 1rem;
+  border-top: 1px solid var(--teacher-sidebar-line);
+  display: flex;
+  flex-direction: column;
+  gap: 0.85rem;
+  margin-top: auto;
+  flex-shrink: 0;
+}
+
+.teacher-sidebar-user-card {
+  display: flex;
+  align-items: center;
+  gap: 0.85rem;
+  padding: 0.95rem 1rem;
+  border-radius: 1rem;
+  background-color: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.teacher-sidebar-user-avatar {
+  width: 2.65rem;
+  height: 2.65rem;
+  border-radius: 999px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background-color: var(--teacher-sidebar-active);
+  color: var(--teacher-sidebar-active-text);
+  font-size: 0.92rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  flex-shrink: 0;
+}
+
+.teacher-sidebar-user-copy {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.16rem;
+}
+
+.teacher-sidebar-user-name {
+  color: var(--teacher-sidebar-text-strong);
+  font-size: 0.95rem;
+  font-weight: 600;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.teacher-sidebar-user-email {
+  color: var(--teacher-sidebar-text-faint);
+  font-size: 0.76rem;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.teacher-workspace-sidebar .ufs-footer-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 0.55rem;
+}
+
+.teacher-workspace-sidebar .ufs-footer-button {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 0.9rem;
+  padding: 0.95rem 1rem;
+  border: none;
+  border-radius: 0.95rem;
+  background-color: rgba(255, 255, 255, 0.1);
+  color: var(--teacher-sidebar-text-strong);
+  font: inherit;
+  font-size: 0.97rem;
+  font-weight: 500;
+  text-align: center;
+  justify-content: center;
+  cursor: pointer;
+  appearance: none;
+  transition: background-color 0.18s ease, color 0.18s ease;
+}
+
+.teacher-workspace-sidebar .ufs-footer-button .ufs-nav-label {
+  flex: 0 0 auto;
+}
+
+.teacher-workspace-sidebar .ufs-footer-button:hover {
+  background-color: rgba(255, 255, 255, 0.18);
+  color: var(--teacher-sidebar-text-strong);
+}
+
+.teacher-workspace-sidebar .ufs-sidebar-version {
+  margin-top: 0.1rem;
+  text-align: center;
+  color: rgba(255, 255, 255, 0.7);
+  font-size: 0.72rem;
+  letter-spacing: 0.04em;
+}
+
+.teacher-workspace-sidebar .ufs-sidebar-cit {
+  text-align: center;
+  color: var(--teacher-sidebar-text-faint);
+  font-size: 0.68rem;
+  letter-spacing: 0.04em;
+}
+
+@media (max-width: 1024px) {
+  .teacher-workspace-sidebar {
+    width: 100%;
+    min-width: 0;
+    height: auto;
+    max-height: none;
+    position: relative;
+    top: auto;
+  }
+
+  .teacher-workspace-sidebar .ufs-sidebar-header {
+    padding: 1.35rem 1.25rem 1.1rem;
+  }
+
+  .teacher-workspace-sidebar .ufs-sidebar-nav,
+  .teacher-workspace-sidebar .ufs-sidebar-footer {
+    padding-left: 1rem;
+    padding-right: 1rem;
+  }
+}

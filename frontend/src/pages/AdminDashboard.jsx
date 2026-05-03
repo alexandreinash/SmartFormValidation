@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../AuthContext';
+import TeacherWorkspaceUserBadge from '../components/TeacherWorkspaceUserBadge';
 import '../css/AdminDashboard.css';
 import '../css/components.css';
 
@@ -86,57 +87,10 @@ function DashboardIcon({ name }) {
   }
 }
 
-function getDisplayName(user) {
-  if (!user) {
-    return 'User';
-  }
-
-  if (user.username && user.username.trim()) {
-    return user.username.trim();
-  }
-
-  if (user.email) {
-    return user.email.split('@')[0];
-  }
-
-  return 'User';
-}
-
-function buildDefaultAvatar(displayName) {
-  const initial = (displayName || 'U').trim().charAt(0).toUpperCase() || 'U';
-  const svg = `
-    <svg xmlns="http://www.w3.org/2000/svg" width="80" height="80" viewBox="0 0 80 80">
-      <defs>
-        <linearGradient id="adminAvatarGradient" x1="0%" y1="0%" x2="100%" y2="100%">
-          <stop offset="0%" stop-color="#98001f" />
-          <stop offset="100%" stop-color="#f59e0b" />
-        </linearGradient>
-      </defs>
-      <circle cx="40" cy="40" r="40" fill="url(#adminAvatarGradient)" />
-      <text x="50%" y="54%" dominant-baseline="middle" text-anchor="middle" fill="#fffaf3" font-family="Arial, sans-serif" font-size="30" font-weight="700">${initial}</text>
-    </svg>
-  `;
-
-  return `data:image/svg+xml;charset=UTF-8,${encodeURIComponent(svg)}`;
-}
-
-function getProfileImage(user, fallbackAvatar) {
-  return user?.profilePicture
-    || user?.profile_picture
-    || user?.avatarUrl
-    || user?.avatar_url
-    || user?.avatar
-    || user?.picture
-    || fallbackAvatar;
-}
-
 function AdminDashboard() {
-  const { user, logout } = useAuth();
+  const { logout } = useAuth();
   const navigate = useNavigate();
   const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
-  const displayName = getDisplayName(user);
-  const defaultAvatar = buildDefaultAvatar(displayName);
-  const profileImage = getProfileImage(user, defaultAvatar);
 
   const handleLogout = () => {
     setShowLogoutConfirm(true);
@@ -167,21 +121,7 @@ function AdminDashboard() {
       {/* Smart Form Validator Banner */}
       <div className="admin-banner">Smart Form Validator</div>
 
-      <div className="admin-dashboard-user-floating">
-        <div className="admin-user-info">
-          <div className="admin-user-profile-badge">
-            <img
-              src={profileImage}
-              alt={`${displayName} profile`}
-              className="admin-user-avatar"
-              onError={(event) => {
-                event.currentTarget.src = defaultAvatar;
-              }}
-            />
-            <div className="admin-user-welcome">Welcome, <strong>{displayName}</strong></div>
-          </div>
-        </div>
-      </div>
+      <TeacherWorkspaceUserBadge className="teacher-topbar-user-badge-dashboard" />
 
       {/* Main Content */}
       <div className="admin-dashboard-content">
